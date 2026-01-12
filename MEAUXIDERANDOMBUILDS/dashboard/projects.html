@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects | InnerAnimalMedia OS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#ff6b00',
+                            red: '#dc2626',
+                            dark: '#050507',
+                            panel: '#0a0a0f',
+                            surface: '#171717'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Theme System -->
+    <link rel="stylesheet" href="/shared/themes/base.css">
+    <link rel="stylesheet" href="/shared/themes/inneranimal-media.css">
+
+    <style>
+        body {
+            background-color: #050507;
+            color: #f4f4f5;
+            overflow: hidden;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+</head>
+
+<body class="flex h-screen selection:bg-orange-500/30">
+    <!-- Sidebar will be loaded by dashboard-layout-loader.js -->
+    <div id="sidebar-container"></div>
+
+    <!-- Temporary fallback sidebar (will be replaced by dashboard-layout-loader.js) -->
+    <aside id="sidebar"
+        class="w-64 bg-brand-panel border-r border-white/10 flex flex-col transition-all duration-300 z-40 relative"
+        style="display: none;">
+        <div class="h-20 flex items-center px-6 border-b border-white/5">
+            <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar"
+                alt="InnerAnimalMedia Logo"
+                class="w-12 h-12 rounded-xl shrink-0 shadow-lg shadow-orange-900/20 object-cover"
+                style="width: 48px; height: 48px;" />
+            <div class="ml-3 sidebar-text">
+                <h1 class="font-bold text-base tracking-tight text-white leading-tight">InnerAnimalMedia</h1>
+                <span class="text-[10px] text-zinc-500 font-mono tracking-wider">MEDIA OS v5.1</span>
+            </div>
+        </div>
+        <nav class="flex-1 overflow-y-auto p-4 space-y-8 custom-scrollbar">
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Hub
+                </div>
+                <div class="space-y-1">
+                    <a href="/dashboard"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white">
+                        <i data-lucide="home" class="w-4 h-4"></i> <span class="sidebar-text">Dashboard</span>
+                    </a>
+                    <a href="/dashboard/projects"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-orange text-white shadow-lg shadow-orange-900/20">
+                        <i data-lucide="briefcase" class="w-4 h-4"></i> <span class="sidebar-text">Projects</span>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">
+                    Infrastructure</div>
+                <div class="space-y-1">
+                    <a href="/dashboard/deployments"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white">
+                        <i data-lucide="rocket" class="w-4 h-4"></i> <span class="sidebar-text">Deployments</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-dark relative">
+        <!-- Unified Header -->
+        <header
+            class="h-20 border-b border-white/10 bg-brand-panel/95 backdrop-blur-md flex items-center justify-between px-8 z-30">
+            <div class="flex items-center gap-4 flex-1">
+                <div class="flex items-center gap-4 text-sm text-zinc-500">
+                    <i data-lucide="home" class="w-4 h-4 text-zinc-600"></i>
+                    <i data-lucide="chevron-right" class="w-3 h-3 text-zinc-700"></i>
+                    <span id="page-title"
+                        class="text-brand-orange font-semibold capitalize tracking-wide text-lg">Projects</span>
+                </div>
+                <!-- Search Bar -->
+                <div class="flex-1 max-w-md ml-8">
+                    <div class="relative">
+                        <i data-lucide="search"
+                            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500"></i>
+                        <input type="text" id="global-search" placeholder="Search projects..."
+                            class="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 focus:bg-black/30 transition-all" />
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="h-6 w-px bg-white/10"></div>
+                <button onclick="syncFromCloudflare()"
+                    class="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-medium transition-all text-zinc-300">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Sync
+                </button>
+                <button class="p-2 hover:bg-white/5 rounded-full text-zinc-400 relative">
+                    <i data-lucide="mail" class="w-5 h-5"></i>
+                    <span
+                        class="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-red rounded-full border-2 border-brand-panel"></span>
+                </button>
+                <button
+                    class="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-medium transition-all text-zinc-300">
+                    <i data-lucide="log-out" class="w-3 h-3"></i> Export
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            <div class="space-y-6 animate-fade-in">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-brand-surface border border-white/10 rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-zinc-500 uppercase tracking-wider">Total Projects</span>
+                            <i data-lucide="briefcase" class="w-5 h-5 text-blue-400"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-white" id="total-projects">-</div>
+                    </div>
+                    <div class="bg-brand-surface border border-white/10 rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-zinc-500 uppercase tracking-wider">Total Deployments</span>
+                            <i data-lucide="rocket" class="w-5 h-5 text-purple-400"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-white" id="total-deployments">-</div>
+                    </div>
+                    <div class="bg-brand-surface border border-white/10 rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-zinc-500 uppercase tracking-wider">Active Projects</span>
+                            <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-white" id="active-projects">-</div>
+                    </div>
+                </div>
+
+                <!-- Projects Grid -->
+                <div id="projects-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="col-span-full text-center py-12 text-zinc-500">
+                        <i data-lucide="loader" class="w-8 h-8 mx-auto mb-4 animate-spin"></i>
+                        <div>Loading projects...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Quick-Connect Container -->
+    <div id="quick-connect-container"></div>
+
+    <script src="/shared/layout.js"></script>
+    <script>
+        // Use relative API path - worker will handle routing
+        const API_BASE = window.location.origin;
+
+        async function syncFromCloudflare() {
+            const btn = event.target.closest('button');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="w-3 h-3 animate-spin"></i> Syncing...';
+            btn.disabled = true;
+
+            try {
+                // Sync deployments from Cloudflare
+                const deploymentsResponse = await fetch(`${window.location.origin}/api/deployments?sync=true&per_page=100`);
+                const deploymentsData = await deploymentsResponse.json();
+
+                if (deploymentsData.success) {
+                    // Reload projects and stats
+                    await loadProjects();
+                    showNotification('Successfully synced from Cloudflare!', 'success');
+                } else {
+                    showNotification('Failed to sync from Cloudflare', 'error');
+                }
+            } catch (error) {
+                console.error('Sync error:', error);
+                showNotification('Error syncing from Cloudflare', 'error');
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                lucide.createIcons();
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-24 right-8 px-4 py-3 rounded-lg shadow-lg z-50 animate-fade-in ${type === 'success' ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-400' :
+                type === 'error' ? 'bg-red-500/20 border border-red-500/50 text-red-400' :
+                    'bg-blue-500/20 border border-blue-500/50 text-blue-400'
+                }`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(400px)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        async function loadProjects() {
+            try {
+                // Use projects API instead of deployments
+                const response = await fetch(`${window.location.origin}/api/projects?per_page=100`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const projects = data.data || [];
+                    allProjects = projects; // Store for search
+
+                    // Update stats
+                    document.getElementById('total-projects').textContent = projects.length;
+
+                    // Get deployments count separately for stats
+                    try {
+                        const deploymentsResponse = await fetch(`${window.location.origin}/api/deployments?per_page=1`);
+                        const deploymentsData = await deploymentsResponse.json();
+                        document.getElementById('total-deployments').textContent = deploymentsData.pagination?.total || 0;
+                    } catch (e) {
+                        document.getElementById('total-deployments').textContent = '-';
+                    }
+
+                    document.getElementById('active-projects').textContent = projects.filter(p =>
+                        p.status === 'active' || p.status === 'ACTIVE'
+                    ).length;
+
+                    const container = document.getElementById('projects-container');
+                    // Check if there's a search query
+                    const searchInput = document.getElementById('global-search');
+                    const searchQuery = searchInput ? searchInput.value.trim() : '';
+
+                    if (projects.length === 0) {
+                        container.innerHTML = `
+                            <div class="col-span-full text-center py-12 text-zinc-500">
+                                <i data-lucide="briefcase" class="w-12 h-12 mx-auto mb-4 text-zinc-700"></i>
+                                <div class="font-medium mb-2">No projects found</div>
+                                <div class="text-sm">Create your first project to get started</div>
+                                <button onclick="createProject()" class="mt-4 px-4 py-2 bg-brand-orange text-white rounded-lg hover:bg-orange-600 transition-colors">
+                                    <i data-lucide="plus" class="w-4 h-4 inline mr-2"></i> Create Project
+                                </button>
+                            </div>
+                        `;
+                        lucide.createIcons();
+                    } else {
+                        // Apply search filter if active
+                        if (searchQuery) {
+                            filterProjects(searchQuery);
+                        } else {
+                            container.innerHTML = projects.map(renderProjectCard).join('');
+                            lucide.createIcons();
+                        }
+                    }
+
+                    lucide.createIcons();
+                } else {
+                    console.error('Failed to load projects:', data);
+                    document.getElementById('projects-container').innerHTML = `
+                        <div class="col-span-full text-center py-12 text-red-400">
+                            <i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-4"></i>
+                            <div>Failed to load projects</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading projects:', error);
+                document.getElementById('projects-container').innerHTML = `
+                    <div class="col-span-full text-center py-12 text-red-400">
+                        <i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-4"></i>
+                        <div>Error loading projects</div>
+                    </div>
+                `;
+            }
+        }
+
+        function formatDate(timestamp) {
+            if (!timestamp) return 'Never';
+            const date = new Date(timestamp * 1000);
+            const diff = new Date() - date;
+            const days = Math.floor(diff / 86400000);
+            if (days === 0) return 'Today';
+            if (days === 1) return 'Yesterday';
+            if (days < 7) return `${days} days ago`;
+            return date.toLocaleDateString();
+        }
+
+        function getStatusBadge(status) {
+            const normalizedStatus = (status || 'active').toLowerCase();
+            if (normalizedStatus === 'active' || normalizedStatus === 'ready') {
+                return `<span class="px-2 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 flex items-center gap-1">
+                    <i data-lucide="check-circle" class="w-3 h-3"></i> Active
+                </span>`;
+            } else if (normalizedStatus === 'building' || normalizedStatus === 'deploying') {
+                return `<span class="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 flex items-center gap-1">
+                    <i data-lucide="loader" class="w-3 h-3 animate-spin"></i> Building
+                </span>`;
+            } else if (normalizedStatus === 'paused' || normalizedStatus === 'inactive') {
+                return `<span class="px-2 py-1 rounded-full text-xs font-medium bg-zinc-500/20 text-zinc-400 flex items-center gap-1">
+                    <i data-lucide="pause" class="w-3 h-3"></i> Paused
+                </span>`;
+            } else {
+                return `<span class="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 flex items-center gap-1">
+                    <i data-lucide="circle" class="w-3 h-3"></i> ${status || 'Unknown'}
+                </span>`;
+            }
+        }
+
+        function renderProjectCard(project) {
+            const status = project.status || 'active';
+            const framework = project.framework || 'Not specified';
+            const description = project.description || 'No description';
+
+            return `
+                <div class="bg-brand-surface border border-white/10 rounded-xl p-6 hover:border-brand-orange/50 transition-all cursor-pointer group" onclick="viewProject('${project.id}')">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1">
+                            <h3 class="font-bold text-white mb-1 group-hover:text-brand-orange transition-colors">${project.name || 'Untitled Project'}</h3>
+                            <div class="text-xs text-zinc-500 mb-2">${framework}</div>
+                            <p class="text-sm text-zinc-400 line-clamp-2">${description}</p>
+                        </div>
+                        ${getStatusBadge(status)}
+                    </div>
+                    <div class="space-y-2 mb-4 pt-4 border-t border-white/5">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-zinc-500">Status</span>
+                            <span class="text-white font-medium capitalize">${status}</span>
+                        </div>
+                        ${project.repository_url ? `
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-zinc-500">Repository</span>
+                            <a href="${project.repository_url}" target="_blank" onclick="event.stopPropagation()" class="text-brand-orange hover:underline flex items-center gap-1">
+                                <i data-lucide="external-link" class="w-3 h-3"></i> View
+                            </a>
+                        </div>
+                        ` : ''}
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-zinc-500">Created</span>
+                            <span class="text-zinc-400">${formatDate(project.created_at)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function viewProject(projectId) {
+            window.location.href = `/dashboard/projects/${projectId}`;
+        }
+
+        function createProject() {
+            // TODO: Open create project modal
+            alert('Create project modal coming soon!');
+        }
+
+        // Search functionality
+        let allProjects = [];
+
+        function filterProjects(query) {
+            if (!query) {
+                document.getElementById('projects-container').innerHTML = allProjects.map(renderProjectCard).join('');
+                lucide.createIcons();
+                return;
+            }
+
+            const filtered = allProjects.filter(p =>
+                (p.name && p.name.toLowerCase().includes(query.toLowerCase())) ||
+                (p.framework && p.framework.toLowerCase().includes(query.toLowerCase())) ||
+                (p.description && p.description.toLowerCase().includes(query.toLowerCase())) ||
+                (p.slug && p.slug.toLowerCase().includes(query.toLowerCase()))
+            );
+
+            const container = document.getElementById('projects-container');
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-zinc-500">
+                        <i data-lucide="search" class="w-12 h-12 mx-auto mb-4 text-zinc-700"></i>
+                        <div class="font-medium mb-2">No projects found</div>
+                        <div class="text-sm">Try a different search term</div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = filtered.map(renderProjectCard).join('');
+            }
+            lucide.createIcons();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize search
+            const searchInput = document.getElementById('global-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    filterProjects(e.target.value);
+                });
+
+                // Check for URL search parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                const searchQuery = urlParams.get('search');
+                if (searchQuery) {
+                    searchInput.value = searchQuery;
+                }
+            }
+
+            loadProjects();
+        });
+    </script>
+
+    <!-- Dashboard Layout Loader (loads unified sidebar and header) -->
+    <script src="/shared/dashboard-layout-loader.js"></script>
+
+    <!-- Layout Loader (auto-loads header/footer, theme, onboarding, GLB support) -->
+    <script src="/shared/layout-loader.js"></script>
+
+    <!-- Onboarding Wizard (auto-triggers if not completed) -->
+    <script src="/shared/onboarding-wizard.js"></script>
+</body>
+
+</html>

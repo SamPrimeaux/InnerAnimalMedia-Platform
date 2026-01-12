@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>MeauxCAD - 3D CAD Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg: #050505;
+            --sidebar-bg: rgba(255, 255, 255, 0.9);
+            --sidebar-border: rgba(255, 255, 255, 0.5);
+            --sidebar-text: #475569;
+            --sidebar-text-hover: #0f172a;
+            --sidebar-active-bg: #0f172a;
+            --sidebar-active-text: #2dd4bf;
+            --border: #222;
+            --primary: #2dd4bf;
+            --primary-dim: rgba(45, 212, 191, 0.1);
+            --text: #e5e5e5;
+            --nav-w: 260px;
+            --header-bg: rgba(255, 255, 255, 0.85);
+            --header-border: rgba(0, 0, 0, 0.06);
+            --header-text: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            outline: none;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidenav {
+            width: var(--nav-w);
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(24px);
+            border-right: 1px solid var(--sidebar-border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            z-index: 50;
+            transition: width 0.1s;
+        }
+
+        .resizer {
+            position: absolute;
+            right: -4px;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            cursor: col-resize;
+            z-index: 100;
+        }
+
+        .brand {
+            padding: 24px 28px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            font-size: 16px;
+            color: #0f172a;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand .logo-square {
+            width: 28px;
+            height: 28px;
+            background: #0f172a;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .nav-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-top: 20px;
+            padding-bottom: 100px;
+        }
+
+        .nav-section {
+            padding-bottom: 24px;
+        }
+
+        .nav-header {
+            padding: 0 28px 10px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 28px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            border-right: 3px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .nav-item:hover {
+            color: var(--sidebar-text-hover);
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .nav-item.active {
+            background: var(--sidebar-active-bg);
+            color: var(--sidebar-active-text);
+            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.15);
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            position: relative;
+        }
+
+        .header {
+            height: 72px;
+            border-bottom: 1px solid var(--header-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            background: var(--header-bg);
+            backdrop-filter: blur(20px);
+            gap: 24px;
+            color: var(--header-text);
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #444;
+        }
+
+        .app-dock-wrapper {
+            position: fixed;
+            bottom: 20px;
+            left: calc(50% + var(--nav-w) / 2);
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .app-dock {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            padding: 10px 14px;
+            display: flex;
+            gap: 12px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        .dock-item {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            text-decoration: none;
+            transition: 0.2s;
+            cursor: pointer;
+            border: 1px solid transparent;
+            position: relative;
+        }
+
+        .dock-item:hover {
+            background: rgba(0, 0, 0, 0.1);
+            color: #000;
+            transform: translateY(-4px) scale(1.1);
+        }
+
+        .tooltip {
+            position: absolute;
+            top: -30px;
+            background: #000;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            opacity: 0;
+            transition: 0.2s;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .dock-item:hover .tooltip {
+            opacity: 1;
+            top: -35px;
+        }
+
+        .dock-item.add-new {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            color: var(--primary);
+        }
+
+        .dock-item.add-new:hover {
+            background: var(--primary);
+            color: #000;
+            border-color: var(--primary);
+        }
+
+        .dock-toggle {
+            width: 40px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .dock-toggle:hover {
+            background: var(--primary);
+        }
+
+        .app-dock-wrapper.minimized {
+            transform: translate(-50%, 90px);
+        }
+
+        .agent-fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--primary);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 1100;
+            transition: 0.2s;
+        }
+
+        .agent-fab:hover {
+            transform: scale(1.05);
+            background: var(--primary);
+            color: #000;
+        }
+
+        .chat-modal {
+            display: none;
+            position: fixed;
+            bottom: 90px;
+            right: 24px;
+            width: 380px;
+            height: 520px;
+            background: #0a0a0a;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            z-index: 1090;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.2s ease-out;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .chat-modal.active {
+            display: flex;
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            color: #fff;
+        }
+
+        .chat-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: radial-gradient(circle at top right, rgba(45, 212, 191, 0.02), transparent 40%);
+        }
+
+        .chat-msg {
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 13.5px;
+            line-height: 1.5;
+            max-width: 85%;
+        }
+
+        .chat-msg.agent {
+            background: #1a1a1a;
+            color: #e5e5e5;
+            align-self: flex-start;
+            border: 1px solid #222;
+        }
+
+        .chat-msg.user {
+            background: var(--primary);
+            color: #0f172a;
+            align-self: flex-end;
+            font-weight: 500;
+        }
+
+        .chat-input-area {
+            padding: 16px;
+            background: #0a0a0a;
+            border-top: 1px solid var(--border);
+        }
+
+        .chat-input-wrapper {
+            background: #151515;
+            border: 1px solid #333;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            padding: 4px 6px 4px 16px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 13px;
+            padding: 8px 0;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="resizer" id="dragHandle"></div>
+    <nav class="sidenav" id="sidebar">
+        <div class="brand">
+            <div class="logo-square">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- 3D Isometric CAD Cube Icon with perspective grid -->
+                    <!-- Front face -->
+                    <path d="M8 3L4 5.5L4 10.5L8 13L12 10.5L12 5.5L8 3Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Top face -->
+                    <path d="M8 3L12 5.5L12 10.5" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+                    <!-- Right face -->
+                    <path d="M12 5.5L8 8L12 10.5" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+                    <!-- Back edges (dashed for depth) -->
+                    <path d="M4 5.5L8 8L4 10.5" stroke="currentColor" stroke-width="1.1" stroke-dasharray="1,1" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/>
+                    <!-- Center point -->
+                    <circle cx="8" cy="8" r="0.8" fill="currentColor" opacity="0.8"/>
+                </svg>
+            </div>
+            Meaux<span>CAD</span>
+        </div>
+        <div class="nav-content">
+            <div class="nav-section">
+                <div class="nav-header">MeauxAccess</div>
+                <a href="/dashboard" class="nav-item"><i data-lucide="layout-grid"></i> Dashboard</a>
+                <a href="/dashboard/projects" class="nav-item"><i data-lucide="folder"></i> Projects</a>
+                <a href="/dashboard/library" class="nav-item"><i data-lucide="library"></i> Library</a>
+                <a href="/dashboard/tasks" class="nav-item"><i data-lucide="check-square"></i> Tasks</a>
+                <a href="/dashboard/meauxwork" class="nav-item"><i data-lucide="cpu"></i> MeauxWork</a>
+                <a href="/dashboard/meauxmedia" class="nav-item"><i data-lucide="monitor-play"></i> MeauxMedia</a>
+                <a href="/dashboard/brands" class="nav-item"><i data-lucide="tag"></i> Brands</a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-header">Meaux Apps</div>
+                <a href="/dashboard/meauxphoto" class="nav-item"><i data-lucide="image"></i> MeauxPHOTO</a>
+                <a href="/dashboard/meauxdoc" class="nav-item"><i data-lucide="file-text"></i> MeauxDOC</a>
+                <a href="/dashboard/meauxcad" class="nav-item"><i data-lucide="box"></i> MeauxCAD</a>
+                <a href="/dashboard/meauxcloud" class="nav-item"><i data-lucide="cloud"></i> MeauxCloud</a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-header">MeauxChat</div>
+                <a href="/dashboard/talk" class="nav-item"><i data-lucide="video"></i> Talk</a>
+                <a href="/dashboard/mail" class="nav-item"><i data-lucide="mail"></i> Mail</a>
+                <a href="/dashboard/calendar" class="nav-item"><i data-lucide="calendar"></i> Calendar</a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-header">DevOps</div>
+                <a href="/dashboard/dev" class="nav-item"><i data-lucide="terminal"></i> Dev Console</a>
+                <a href="/dashboard/automeaux" class="nav-item"><i data-lucide="zap"></i> AutoMeaux</a>
+                <a href="/dashboard/integrations" class="nav-item"><i data-lucide="cable"></i> Integrations</a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-header">System</div>
+                <a href="/dashboard/settings" class="nav-item"><i data-lucide="settings"></i> Settings</a>
+                <a href="/dashboard/vault" class="nav-item"><i data-lucide="lock"></i> Vault</a>
+                <a href="/dashboard/audit" class="nav-item"><i data-lucide="shield"></i> Audit</a>
+            </div>
+        </div>
+    </nav>
+    <main class="main">
+        <header class="header">
+            <h2 style="font-size:18px;font-weight:700">3D CAD Studio</h2>
+        </header>
+        <div class="content">
+            <i data-lucide="construction" style="width:48px;height:48px;margin-bottom:16px;opacity:0.5"></i>
+            <div style="font-weight:600">Welcome to MeauxCAD</div>
+            <div style="font-size:13px;opacity:0.7">Upload your 3D scenes and assets to get started.</div>
+        </div>
+    </main>
+    <div class="app-dock-wrapper" id="appDock">
+        <div class="dock-toggle" onclick="toggleDock()"></div>
+        <div class="app-dock">
+            <a href="/dashboard" class="dock-item"><i data-lucide="layout-grid" style="width:20px"></i><span
+                    class="tooltip">Dashboard</span></a>
+            <a href="/dashboard/projects" class="dock-item"><i data-lucide="folder" style="width:20px"></i><span
+                    class="tooltip">Projects</span></a>
+            <a href="/dashboard/tasks" class="dock-item"><i data-lucide="check-square" style="width:20px"></i><span
+                    class="tooltip">Tasks</span></a>
+            <a href="/dashboard/library" class="dock-item"><i data-lucide="library" style="width:20px"></i><span
+                    class="tooltip">Library</span></a>
+            <a href="/dashboard/meauxwork" class="dock-item"><i data-lucide="cpu"
+                    style="width:20px; color:var(--primary)"></i><span class="tooltip">MeauxWork</span></a>
+            <div class="dock-item add-new" onclick="alert('Connect')"><i data-lucide="plus" style="width:20px"></i><span
+                    class="tooltip">Connect</span></div>
+        </div>
+    </div>
+    <div class="agent-fab" onclick="toggleChat()"><i data-lucide="terminal-square"></i></div>
+    <div class="chat-modal" id="chatModal">
+        <div class="chat-header">
+            <div style="display:flex;align-items:center;gap:10px;font-weight:600">
+                <div style="width:8px;height:8px;background:var(--success);border-radius:50%"></div> Agent Sam
+            </div>
+            <i data-lucide="x" style="width:18px;cursor:pointer" onclick="toggleChat()"></i>
+        </div>
+        <div class="chat-body" id="chatBody">
+            <div class="chat-msg agent">Hello! I'm online. How can I assist you?</div>
+        </div>
+        <div class="chat-input-area">
+            <div class="chat-input-wrapper"><input type="text" id="agentInput" class="chat-input"
+                    placeholder="Type a message..."><i data-lucide="arrow-up"
+                    style="width:16px;cursor:pointer;color:#888" onclick="sendMsg()"></i></div>
+        </div>
+    </div>
+    <script>
+        lucide.createIcons();
+        const sidebar = document.getElementById('sidebar');
+        const handle = document.getElementById('dragHandle');
+        let isResizing = false;
+        handle.addEventListener('mousedown', () => { isResizing = true; document.body.style.cursor = 'col-resize'; });
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            const w = Math.max(200, Math.min(e.clientX, 600));
+            sidebar.style.width = w + 'px';
+            document.documentElement.style.setProperty('--nav-w', w + 'px');
+        });
+        document.addEventListener('mouseup', () => { isResizing = false; document.body.style.cursor = 'default'; });
+        function toggleDock() { document.getElementById('appDock').classList.toggle('minimized'); }
+        function toggleChat() { document.getElementById('chatModal').classList.toggle('active'); }
+
+        // Highlight active nav based on URL
+        const path = window.location.pathname;
+        document.querySelectorAll('.nav-item').forEach(el => {
+            if (el.getAttribute('href') === path) el.classList.add('active');
+            else el.classList.remove('active');
+        });
+    </script>
+</body>
+
+</html>

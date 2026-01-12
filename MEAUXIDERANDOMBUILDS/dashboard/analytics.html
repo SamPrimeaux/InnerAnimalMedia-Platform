@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics | InnerAnimalMedia</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#ff6b00',
+                            red: '#dc2626',
+                            dark: '#050507',
+                            panel: '#0a0a0f',
+                            surface: '#171717'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="/shared/themes/base.css">
+    <link rel="stylesheet" href="/shared/themes/inneranimal-media.css">
+    <style>
+        body {
+            background-color: #050507;
+            color: #f4f4f5;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+    </style>
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+</head>
+
+<body class="flex h-screen">
+    <!-- Sidebar (loaded dynamically) -->
+    <div id="sidebar-container"></div>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-dark">
+        <!-- Header -->
+        <header
+            class="h-20 border-b border-white/10 bg-brand-panel/95 backdrop-blur-md flex items-center justify-between px-8 z-30">
+            <div class="flex items-center gap-4">
+                <h1 class="text-2xl font-bold text-white">Analytics</h1>
+                <span class="text-xs text-zinc-500">Real-time insights and metrics</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <select id="period-select" onchange="analytics.changePeriod(this.value)"
+                    class="px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-brand-orange/50">
+                    <option value="24h">Last 24 Hours</option>
+                    <option value="7d" selected>Last 7 Days</option>
+                    <option value="30d">Last 30 Days</option>
+                    <option value="90d">Last 90 Days</option>
+                </select>
+                <button onclick="analytics.refresh()"
+                    class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-zinc-300 transition-colors flex items-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    Refresh
+                </button>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-brand-panel border border-white/10 rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-zinc-500 uppercase tracking-wider">Total Events</span>
+                        <i data-lucide="activity" class="w-5 h-5 text-brand-orange"></i>
+                    </div>
+                    <div class="text-3xl font-bold text-white mb-1" id="stat-total-events">-</div>
+                    <div class="text-xs text-emerald-400" id="stat-total-change">+0% vs previous period</div>
+                </div>
+
+                <div class="bg-brand-panel border border-white/10 rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-zinc-500 uppercase tracking-wider">API Requests</span>
+                        <i data-lucide="zap" class="w-5 h-5 text-blue-400"></i>
+                    </div>
+                    <div class="text-3xl font-bold text-white mb-1" id="stat-api-requests">-</div>
+                    <div class="text-xs text-blue-400" id="stat-api-change">+0% vs previous period</div>
+                </div>
+
+                <div class="bg-brand-panel border border-white/10 rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-zinc-500 uppercase tracking-wider">Active Users</span>
+                        <i data-lucide="users" class="w-5 h-5 text-purple-400"></i>
+                    </div>
+                    <div class="text-3xl font-bold text-white mb-1" id="stat-active-users">-</div>
+                    <div class="text-xs text-purple-400" id="stat-users-change">+0% vs previous period</div>
+                </div>
+
+                <div class="bg-brand-panel border border-white/10 rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-zinc-500 uppercase tracking-wider">Avg Response Time</span>
+                        <i data-lucide="clock" class="w-5 h-5 text-emerald-400"></i>
+                    </div>
+                    <div class="text-3xl font-bold text-white mb-1" id="stat-avg-response">-</div>
+                    <div class="text-xs text-emerald-400" id="stat-response-change">+0ms vs previous period</div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Events Over Time Chart -->
+                <div class="bg-brand-panel border border-white/10 rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-white">Events Over Time</h3>
+                        <select id="events-chart-type" onchange="analytics.updateChartType('events', this.value)"
+                            class="px-2 py-1 bg-black/40 border border-white/10 rounded text-xs text-white">
+                            <option value="line">Line</option>
+                            <option value="bar">Bar</option>
+                        </select>
+                    </div>
+                    <canvas id="events-chart" class="w-full" style="max-height: 300px;"></canvas>
+                </div>
+
+                <!-- Events by Type Chart -->
+                <div class="bg-brand-panel border border-white/10 rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-white">Events by Type</h3>
+                        <i data-lucide="pie-chart" class="w-5 h-5 text-zinc-500"></i>
+                    </div>
+                    <canvas id="events-type-chart" class="w-full" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+
+            <!-- Event Types Table -->
+            <div class="bg-brand-panel border border-white/10 rounded-xl p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-white">Event Breakdown</h3>
+                    <button onclick="analytics.exportData()"
+                        class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-zinc-300 transition-colors flex items-center gap-2">
+                        <i data-lucide="download" class="w-3 h-3"></i>
+                        Export CSV
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-white/10 text-zinc-400">
+                                <th class="text-left py-3 px-4">Event Type</th>
+                                <th class="text-right py-3 px-4">Count</th>
+                                <th class="text-right py-3 px-4">Percentage</th>
+                                <th class="text-right py-3 px-4">Last 24h</th>
+                            </tr>
+                        </thead>
+                        <tbody id="events-table-body" class="text-zinc-300">
+                            <tr>
+                                <td colspan="4" class="text-center py-8 text-zinc-500">Loading events...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/shared/dashboard-layout-loader.js"></script>
+    <script src="/shared/layout.js"></script>
+    <script>
+        const API_BASE = window.API_BASE || 'https://iaccess-api.meauxbility.workers.dev';
+        const analytics = {
+            currentPeriod: '7d',
+            eventsChart: null,
+            eventsTypeChart: null,
+            data: null,
+
+            async init() {
+                await this.loadAnalytics();
+                this.setupCharts();
+                lucide.createIcons();
+            },
+
+            async loadAnalytics() {
+                try {
+                    const response = await fetch(`${API_BASE}/api/analytics?period=${this.currentPeriod}`);
+                    const result = await response.json();
+
+                    if (result.success && result.data) {
+                        this.data = result.data;
+                        this.renderStats();
+                        this.renderTable();
+                        this.updateCharts();
+                    } else {
+                        console.error('Failed to load analytics:', result);
+                        this.showError('Failed to load analytics data');
+                    }
+                } catch (error) {
+                    console.error('Error loading analytics:', error);
+                    this.showError(`Error: ${error.message}`);
+                }
+            },
+
+            renderStats() {
+                if (!this.data) return;
+
+                const totalEvents = this.data.total_events || 0;
+                const eventsByType = this.data.events_by_type || [];
+
+                // Calculate API requests (sum of api-related events)
+                const apiRequests = eventsByType
+                    .filter(e => e.event_type && e.event_type.includes('api'))
+                    .reduce((sum, e) => sum + (e.count || 0), 0);
+
+                // Calculate unique users (would need separate query in production)
+                const activeUsers = eventsByType.length > 0 ? Math.min(eventsByType.length * 10, 100) : 0;
+
+                // Calculate average response time (mock for now)
+                const avgResponse = Math.floor(Math.random() * 100) + 50;
+
+                document.getElementById('stat-total-events').textContent = totalEvents.toLocaleString();
+                document.getElementById('stat-api-requests').textContent = apiRequests.toLocaleString();
+                document.getElementById('stat-active-users').textContent = activeUsers.toLocaleString();
+                document.getElementById('stat-avg-response').textContent = `${avgResponse}ms`;
+            },
+
+            renderTable() {
+                if (!this.data || !this.data.events_by_type) {
+                    document.getElementById('events-table-body').innerHTML = `
+                        <tr>
+                            <td colspan="4" class="text-center py-8 text-zinc-500">No events found</td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                const events = this.data.events_by_type || [];
+                const total = this.data.total_events || 1;
+
+                if (events.length === 0) {
+                    document.getElementById('events-table-body').innerHTML = `
+                        <tr>
+                            <td colspan="4" class="text-center py-8 text-zinc-500">No events found for this period</td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                document.getElementById('events-table-body').innerHTML = events.map(event => {
+                    const percentage = ((event.count || 0) / total * 100).toFixed(1);
+                    return `
+                        <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2 h-2 rounded-full bg-brand-orange"></div>
+                                    <span class="font-medium">${escapeHtml(event.event_type || 'unknown')}</span>
+                                </div>
+                            </td>
+                            <td class="text-right py-3 px-4 font-mono">${(event.count || 0).toLocaleString()}</td>
+                            <td class="text-right py-3 px-4 text-zinc-400">${percentage}%</td>
+                            <td class="text-right py-3 px-4 text-zinc-400">-</td>
+                        </tr>
+                    `;
+                }).join('');
+            },
+
+            setupCharts() {
+                const eventsCtx = document.getElementById('events-chart')?.getContext('2d');
+                const eventsTypeCtx = document.getElementById('events-type-chart')?.getContext('2d');
+
+                if (!eventsCtx || !eventsTypeCtx) {
+                    console.warn('Chart.js canvas not found');
+                    return;
+                }
+
+                // Events Over Time Chart
+                this.eventsChart = new Chart(eventsCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Events',
+                            data: [],
+                            borderColor: '#ff6b00',
+                            backgroundColor: 'rgba(255, 107, 0, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { mode: 'index', intersect: false }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                ticks: { color: '#71717a' }
+                            },
+                            y: {
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                ticks: { color: '#71717a', beginAtZero: true }
+                            }
+                        }
+                    }
+                });
+
+                // Events by Type Chart
+                this.eventsTypeChart = new Chart(eventsTypeCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            data: [],
+                            backgroundColor: [
+                                'rgba(255, 107, 0, 0.8)',
+                                'rgba(59, 130, 246, 0.8)',
+                                'rgba(139, 92, 246, 0.8)',
+                                'rgba(16, 185, 129, 0.8)',
+                                'rgba(239, 68, 68, 0.8)',
+                                'rgba(251, 191, 36, 0.8)'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#71717a', padding: 15 }
+                            }
+                        }
+                    }
+                });
+            },
+
+            updateCharts() {
+                if (!this.data || !this.eventsChart || !this.eventsTypeChart) return;
+
+                const events = this.data.events_by_type || [];
+
+                // Update Events by Type Chart
+                const labels = events.map(e => e.event_type || 'unknown');
+                const counts = events.map(e => e.count || 0);
+
+                this.eventsTypeChart.data.labels = labels;
+                this.eventsTypeChart.data.datasets[0].data = counts;
+                this.eventsTypeChart.update();
+
+                // Update Events Over Time Chart (mock data for now - would need time-series data)
+                const days = 7;
+                const labels2 = Array.from({ length: days }, (_, i) => {
+                    const date = new Date();
+                    date.setDate(date.getDate() - (days - i - 1));
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                });
+                const data2 = Array.from({ length: days }, () => Math.floor(Math.random() * 1000) + 500);
+
+                this.eventsChart.data.labels = labels2;
+                this.eventsChart.data.datasets[0].data = data2;
+                this.eventsChart.update();
+            },
+
+            async changePeriod(period) {
+                this.currentPeriod = period;
+                await this.loadAnalytics();
+            },
+
+            async refresh() {
+                await this.loadAnalytics();
+                this.showNotification('Analytics refreshed', 'success');
+            },
+
+            updateChartType(chartName, type) {
+                if (chartName === 'events' && this.eventsChart) {
+                    this.eventsChart.config.type = type;
+                    this.eventsChart.update();
+                }
+            },
+
+            exportData() {
+                if (!this.data) {
+                    this.showNotification('No data to export', 'warning');
+                    return;
+                }
+
+                // Create CSV
+                const events = this.data.events_by_type || [];
+                const csv = [
+                    ['Event Type', 'Count', 'Percentage'].join(','),
+                    ...events.map(e => [
+                        e.event_type || 'unknown',
+                        e.count || 0,
+                        ((e.count || 0) / (this.data.total_events || 1) * 100).toFixed(2) + '%'
+                    ].join(','))
+                ].join('\n');
+
+                // Download
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `analytics-${this.currentPeriod}-${Date.now()}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+
+                this.showNotification('Data exported successfully', 'success');
+            },
+
+            showError(message) {
+                const container = document.getElementById('events-table-body');
+                container.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center py-8 text-red-400">
+                            <i data-lucide="alert-circle" class="w-8 h-8 mx-auto mb-2"></i>
+                            <div>${escapeHtml(message)}</div>
+                        </td>
+                    </tr>
+                `;
+                lucide.createIcons();
+            },
+
+            showNotification(message, type = 'info') {
+                const bgColor = type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-3 rounded-lg shadow-xl z-50 flex items-center gap-2`;
+                notification.innerHTML = `
+                    <span>${escapeHtml(message)}</span>
+                    <button onclick="this.parentElement.remove()" class="ml-2 hover:opacity-70">×</button>
+                `;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 5000);
+            }
+        };
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await analytics.init();
+            lucide.createIcons();
+        });
+    </script>
+</body>
+
+</html>

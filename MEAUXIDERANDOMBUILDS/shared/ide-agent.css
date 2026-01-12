@@ -1,0 +1,338 @@
+/* IDE Agent Styles */
+.ide-agent-container {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    width: 600px;
+    max-width: calc(100vw - 40px);
+    height: 0;
+    background: var(--bg-secondary);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    transition: height 0.3s ease;
+    overflow: hidden;
+    border: 1px solid var(--border-light);
+    border-bottom: none;
+}
+
+.ide-agent-container.ide-agent-open {
+    height: 70vh;
+    max-height: 600px;
+}
+
+.ide-agent-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--bg-primary);
+}
+
+.ide-agent-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.ide-agent-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--brand-secondary);
+}
+
+.ide-agent-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-left: 4px;
+}
+
+.ide-agent-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.ide-agent-close:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.ide-agent-content {
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 65px);
+}
+
+.ide-agent-output {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #0F172A;
+    color: #E2E8F0;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.ide-agent-welcome {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.ide-agent-welcome-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #F8FAFC;
+}
+
+.ide-agent-welcome-text {
+    font-size: 14px;
+    color: #94A3B8;
+    margin-bottom: 24px;
+}
+
+.ide-agent-capabilities {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.ide-agent-capability {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    font-size: 13px;
+    color: #CBD5E1;
+}
+
+.ide-agent-capability i {
+    width: 16px;
+    height: 16px;
+    color: var(--brand-secondary);
+}
+
+.ide-agent-message {
+    margin-bottom: 16px;
+    padding: 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.ide-agent-message-user {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 3px solid #3B82F6;
+}
+
+.ide-agent-message-agent {
+    background: rgba(16, 185, 129, 0.1);
+    border-left: 3px solid #10B981;
+}
+
+.ide-agent-message-error {
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 3px solid #EF4444;
+}
+
+.ide-agent-message-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+.ide-agent-message-icon {
+    width: 14px;
+    height: 14px;
+}
+
+.ide-agent-message-type {
+    font-weight: 600;
+    color: #F8FAFC;
+}
+
+.ide-agent-message-time {
+    color: #64748B;
+    margin-left: auto;
+}
+
+.ide-agent-message-content {
+    color: #E2E8F0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.ide-agent-message-content pre {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 8px 0;
+}
+
+.ide-agent-message-content code {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+}
+
+.ide-agent-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 12px;
+}
+
+.ide-agent-table th,
+.ide-agent-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ide-agent-table th {
+    background: rgba(255, 255, 255, 0.05);
+    font-weight: 600;
+    color: #F8FAFC;
+}
+
+.ide-agent-table td {
+    color: #CBD5E1;
+}
+
+.ide-agent-input-container {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 16px;
+    border-top: 1px solid var(--border-light);
+    background: var(--bg-primary);
+}
+
+.ide-agent-prompt {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    padding-bottom: 12px;
+}
+
+.ide-agent-prompt-user {
+    color: #3B82F6;
+    font-weight: 600;
+}
+
+.ide-agent-prompt-separator {
+    color: var(--text-tertiary);
+}
+
+.ide-agent-prompt-project {
+    color: #10B981;
+    font-weight: 600;
+}
+
+.ide-agent-prompt-arrow {
+    color: var(--text-secondary);
+    margin-left: 4px;
+}
+
+.ide-agent-input {
+    flex: 1;
+    min-height: 40px;
+    max-height: 200px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    resize: none;
+    overflow-y: auto;
+}
+
+.ide-agent-input:focus {
+    outline: none;
+    border-color: var(--brand-secondary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.ide-agent-send {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: none;
+    background: var(--brand-secondary);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.ide-agent-send:hover {
+    background: var(--brand-dark);
+    transform: translateY(-1px);
+}
+
+.ide-agent-send i {
+    width: 18px;
+    height: 18px;
+}
+
+.ide-agent-float-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--brand-secondary);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: all 0.3s;
+}
+
+.ide-agent-float-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+}
+
+.ide-agent-float-btn i {
+    width: 24px;
+    height: 24px;
+}
+
+.ide-agent-temporary {
+    opacity: 0.6;
+}

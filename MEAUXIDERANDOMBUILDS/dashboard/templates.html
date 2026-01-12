@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en" class="dark" data-brand="inneranimal-media">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Templates | InnerAnimalMedia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#ff6b00',
+                            red: '#dc2626',
+                            dark: '#050507',
+                            panel: '#0a0a0f',
+                            surface: '#171717'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/shared/themes/base.css">
+    <link rel="stylesheet" href="/shared/themes/inneranimal-media.css">
+    <style>
+        body {
+            background-color: #050507;
+            color: #f4f4f5;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+
+        .template-card {
+            transition: all 0.3s ease;
+        }
+
+        .template-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(255, 107, 0, 0.3);
+        }
+
+        .template-preview {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+</head>
+
+<body class="flex h-screen">
+    <div id="sidebar-container"></div>
+
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-dark">
+        <header
+            class="h-20 border-b border-white/10 bg-brand-panel/95 backdrop-blur-md flex items-center justify-between px-8 z-30">
+            <div class="flex items-center gap-4">
+                <h1 class="text-2xl font-bold text-white">HTML Templates</h1>
+                <span class="text-xs text-zinc-500">Browse and preview HTML templates from R2 storage</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <select id="bucket-filter" onchange="templates.filterByBucket(this.value)"
+                    class="px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-brand-orange/50">
+                    <option value="all">All Buckets</option>
+                </select>
+                <button onclick="templates.refresh()"
+                    class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-zinc-300 transition-colors flex items-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    Refresh
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            <div class="max-w-7xl mx-auto">
+                <div id="templates-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                    <div class="col-span-full text-center py-12 text-zinc-500 animate-pulse">
+                        <i data-lucide="loader" class="w-8 h-8 mx-auto mb-4 animate-spin"></i>
+                        <div>Loading templates...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Template Preview Modal -->
+    <div id="template-preview-modal"
+        class="fixed inset-0 z-[10000] hidden items-center justify-center bg-black/80 backdrop-blur-sm template-preview">
+        <div
+            class="bg-brand-panel border border-white/20 rounded-2xl shadow-2xl max-w-6xl w-full mx-4 max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between p-6 border-b border-white/10">
+                <div>
+                    <h3 id="preview-title" class="text-xl font-bold text-white"></h3>
+                    <p id="preview-path" class="text-sm text-zinc-500 mt-1"></p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="templates.copyUrl()"
+                        class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-zinc-300 transition-colors flex items-center gap-2">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                        Copy URL
+                    </button>
+                    <button onclick="templates.closePreview()"
+                        class="p-2 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-hidden p-6">
+                <iframe id="preview-iframe" class="w-full h-full border border-white/10 rounded-lg bg-white"
+                    style="min-height: 600px;"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script src="/shared/dashboard-layout-loader.js"></script>
+    <script src="/shared/mobile-menu.js"></script>
+    <script>
+        const API_BASE = window.location.origin;
+        const templates = {
+            items: [],
+            buckets: [],
+            currentBucket: 'all',
+            previewItem: null,
+
+            async init() {
+                await this.loadBuckets();
+                await this.loadTemplates();
+            },
+
+            async loadBuckets() {
+                try {
+                    const response = await fetch(`${API_BASE}/api/library?view=buckets`);
+                    const result = await response.json();
+
+                    if (result.success && result.data && result.data.buckets) {
+                        this.buckets = result.data.buckets;
+                        this.renderBucketFilter();
+                    }
+                } catch (error) {
+                    console.error('Error loading buckets:', error);
+                }
+            },
+
+            renderBucketFilter() {
+                const select = document.getElementById('bucket-filter');
+                if (!select) return;
+
+                select.innerHTML = '<option value="all">All Buckets</option>';
+                this.buckets.forEach(bucket => {
+                    const option = document.createElement('option');
+                    option.value = bucket.name;
+                    option.textContent = bucket.name;
+                    select.appendChild(option);
+                });
+            },
+
+            async loadTemplates() {
+                const grid = document.getElementById('templates-grid');
+                if (!grid) return;
+
+                grid.innerHTML = '<div class="col-span-full text-center py-12 text-zinc-500 animate-pulse"><i data-lucide="loader" class="w-8 h-8 mx-auto mb-4 animate-spin"></i><div>Loading templates...</div></div>';
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/library?view=templates`);
+                    const result = await response.json();
+
+                    if (result.success && result.data) {
+                        this.items = result.data.templates || [];
+                        this.buckets = result.data.buckets || [];
+                        this.renderTemplates();
+                    } else {
+                        grid.innerHTML = '<div class="col-span-full text-center py-12 text-zinc-500"><i data-lucide="file-x" class="w-12 h-12 mx-auto mb-4 text-zinc-700"></i><h3 class="text-xl font-semibold text-zinc-400 mb-2">No Templates Found</h3><p class="text-sm text-zinc-600">HTML template scanning requires R2 S3 API credentials setup.</p></div>';
+                    }
+                } catch (error) {
+                    console.error('Error loading templates:', error);
+                    grid.innerHTML = '<div class="col-span-full text-center py-12 text-red-400"><i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-4"></i><h3 class="text-xl font-semibold mb-2">Error Loading Templates</h3><p class="text-sm">' + error.message + '</p></div>';
+                }
+
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            },
+
+            renderTemplates() {
+                const grid = document.getElementById('templates-grid');
+                if (!grid) return;
+
+                if (this.items.length === 0) {
+                    grid.innerHTML = '<div class="col-span-full text-center py-12 text-zinc-500"><i data-lucide="file-code" class="w-12 h-12 mx-auto mb-4 text-zinc-700"></i><h3 class="text-xl font-semibold text-zinc-400 mb-2">No HTML Templates</h3><p class="text-sm text-zinc-600">HTML template scanning requires R2 S3 API credentials. See API documentation for setup.</p></div>';
+                    return;
+                }
+
+                grid.innerHTML = this.items.map(item => `
+                    <div class="template-card bg-brand-panel border border-white/10 rounded-xl p-4 hover:border-brand-orange/50 cursor-pointer" onclick="templates.preview('${item.id}')">
+                        <div class="aspect-video bg-black/20 rounded-lg mb-3 flex items-center justify-center">
+                            <i data-lucide="file-code" class="w-12 h-12 text-zinc-600"></i>
+                        </div>
+                        <div class="space-y-1">
+                            <div class="font-medium text-white text-sm truncate" title="${this.escapeHtml(item.name)}">
+                                ${this.escapeHtml(item.name)}
+                            </div>
+                            <div class="text-xs text-zinc-500 truncate">
+                                ${this.escapeHtml(item.bucket)}/${this.escapeHtml(item.path)}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            },
+
+            preview(itemId) {
+                const item = this.items.find(i => i.id === itemId);
+                if (!item) return;
+
+                this.previewItem = item;
+                const modal = document.getElementById('template-preview-modal');
+                const title = document.getElementById('preview-title');
+                const path = document.getElementById('preview-path');
+                const iframe = document.getElementById('preview-iframe');
+
+                if (modal && title && path && iframe) {
+                    title.textContent = item.name;
+                    path.textContent = `${item.bucket}/${item.path}`;
+                    iframe.src = item.url || `https://pub-${item.bucketId}.r2.dev/${item.path}`;
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                }
+            },
+
+            closePreview() {
+                const modal = document.getElementById('template-preview-modal');
+                const iframe = document.getElementById('preview-iframe');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+                if (iframe) {
+                    iframe.src = 'about:blank';
+                }
+                this.previewItem = null;
+            },
+
+            async copyUrl() {
+                if (!this.previewItem) return;
+
+                const url = this.previewItem.url || `https://pub-${this.previewItem.bucketId}.r2.dev/${this.previewItem.path}`;
+                try {
+                    await navigator.clipboard.writeText(url);
+                    this.showNotification('URL copied to clipboard!', 'success');
+                } catch (error) {
+                    this.showNotification('Failed to copy URL', 'error');
+                }
+            },
+
+            filterByBucket(bucketName) {
+                this.currentBucket = bucketName;
+                // Filter logic would go here when templates are loaded
+                this.renderTemplates();
+            },
+
+            async refresh() {
+                await this.loadBuckets();
+                await this.loadTemplates();
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            showNotification(message, type = 'info') {
+                const bgColor = type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-3 rounded-lg shadow-xl z-50 flex items-center gap-2`;
+                notification.innerHTML = `
+                    <span>${this.escapeHtml(message)}</span>
+                    <button onclick="this.parentElement.remove()" class="ml-2 hover:opacity-70">×</button>
+                `;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 5000);
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            templates.init();
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+
+</html>

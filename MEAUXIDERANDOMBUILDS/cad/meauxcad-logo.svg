@@ -1,0 +1,66 @@
+<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- MeauxCAD Official Logo - Metallic 3D "M" -->
+  <defs>
+    <linearGradient id="metalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8E8E8;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#F5F5F5;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#D0D0D0;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#B8B8B8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A0A0A0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="metalHighlight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.8" />
+      <stop offset="50%" style="stop-color:#FFFFFF;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0" />
+    </linearGradient>
+    <linearGradient id="metalShadow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#000000;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:0.5" />
+    </linearGradient>
+    <filter id="bevel">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0.5"/>
+      <feOffset dx="0.5" dy="0.5" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Left angled bar -->
+  <path d="M4 4 L4 8 L8 20 L8 24 L12 24 L12 20 L8 8 L8 4 Z" 
+        fill="url(#metalGradient)" 
+        filter="url(#bevel)"
+        stroke="#888" 
+        stroke-width="0.3"/>
+  
+  <!-- Right inverted V (M shape) -->
+  <path d="M12 4 L12 8 L16 20 L20 8 L20 4 L24 4 L24 8 L20 20 L16 20 L20 8 L16 8 L12 4 Z" 
+        fill="url(#metalGradient)" 
+        filter="url(#bevel)"
+        stroke="#888" 
+        stroke-width="0.3"/>
+  
+  <!-- Simplified M shape (corrected) -->
+  <path d="M12 4 L12 24 L16 16 L20 24 L20 4 L24 4 L24 24 L20 24 L16 16 L12 24 L8 24 L8 4 L12 4 Z" 
+        fill="url(#metalGradient)" 
+        filter="url(#bevel)"
+        stroke="#888" 
+        stroke-width="0.3"/>
+  
+  <!-- Top highlight -->
+  <path d="M8 4 L12 4 L16 16 L20 4 L24 4" 
+        stroke="url(#metalHighlight)" 
+        stroke-width="1.5" 
+        stroke-linecap="round"/>
+  
+  <!-- Bottom shadow -->
+  <path d="M8 24 L12 24 L16 16 L20 24 L24 24" 
+        stroke="url(#metalShadow)" 
+        stroke-width="1" 
+        stroke-linecap="round" 
+        opacity="0.6"/>
+</svg>

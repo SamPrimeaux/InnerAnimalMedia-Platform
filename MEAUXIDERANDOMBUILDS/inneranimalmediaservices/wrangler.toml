@@ -1,0 +1,70 @@
+name = "inneranimalmediaservices"
+main = "src/index.ts"
+compatibility_date = "2026-01-09"
+
+# Migration for SQL-backed Durable Object
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["IasSession"]
+
+# Environment Variables
+[vars]
+ENVIRONMENT = "production"
+API_URL = "https://inneranimalmediaservices.meauxbility.workers.dev"
+
+[env.production]
+name = "inneranimalmediaservices"
+workers_dev = true
+
+# Durable Objects with SQL-backed storage
+[env.production.durable_objects]
+bindings = [
+  # SQL-backed Durable Object for sessions
+  { name = "IAS_SESSION", class_name = "IasSession" }
+]
+
+# D1 Database (for additional data storage)
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "inneranimalmedia-business"
+database_id = "cf87b717-d4e2-4cf8-bab0-a81268e32d49"
+
+# R2 Buckets (for media storage)
+[[env.production.r2_buckets]]
+binding = "MEDIA_STORAGE"
+bucket_name = "iaccess-storage"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+API_URL = "https://inneranimalmediaservices.meauxbility.workers.dev"
+
+[env.staging]
+name = "inneranimalmediaservices-staging"
+
+
+# Durable Objects with SQL-backed storage
+[env.staging.durable_objects]
+bindings = [
+  # SQL-backed Durable Object for sessions
+  { name = "IAS_SESSION", class_name = "IasSession" }
+]
+
+# D1 Database (for additional data storage)
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "inneranimalmedia-business"
+database_id = "cf87b717-d4e2-4cf8-bab0-a81268e32d49"
+
+# R2 Buckets (for media storage)
+[[env.staging.r2_buckets]]
+binding = "MEDIA_STORAGE"
+bucket_name = "iaccess-storage"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+API_URL = "https://inneranimalmediaservices-staging.meauxbility.workers.dev"
+
+# Secrets (set via: wrangler secret put SECRET_NAME)
+# RESEND_API_KEY
+# CLOUDFLARE_API_TOKEN
+# CLOUDFLARE_ACCOUNT_ID

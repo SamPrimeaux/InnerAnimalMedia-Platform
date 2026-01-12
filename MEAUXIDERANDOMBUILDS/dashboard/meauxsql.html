@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeauxSQL | SQL Query Tool</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#ff6b00',
+                            red: '#dc2626',
+                            dark: '#050507',
+                            panel: '#0a0a0f',
+                            surface: '#171717'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background-color: #050507;
+            color: #f4f4f5;
+            overflow: hidden;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+
+        .sql-editor {
+            font-family: 'JetBrains Mono', monospace;
+            tab-size: 2;
+        }
+
+        .sql-editor:focus {
+            outline: none;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background: rgba(0, 0, 0, 0.3);
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+    <link rel="stylesheet" href="/shared/themes/base.css">
+    <link rel="stylesheet" href="/shared/themes/inneranimal-media.css">
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+</head>
+
+<body class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-brand-panel border-r border-white/10 flex flex-col">
+        <div class="h-20 flex items-center px-6 border-b border-white/5">
+            <div
+                class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold">
+                DB</div>
+            <div class="ml-3">
+                <h1 class="font-bold text-base text-white">MeauxSQL</h1>
+                <span class="text-[10px] text-zinc-500 font-mono">v2.0</span>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            <div class="mb-4">
+                <div class="px-3 mb-2 text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Database</div>
+                <select id="database-select"
+                    class="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white outline-none focus:border-brand-orange">
+                    <option value="meauxos">meauxos (D1)</option>
+                </select>
+            </div>
+            <div>
+                <div class="px-3 mb-2 text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Tables</div>
+                <div class="space-y-1" id="tables-list">
+                    <!-- Tables will load here -->
+                </div>
+            </div>
+            <div class="mt-6">
+                <div class="px-3 mb-2 text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Query History</div>
+                <div class="space-y-1 max-h-64 overflow-y-auto custom-scrollbar" id="query-history">
+                    <!-- History will load here -->
+                </div>
+            </div>
+        </div>
+        <div class="p-4 border-t border-white/5">
+            <a href="/dashboard/"
+                class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-zinc-300 transition-colors">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Dashboard
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-dark">
+        <!-- Toolbar -->
+        <header
+            class="h-16 border-b border-white/10 bg-brand-panel/95 backdrop-blur-md flex items-center justify-between px-6">
+            <div class="flex items-center gap-4">
+                <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i data-lucide="database" class="w-5 h-5 text-blue-400"></i> SQL Query Editor
+                </h2>
+                <div class="flex items-center gap-2 text-xs text-zinc-500">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    <span>Connected: meauxos</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="sql.formatQuery()"
+                    class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-zinc-300 transition-colors">
+                    <i data-lucide="align-left" class="w-3 h-3 inline mr-1"></i> Format
+                </button>
+                <button onclick="sql.saveQuery()"
+                    class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-zinc-300 transition-colors">
+                    <i data-lucide="save" class="w-3 h-3 inline mr-1"></i> Save
+                </button>
+                <button onclick="sql.runQuery()"
+                    class="px-4 py-1.5 bg-brand-orange hover:bg-orange-600 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-2">
+                    <i data-lucide="play" class="w-3 h-3"></i> Run Query
+                </button>
+            </div>
+        </header>
+
+        <!-- Editor and Results -->
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Left: Query Editor -->
+            <div class="w-1/2 flex flex-col border-r border-white/10">
+                <div class="h-10 border-b border-white/10 flex items-center justify-between px-4 bg-zinc-900/50">
+                    <span class="text-xs font-mono text-green-400">query.sql</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-zinc-500" id="query-lines">0 lines</span>
+                        <button onclick="sql.clearEditor()" class="text-xs text-zinc-500 hover:text-white">
+                            <i data-lucide="x" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+                <textarea id="sql-editor"
+                    class="flex-1 bg-black p-4 font-mono text-sm text-zinc-300 outline-none resize-none custom-scrollbar sql-editor"
+                    placeholder="-- Enter your SQL query here
+-- Example: SELECT * FROM workflows WHERE status = 'active' LIMIT 10;
+
+SELECT * FROM workflows 
+WHERE status = 'active' 
+ORDER BY created_at DESC 
+LIMIT 10;"></textarea>
+                <div class="h-12 border-t border-white/10 flex items-center justify-between px-4 bg-zinc-900/50">
+                    <div class="flex items-center gap-4 text-xs text-zinc-500">
+                        <span>Ctrl+Enter to run</span>
+                        <span>|</span>
+                        <span>Ctrl+/ to comment</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="sql.insertTemplate('SELECT')"
+                            class="px-2 py-1 bg-white/5 hover:bg-white/10 rounded text-xs text-zinc-400">SELECT</button>
+                        <button onclick="sql.insertTemplate('INSERT')"
+                            class="px-2 py-1 bg-white/5 hover:bg-white/10 rounded text-xs text-zinc-400">INSERT</button>
+                        <button onclick="sql.insertTemplate('UPDATE')"
+                            class="px-2 py-1 bg-white/5 hover:bg-white/10 rounded text-xs text-zinc-400">UPDATE</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Results -->
+            <div class="w-1/2 flex flex-col">
+                <div class="h-10 border-b border-white/10 flex items-center justify-between px-4 bg-zinc-900/50">
+                    <span class="text-xs font-mono text-blue-400">Results</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-zinc-500" id="results-info">Ready</span>
+                        <button onclick="sql.exportResults()" class="text-xs text-zinc-500 hover:text-white">
+                            <i data-lucide="download" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-auto p-4 custom-scrollbar" id="results-container">
+                    <div class="text-center text-zinc-600 py-12">
+                        <i data-lucide="database" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+                        <p class="text-sm">Run a query to see results</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = 'https://iaccess-api.meauxbility.workers.dev';
+        const sql = {
+            tables: ['tenants', 'workflows', 'deployments', 'workers', 'users'],
+            queryHistory: [],
+            currentResults: null,
+
+            async init() {
+                await this.loadTables();
+                this.loadHistory();
+                this.setupEditor();
+            },
+
+            async loadTables() {
+                const container = document.getElementById('tables-list');
+                container.innerHTML = '<div class="text-zinc-500 text-sm animate-pulse">Loading tables...</div>';
+
+                try {
+                    // Fetch schema from API
+                    const response = await fetch(`${API_BASE}/api/sql?action=tables`);
+                    const result = await response.json();
+
+                    if (result.success && result.data && result.data.tables) {
+                        this.tables = result.data.tables;
+                        const schemas = result.data.schemas || {};
+
+                        container.innerHTML = this.tables.map(table => {
+                            const schema = schemas[table] || [];
+                            const columnCount = schema.length;
+                            return `
+                                <button onclick="sql.loadTable('${table}')" 
+                                    class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white transition-colors flex items-center justify-between group">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="table" class="w-4 h-4"></i>
+                                        <span class="text-sm font-medium">${escapeHtml(table)}</span>
+                                    </div>
+                                    ${columnCount > 0 ? `<span class="text-xs text-zinc-600 group-hover:text-zinc-400">${columnCount} cols</span>` : ''}
+                                </button>
+                            `;
+                        }).join('');
+
+                        lucide.createIcons();
+                    } else {
+                        // Fallback to static list if API fails
+                        container.innerHTML = this.tables.map(table => `
+                            <button onclick="sql.loadTable('${table}')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white transition-colors flex items-center gap-2">
+                                <i data-lucide="table" class="w-4 h-4"></i>
+                                <span class="text-sm">${table}</span>
+                            </button>
+                        `).join('');
+                        lucide.createIcons();
+                    }
+                } catch (error) {
+                    console.error('Error loading tables:', error);
+                    // Fallback to static list
+                    container.innerHTML = this.tables.map(table => `
+                        <button onclick="sql.loadTable('${table}')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white transition-colors flex items-center gap-2">
+                            <i data-lucide="table" class="w-4 h-4"></i>
+                            <span class="text-sm">${table}</span>
+                        </button>
+                    `).join('');
+                    lucide.createIcons();
+                }
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            loadTable(tableName) {
+                const editor = document.getElementById('sql-editor');
+                editor.value = `SELECT * FROM ${tableName} LIMIT 10;`;
+                this.updateLineCount();
+            },
+
+            setupEditor() {
+                const editor = document.getElementById('sql-editor');
+
+                // Ctrl+Enter to run
+                editor.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey && e.key === 'Enter') {
+                        e.preventDefault();
+                        this.runQuery();
+                    }
+                    this.updateLineCount();
+                });
+
+                // Auto-resize
+                editor.addEventListener('input', () => {
+                    this.updateLineCount();
+                });
+
+                this.updateLineCount();
+            },
+
+            updateLineCount() {
+                const editor = document.getElementById('sql-editor');
+                const lines = editor.value.split('\\n').length;
+                document.getElementById('query-lines').textContent = `${lines} lines`;
+            },
+
+            async runQuery() {
+                const editor = document.getElementById('sql-editor');
+                const query = editor.value.trim();
+                if (!query) return;
+
+                const container = document.getElementById('results-container');
+                container.innerHTML = '<div class="text-zinc-500 animate-pulse">Executing query via MeauxSQL...</div>';
+                document.getElementById('results-info').textContent = 'Executing...';
+
+                // Add to history
+                this.addToHistory(query);
+
+                try {
+                    // Call MeauxSQL API endpoint (direct D1 execution - reliable read/write)
+                    const API_BASE = window.API_BASE || 'https://iaccess-api.meauxbility.workers.dev';
+                    const response = await fetch(`${API_BASE}/api/sql`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            query: query,
+                            database: 'inneranimalmedia-business'
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success && result.data !== undefined) {
+                        // Handle different response formats
+                        let results = [];
+                        let meta = result.meta || {};
+
+                        // For read queries (SELECT), data is array of rows
+                        if (Array.isArray(result.data)) {
+                            results = result.data;
+                        }
+                        // For write queries (INSERT/UPDATE/DELETE), data is object with changes
+                        else if (result.data.changes !== undefined || result.data.last_insert_id !== undefined) {
+                            // Write operation result
+                            const changes = result.data.changes || 0;
+                            const insertId = result.data.last_insert_id || null;
+                            container.innerHTML = `
+                                <div class="p-6 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-emerald-400">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        <span class="font-semibold text-emerald-400">Query executed successfully</span>
+                                    </div>
+                                    <div class="text-sm text-zinc-300 space-y-1">
+                                        <div>Rows affected: <span class="font-mono font-bold">${changes}</span></div>
+                                        ${insertId ? `<div>Last insert ID: <span class="font-mono font-bold">${insertId}</span></div>` : ''}
+                                        ${meta.duration_ms ? `<div>Duration: <span class="font-mono">${meta.duration_ms}ms</span></div>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                            document.getElementById('results-info').textContent = `Success: ${changes} row${changes !== 1 ? 's' : ''} affected`;
+                            this.currentResults = null;
+                            return;
+                        }
+                        // Nested data structure
+                        else if (result.data.data && Array.isArray(result.data.data)) {
+                            results = result.data.data;
+                        }
+
+                        // Render results
+                        if (results.length > 0) {
+                            if (meta.duration_ms) {
+                                document.getElementById('results-info').textContent = `${results.length} row${results.length !== 1 ? 's' : ''} returned (${meta.duration_ms}ms)`;
+                            } else {
+                                document.getElementById('results-info').textContent = `${results.length} row${results.length !== 1 ? 's' : ''} returned`;
+                            }
+                            this.currentResults = results;
+                            this.renderResults(results);
+                        } else {
+                            container.innerHTML = '<div class="text-zinc-400 text-center py-12">Query executed successfully. No rows returned.</div>';
+                            document.getElementById('results-info').textContent = '0 rows';
+                            this.currentResults = [];
+                        }
+                    } else {
+                        // Error response
+                        const errorMsg = result.error || result.message || 'Query execution failed';
+                        container.innerHTML = `<div class="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                            <div class="font-semibold text-red-400 mb-2">Error</div>
+                            <div class="text-red-300 font-mono text-sm">${escapeHtml(errorMsg)}</div>
+                            ${result.details ? `<div class="text-red-400 text-xs mt-2">${escapeHtml(result.details)}</div>` : ''}
+                        </div>`;
+                        document.getElementById('results-info').textContent = 'Error';
+                    }
+                } catch (error) {
+                    console.error('SQL execution error:', error);
+                    container.innerHTML = `<div class="text-red-400 font-mono text-sm">Error: ${error.message}</div>`;
+                    document.getElementById('results-info').textContent = 'Error';
+                }
+            },
+
+            renderResults(results) {
+                const container = document.getElementById('results-container');
+
+                if (!results || results.length === 0) {
+                    container.innerHTML = '<div class="text-zinc-500 text-center py-12">No results</div>';
+                    return;
+                }
+
+                const columns = Object.keys(results[0]);
+                const html = `
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs">
+                            <thead>
+                                <tr>
+                                    ${columns.map(col => `<th class="text-zinc-400 font-semibold">${col}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${results.map(row => `
+                                    <tr>
+                                        ${columns.map(col => `<td class="text-zinc-300">${row[col] ?? 'NULL'}</td>`).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                container.innerHTML = html;
+            },
+
+            addToHistory(query) {
+                this.queryHistory.unshift({
+                    query,
+                    timestamp: new Date().toLocaleTimeString()
+                });
+                if (this.queryHistory.length > 10) this.queryHistory.pop();
+                this.saveHistory();
+                this.renderHistory();
+            },
+
+            renderHistory() {
+                const container = document.getElementById('query-history');
+                container.innerHTML = this.queryHistory.map((item, idx) => `
+                    <button onclick="sql.loadFromHistory(${idx})" class="w-full text-left px-2 py-1.5 rounded hover:bg-white/5 text-zinc-500 hover:text-white transition-colors text-xs">
+                        <div class="font-mono truncate">${item.query.substring(0, 30)}...</div>
+                        <div class="text-[10px] text-zinc-700">${item.timestamp}</div>
+                    </button>
+                `).join('');
+            },
+
+            loadFromHistory(idx) {
+                const editor = document.getElementById('sql-editor');
+                editor.value = this.queryHistory[idx].query;
+                this.updateLineCount();
+            },
+
+            saveHistory() {
+                localStorage.setItem('sql-query-history', JSON.stringify(this.queryHistory));
+            },
+
+            loadHistory() {
+                const saved = localStorage.getItem('sql-query-history');
+                if (saved) {
+                    this.queryHistory = JSON.parse(saved);
+                    this.renderHistory();
+                }
+            },
+
+            formatQuery() {
+                const editor = document.getElementById('sql-editor');
+                // Simple formatting (in production, use a SQL formatter library)
+                let formatted = editor.value
+                    .replace(/\\s+/g, ' ')
+                    .replace(/\\s*,\\s*/g, ', ')
+                    .replace(/\\s*;\\s*/g, ';\\n')
+                    .replace(/SELECT\\s+/gi, 'SELECT\\n  ')
+                    .replace(/FROM\\s+/gi, '\\nFROM ')
+                    .replace(/WHERE\\s+/gi, '\\nWHERE ')
+                    .replace(/ORDER BY\\s+/gi, '\\nORDER BY ')
+                    .replace(/LIMIT\\s+/gi, '\\nLIMIT ');
+                editor.value = formatted;
+                this.updateLineCount();
+            },
+
+            saveQuery() {
+                const editor = document.getElementById('sql-editor');
+                const query = editor.value;
+                if (!query.trim()) return;
+
+                const blob = new Blob([query], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `query-${Date.now()}.sql`;
+                a.click();
+                URL.revokeObjectURL(url);
+            },
+
+            exportResults() {
+                if (!this.currentResults || this.currentResults.length === 0) return;
+
+                const csv = this.resultsToCSV(this.currentResults);
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `results-${Date.now()}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+            },
+
+            resultsToCSV(results) {
+                if (!results || results.length === 0) return '';
+                const cols = Object.keys(results[0]);
+                const header = cols.join(',');
+                const rows = results.map(r => cols.map(c => `"${r[c]}"`).join(','));
+                return [header, ...rows].join('\\n');
+            },
+
+            insertTemplate(type) {
+                const editor = document.getElementById('sql-editor');
+                const templates = {
+                    SELECT: 'SELECT * FROM table_name WHERE condition = value LIMIT 10;',
+                    INSERT: 'INSERT INTO table_name (column1, column2) VALUES (value1, value2);',
+                    UPDATE: 'UPDATE table_name SET column1 = value1 WHERE condition = value;'
+                };
+                editor.value = templates[type] || '';
+                this.updateLineCount();
+            },
+
+            clearEditor() {
+                document.getElementById('sql-editor').value = '';
+                this.updateLineCount();
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            sql.init();
+            lucide.createIcons();
+        });
+    </script>
+    <script src="/shared/layout-loader.js"></script>
+    <script src="/shared/onboarding-wizard.js"></script>
+</body>
+
+</html>

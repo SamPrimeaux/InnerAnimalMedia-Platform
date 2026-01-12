@@ -1,0 +1,50 @@
+/**
+ * InnerAnimal Media Brand Preset
+ * Orange (#ff6b00) + Red (#dc2626) theme
+ */
+
+[data-brand="inneranimal-media"] {
+  /* Primary Brand Colors */
+  --color-primary: #ff6b00;
+  --color-primary-hover: #ff8533;
+  --color-primary-light: rgba(255, 107, 0, 0.1);
+  --color-primary-dark: #e55f00;
+
+  --color-secondary: #dc2626;
+  --color-secondary-hover: #ef4444;
+  --color-secondary-light: rgba(220, 38, 38, 0.1);
+  --color-secondary-dark: #b91c1c;
+
+  /* Accent Colors */
+  --color-accent: #10b981;
+  --color-accent-hover: #34d399;
+  --color-accent-light: rgba(16, 185, 129, 0.1);
+
+  /* Gradient */
+  --gradient-primary: linear-gradient(135deg, #ff6b00 0%, #dc2626 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #ff8533 0%, #ef4444 100%);
+
+  /* Shadow with brand color */
+  --shadow-orange: 0 8px 30px rgba(255, 107, 0, 0.4);
+  --shadow-orange-lg: 0 20px 40px rgba(255, 107, 0, 0.3);
+}
+
+[data-brand="inneranimal-media"][data-theme="dark"] {
+  --bg-primary: #050507;
+  --bg-panel: #0a0a0f;
+  --bg-surface: #171717;
+  
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+}
+
+[data-brand="inneranimal-media"][data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-panel: #f8f9fa;
+  --bg-surface: #ffffff;
+  
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-tertiary: #80868b;
+}

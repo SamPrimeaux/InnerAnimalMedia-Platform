@@ -1,0 +1,46 @@
+name = "shinshu-solutions"
+main = "src/worker.js"
+compatibility_date = "2025-11-17"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database - Shinshu Solutions
+[[d1_databases]]
+binding = "DB"
+database_name = "shinshu-solutions"
+database_id = "071a4f1b-da85-4bdb-a32a-de3e608269d3"
+
+# R2 Bucket for Documents
+[[r2_buckets]]
+binding = "DOCUMENTS"
+bucket_name = "shinshu-solutions"
+
+# Cloudflare AI
+[ai]
+binding = "AI"
+
+[env.production]
+name = "shinshu-solutions"
+workers_dev = true
+
+# D1 Database (production)
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "shinshu-solutions"
+database_id = "071a4f1b-da85-4bdb-a32a-de3e608269d3"
+
+# R2 Buckets (production)
+[[env.production.r2_buckets]]
+binding = "DOCUMENTS"
+bucket_name = "shinshu-solutions"
+
+# Cloudflare AI (production)
+[env.production.ai]
+binding = "AI"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+# Resend Email Configuration
+# Add these to Cloudflare Dashboard → Workers → shinshu-solutions → Settings → Variables
+# RESEND_API_KEY = "re_BhGPu5Kt_7MYSXE9GhupsWJZc2iEfbZsu"
+# RESEND_FROM_EMAIL = "[email protected]"
+# RESEND_ADMIN_EMAIL = "[email protected]"

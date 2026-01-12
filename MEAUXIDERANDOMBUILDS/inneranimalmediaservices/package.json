@@ -1,0 +1,27 @@
+{
+  "name": "inneranimalmediaservices",
+  "version": "1.0.0",
+  "description": "InnerAnimalMedia Services - Durable Objects with MCP, Browser Rendering, Video Calls, and Communications",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "durable-objects",
+    "mcp",
+    "webrtc",
+    "resend"
+  ],
+  "author": "InnerAnimalMedia",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260109.0",
+    "typescript": "^5.9.3",
+    "wrangler": "^3.114.16"
+  }
+}

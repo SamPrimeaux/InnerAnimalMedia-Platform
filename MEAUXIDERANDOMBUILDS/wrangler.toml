@@ -1,0 +1,131 @@
+name = "inneranimalmedia-dev"
+main = "src/worker.js"
+compatibility_date = "2025-11-17"
+compatibility_flags = ["nodejs_compat"]
+
+# Hyperdrive - PostgreSQL connection pooling for Supabase (Production only)
+# Hyperdrive ID: 9108dd6499bb44c286e4eb298c6ffafb
+# Name: meauxhyper
+# Host: db.qmpghmthbhuumemnahcz.supabase.co
+# Database: postgres
+# Port: 5432
+
+# Migration for SQL-backed Durable Object (NEW - properly configured for SQLite)
+# Create IAMSession as SQLite-backed Durable Object (fresh, not a rename)
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["IAMSession"]
+
+# D1 Databases (root level for wrangler commands)
+# Primary: inneranimalmedia-business
+[[d1_databases]]
+binding = "DB"
+database_name = "inneranimalmedia-business"
+database_id = "cf87b717-d4e2-4cf8-bab0-a81268e32d49"
+
+# Secondary: meauxos (legacy database - data available for migration)
+[[d1_databases]]
+binding = "MEAUXOS_DB"
+database_name = "meauxos"
+database_id = "d8261777-9384-44f7-924d-c92247d55b46"
+
+[env.production]
+name = "inneranimalmedia-dev"
+workers_dev = true
+
+# SQL-backed Durable Object binding (NEW - properly configured for SQLite)
+# Binding name matches Cloudflare Dashboard: SESSION_DO
+[env.production.durable_objects]
+bindings = [
+  { name = "SESSION_DO", class_name = "IAMSession" }
+]
+
+[env.staging]
+name = "iaccess-api-staging"
+
+# D1 Database (staging uses same DB or create separate)
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "inneranimalmedia-business"
+database_id = "cf87b717-d4e2-4cf8-bab0-a81268e32d49"
+
+# Secondary: meauxos (staging)
+[[env.staging.d1_databases]]
+binding = "MEAUXOS_DB"
+database_name = "meauxos"
+database_id = "d8261777-9384-44f7-924d-c92247d55b46"
+
+# D1 Database (production)
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "inneranimalmedia-business"
+database_id = "cf87b717-d4e2-4cf8-bab0-a81268e32d49"
+
+# Secondary: meauxos (production) - for data migration
+[[env.production.d1_databases]]
+binding = "MEAUXOS_DB"
+database_name = "meauxos"
+database_id = "d8261777-9384-44f7-924d-c92247d55b46"
+
+# KV Namespaces (optional - comment out if not needed)
+# [[env.production.kv_namespaces]]
+# binding = "CACHE"
+# id = "YOUR_KV_NAMESPACE_ID"
+# preview_id = "YOUR_PREVIEW_KV_ID"
+
+# R2 Buckets - Correct bucket: inneranimalmedia-assets (NOT iaccess-storage)
+[[env.production.r2_buckets]]
+binding = "STORAGE"
+bucket_name = "inneranimalmedia-assets"
+
+# R2 Buckets - Spline Icons (3D models/icons)
+[[env.production.r2_buckets]]
+binding = "SPLINEICONS_STORAGE"
+bucket_name = "splineicons"
+
+# Hyperdrive - PostgreSQL connection pooling for Supabase (Production)
+[[env.production.hyperdrive]]
+binding = "HYPERDRIVE"
+id = "9108dd6499bb44c286e4eb298c6ffafb"
+
+# Analytics Engine - Analytics dataset binding (Production)
+[[env.production.analytics_engine_datasets]]
+binding = "INNERANIMALMEDIA-ANALYTICENGINE"
+dataset = "inneranimalmedia"
+
+# Observability - Logs and Traces
+[env.production.observability]
+[env.production.observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[env.production.observability.traces]
+enabled = true
+head_sampling_rate = 1
+persist = true
+
+# Environment Variables
+[env.production.vars]
+ENVIRONMENT = "production"
+API_URL = "https://api.iaccess.meauxbility.workers.dev"
+CLOUDFLARE_ACCOUNT_ID = "ede6590ac0d2fb7daf155b35653457b2"
+CLOUDFLARE_IMAGES_ACCOUNT_HASH = "g7wf09fCONpnidkRnR_5vw"
+CLOUDFLARE_STREAM_SUBDOMAIN = "customer-8y3087qnrzz7ql2e.cloudflarestream.com"
+CLOUDFLARE_STREAM_LIVE_INPUT_ID = "19f4cb5b8f596c17109b2da60cf02413"
+REALTIME_SFU_APP_ID = "06f520f1a1f2fef03d8e78e5ba802cb9"
+REALTIME_TURN_TOKEN_ID = "8de64140363dbdc05ad7d7da9f058c03"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+API_URL = "https://staging-api.iaccess.meauxbility.workers.dev"
+
+# Secrets (set via: wrangler secret put SECRET_NAME)
+# JWT_SECRET
+# CLOUDFLARE_API_TOKEN (already set)
+# GEMINI_API_KEY (for embeddings generation - preferred, uses Gemini text-embedding-004)
+# GOOGLE_API_KEY (alternative to GEMINI_API_KEY)
+# OPENAI_API_KEY (fallback for embeddings - optional)
+# CLOUDCONVERT_API_KEY (for file conversions - optional)
+# Set via: wrangler secret put GEMINI_API_KEY --env production

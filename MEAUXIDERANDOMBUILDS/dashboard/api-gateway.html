@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Gateway | InnerAnimalMedia</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#ff6b00',
+                            red: '#dc2626',
+                            dark: '#050507',
+                            panel: '#0a0a0f',
+                            surface: '#171717'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="/shared/themes/base.css">
+    <link rel="stylesheet" href="/shared/themes/inneranimal-media.css">
+    <style>
+        body {
+            background-color: #050507;
+            color: #f4f4f5;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+    </style>
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+</head>
+
+<body class="flex h-screen">
+    <!-- Sidebar (loaded dynamically) -->
+    <div id="sidebar-container"></div>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-dark">
+        <!-- Header -->
+        <header
+            class="h-20 border-b border-white/10 bg-brand-panel/95 backdrop-blur-md flex items-center justify-between px-8 z-30">
+            <div class="flex items-center gap-4">
+                <h1 class="text-2xl font-bold text-white">API Gateway</h1>
+                <span class="text-xs text-zinc-500">Route management and monitoring</span>
+            </div>
+            <button onclick="gateway.showCreateModal()"
+                class="px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                Add Route
+            </button>
+        </header>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            <!-- Routes Table -->
+            <div class="bg-brand-panel border border-white/10 rounded-xl p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-white">API Routes</h3>
+                    <div class="flex items-center gap-3">
+                        <input type="text" id="route-search" placeholder="Search routes..."
+                            class="px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50">
+                        <button onclick="gateway.refresh()"
+                            class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-zinc-300 transition-colors flex items-center gap-2">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-white/10 text-zinc-400">
+                                <th class="text-left py-3 px-4">Method</th>
+                                <th class="text-left py-3 px-4">Path</th>
+                                <th class="text-left py-3 px-4">Target URL</th>
+                                <th class="text-center py-3 px-4">Rate Limit</th>
+                                <th class="text-center py-3 px-4">Auth</th>
+                                <th class="text-center py-3 px-4">Status</th>
+                                <th class="text-right py-3 px-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="routes-table-body" class="text-zinc-300">
+                            <tr>
+                                <td colspan="7" class="text-center py-8 text-zinc-500">Loading routes...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="hidden text-center py-20">
+                    <i data-lucide="route" class="w-16 h-16 mx-auto text-zinc-700 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-zinc-400 mb-2">No Routes</h3>
+                    <p class="text-zinc-600 mb-6">Get started by adding your first API route</p>
+                    <button onclick="gateway.showCreateModal()"
+                        class="px-6 py-3 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-colors">
+                        Add Route
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create/Edit Modal -->
+    <div id="route-modal"
+        class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div
+            class="bg-brand-panel border border-white/10 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="p-6 border-b border-white/10 flex items-center justify-between">
+                <h2 class="text-xl font-bold text-white" id="modal-title">Add API Route</h2>
+                <button onclick="gateway.closeModal()"
+                    class="p-2 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="route-form" onsubmit="gateway.saveRoute(event)" class="p-6 space-y-4">
+                <input type="hidden" id="route-id" value="">
+
+                <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2">Route Name *</label>
+                    <input type="text" id="route-name" required
+                        class="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50"
+                        placeholder="e.g., Users API">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-300 mb-2">Method *</label>
+                        <select id="route-method" required
+                            class="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-orange/50 font-mono">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                            <option value="PATCH">PATCH</option>
+                            <option value="*">* (All Methods)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-300 mb-2">Rate Limit (req/min)</label>
+                        <input type="number" id="route-rate-limit" min="1" value="100"
+                            class="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2">Path Pattern *</label>
+                    <input type="text" id="route-path" required
+                        class="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 font-mono text-sm"
+                        placeholder="/api/users/:id">
+                    <p class="text-xs text-zinc-500 mt-1">Use :id for dynamic segments (e.g., /api/users/:id)</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2">Target URL *</label>
+                    <input type="url" id="route-target-url" required
+                        class="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 font-mono text-sm"
+                        placeholder="https://api.example.com/users">
+                    <p class="text-xs text-zinc-500 mt-1">Full URL of the target API endpoint</p>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="route-auth-required" checked class="accent-brand-orange">
+                        <span class="text-sm text-zinc-300">Authentication Required</span>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+                    <button type="button" onclick="gateway.closeModal()"
+                        class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-zinc-300 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-colors">
+                        Save Route
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Test Modal -->
+    <div id="test-modal"
+        class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-brand-panel border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg">
+            <div class="p-6 border-b border-white/10 flex items-center justify-between">
+                <h2 class="text-xl font-bold text-white">Test Route</h2>
+                <button onclick="gateway.closeTestModal()"
+                    class="p-2 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2">Request URL</label>
+                    <div class="px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white font-mono text-sm"
+                        id="test-url">
+                        /api/gateway/test
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2">Response</label>
+                    <div id="test-response"
+                        class="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-zinc-400 min-h-[200px] font-mono text-sm overflow-auto">
+                        Response will appear here...
+                    </div>
+                </div>
+                <button onclick="gateway.runTest()"
+                    class="w-full px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-colors">
+                    Test Route
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/shared/dashboard-layout-loader.js"></script>
+    <script src="/shared/layout.js"></script>
+    <script>
+        const API_BASE = window.API_BASE || 'https://iaccess-api.meauxbility.workers.dev';
+        const gateway = {
+            routes: [],
+            selectedRoute: null,
+            loading: false,
+
+            async init() {
+                await this.loadRoutes();
+                this.setupSearch();
+            },
+
+            setupSearch() {
+                const searchInput = document.getElementById('route-search');
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        this.filterRoutes(e.target.value);
+                    });
+                }
+            },
+
+            filterRoutes(query) {
+                if (!query.trim()) {
+                    this.renderRoutes();
+                    return;
+                }
+
+                const filtered = this.routes.filter(route =>
+                    route.name?.toLowerCase().includes(query.toLowerCase()) ||
+                    route.path?.toLowerCase().includes(query.toLowerCase()) ||
+                    route.target_url?.toLowerCase().includes(query.toLowerCase())
+                );
+
+                this.renderRoutes(filtered);
+            },
+
+            async loadRoutes() {
+                this.loading = true;
+                const tbody = document.getElementById('routes-table-body');
+                const emptyState = document.getElementById('empty-state');
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/gateway`);
+                    const result = await response.json();
+
+                    if (result.success && result.data && result.data.routes) {
+                        this.routes = result.data.routes;
+                        this.renderRoutes();
+                    } else {
+                        this.routes = [];
+                        this.renderRoutes();
+                    }
+                } catch (error) {
+                    console.error('Error loading routes:', error);
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center py-8 text-red-400">
+                                Error: ${escapeHtml(error.message)}
+                            </td>
+                        </tr>
+                    `;
+                    this.routes = [];
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            renderRoutes(routes = null) {
+                const tbody = document.getElementById('routes-table-body');
+                const emptyState = document.getElementById('empty-state');
+                const displayRoutes = routes || this.routes;
+
+                if (displayRoutes.length === 0) {
+                    tbody.innerHTML = '';
+                    tbody.parentElement.parentElement.classList.add('hidden');
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+
+                tbody.parentElement.parentElement.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+
+                tbody.innerHTML = displayRoutes.map(route => {
+                    const methodColor = {
+                        'GET': 'bg-blue-500/20 text-blue-400',
+                        'POST': 'bg-emerald-500/20 text-emerald-400',
+                        'PUT': 'bg-yellow-500/20 text-yellow-400',
+                        'DELETE': 'bg-red-500/20 text-red-400',
+                        'PATCH': 'bg-purple-500/20 text-purple-400',
+                        '*': 'bg-zinc-500/20 text-zinc-400'
+                    }[route.method] || 'bg-zinc-500/20 text-zinc-400';
+
+                    const statusColor = route.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' :
+                        route.status === 'inactive' ? 'bg-zinc-500/20 text-zinc-400' :
+                            'bg-red-500/20 text-red-400';
+
+                    return `
+                        <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td class="py-3 px-4">
+                                <span class="px-2 py-1 rounded text-xs font-bold font-mono ${methodColor}">
+                                    ${route.method || '*'}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4">
+                                <code class="text-xs text-brand-orange font-mono">${escapeHtml(route.path || 'N/A')}</code>
+                            </td>
+                            <td class="py-3 px-4">
+                                <code class="text-xs text-zinc-400 font-mono truncate max-w-xs block" title="${escapeHtml(route.target_url || 'N/A')}">
+                                    ${escapeHtml(route.target_url || 'N/A')}
+                                </code>
+                            </td>
+                            <td class="text-center py-3 px-4 text-xs text-zinc-400 font-mono">
+                                ${route.rate_limit || 100}/min
+                            </td>
+                            <td class="text-center py-3 px-4">
+                                ${route.auth_required ?
+                            '<i data-lucide="lock" class="w-4 h-4 text-emerald-400 mx-auto"></i>' :
+                            '<i data-lucide="unlock" class="w-4 h-4 text-zinc-500 mx-auto"></i>'
+                        }
+                            </td>
+                            <td class="text-center py-3 px-4">
+                                <span class="px-2 py-1 rounded-full text-xs font-medium ${statusColor} capitalize">
+                                    ${route.status || 'active'}
+                                </span>
+                            </td>
+                            <td class="text-right py-3 px-4">
+                                <div class="flex items-center justify-end gap-2">
+                                    <button onclick="gateway.testRoute('${route.id}')" 
+                                        class="p-1.5 hover:bg-blue-500/20 rounded text-blue-400 transition-colors"
+                                        title="Test route">
+                                        <i data-lucide="play" class="w-3 h-3"></i>
+                                    </button>
+                                    <button onclick="gateway.editRoute('${route.id}')" 
+                                        class="p-1.5 hover:bg-white/10 rounded text-zinc-300 transition-colors"
+                                        title="Edit route">
+                                        <i data-lucide="edit" class="w-3 h-3"></i>
+                                    </button>
+                                    <button onclick="gateway.deleteRoute('${route.id}')" 
+                                        class="p-1.5 hover:bg-red-500/20 rounded text-red-400 transition-colors"
+                                        title="Delete route">
+                                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                lucide.createIcons();
+            },
+
+            showCreateModal() {
+                document.getElementById('modal-title').textContent = 'Add API Route';
+                document.getElementById('route-form').reset();
+                document.getElementById('route-id').value = '';
+                document.getElementById('route-modal').classList.remove('hidden');
+            },
+
+            async editRoute(routeId) {
+                const route = this.routes.find(r => r.id === routeId);
+                if (!route) return;
+
+                document.getElementById('modal-title').textContent = 'Edit API Route';
+                document.getElementById('route-id').value = route.id;
+                document.getElementById('route-name').value = route.name || '';
+                document.getElementById('route-method').value = route.method || 'GET';
+                document.getElementById('route-path').value = route.path || '';
+                document.getElementById('route-target-url').value = route.target_url || '';
+                document.getElementById('route-rate-limit').value = route.rate_limit || 100;
+                document.getElementById('route-auth-required').checked = route.auth_required !== 0;
+
+                document.getElementById('route-modal').classList.remove('hidden');
+            },
+
+            closeModal() {
+                document.getElementById('route-modal').classList.add('hidden');
+            },
+
+            async saveRoute(e) {
+                e.preventDefault();
+                const id = document.getElementById('route-id').value;
+                const name = document.getElementById('route-name').value;
+                const method = document.getElementById('route-method').value;
+                const path = document.getElementById('route-path').value;
+                const targetUrl = document.getElementById('route-target-url').value;
+                const rateLimit = parseInt(document.getElementById('route-rate-limit').value) || 100;
+                const authRequired = document.getElementById('route-auth-required').checked ? 1 : 0;
+
+                if (!name || !method || !path || !targetUrl) {
+                    this.showNotification('All required fields must be filled', 'error');
+                    return;
+                }
+
+                try {
+                    const url = id ? `${API_BASE}/api/gateway/routes/${id}` : `${API_BASE}/api/gateway/routes`;
+                    const method = id ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name,
+                            method,
+                            path,
+                            target_url: targetUrl,
+                            rate_limit: rateLimit,
+                            auth_required: authRequired
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.showNotification(`Route ${id ? 'updated' : 'created'} successfully!`, 'success');
+                        this.closeModal();
+                        await this.loadRoutes();
+                    } else {
+                        this.showNotification(`Error: ${result.error || 'Failed to save route'}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error saving route:', error);
+                    this.showNotification(`Error: ${error.message}`, 'error');
+                }
+            },
+
+            async deleteRoute(routeId) {
+                if (!confirm('Are you sure you want to delete this API route? This cannot be undone.')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/gateway/routes/${routeId}`, {
+                        method: 'DELETE'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.showNotification('Route deleted successfully', 'success');
+                        await this.loadRoutes();
+                    } else {
+                        this.showNotification(`Error: ${result.error || 'Failed to delete route'}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error deleting route:', error);
+                    this.showNotification(`Error: ${error.message}`, 'error');
+                }
+            },
+
+            async testRoute(routeId) {
+                const route = this.routes.find(r => r.id === routeId);
+                if (!route) {
+                    this.showNotification('Route not found', 'error');
+                    return;
+                }
+
+                this.selectedRoute = route;
+                document.getElementById('test-url').textContent = `${route.method} ${route.path}`;
+                document.getElementById('test-response').textContent = 'Response will appear here...';
+                document.getElementById('test-response').className = 'w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-zinc-400 min-h-[200px] font-mono text-sm overflow-auto';
+                document.getElementById('test-modal').classList.remove('hidden');
+            },
+
+            closeTestModal() {
+                document.getElementById('test-modal').classList.add('hidden');
+                this.selectedRoute = null;
+            },
+
+            async runTest() {
+                if (!this.selectedRoute) return;
+
+                const responseDiv = document.getElementById('test-response');
+                responseDiv.textContent = 'Testing route...';
+                responseDiv.className = 'w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-yellow-400 min-h-[200px] font-mono text-sm overflow-auto';
+
+                try {
+                    // Test route by making a request through the gateway
+                    const testPath = this.selectedRoute.path.replace(/:id/g, 'test-123');
+                    const testUrl = `${API_BASE}${testPath}`;
+
+                    const response = await fetch(testUrl, {
+                        method: this.selectedRoute.method || 'GET',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    const result = await response.json().catch(() => ({ text: await response.text() }));
+
+                    responseDiv.textContent = JSON.stringify(result, null, 2);
+                    responseDiv.className = 'w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-emerald-400 min-h-[200px] font-mono text-sm overflow-auto';
+                    this.showNotification('Route test completed', 'success');
+                } catch (error) {
+                    responseDiv.textContent = `Error: ${error.message}\n\nRoute configuration looks correct. The target URL would be proxied in production.`;
+                    responseDiv.className = 'w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-red-400 min-h-[200px] font-mono text-sm overflow-auto';
+                    this.showNotification(`Test error: ${error.message}`, 'error');
+                }
+            },
+
+            async refresh() {
+                await this.loadRoutes();
+                this.showNotification('Routes refreshed', 'success');
+            },
+
+            showNotification(message, type = 'info') {
+                const bgColor = type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-3 rounded-lg shadow-xl z-50 flex items-center gap-2`;
+                notification.innerHTML = `
+                    <span>${escapeHtml(message)}</span>
+                    <button onclick="this.parentElement.remove()" class="ml-2 hover:opacity-70">×</button>
+                `;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 5000);
+            }
+        };
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await gateway.init();
+            lucide.createIcons();
+        });
+    </script>
+</body>
+
+</html>

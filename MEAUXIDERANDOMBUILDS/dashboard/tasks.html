@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasks | InnerAnimalMedia OS</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#ff6b00',
+                            red: '#dc2626',
+                            dark: '#050507',
+                            panel: '#0a0a0f',
+                            surface: '#171717'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            background-color: #050507;
+            color: #f4f4f5;
+            overflow: hidden;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+
+        .glass-panel {
+            background: rgba(23, 23, 23, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .task-card {
+            transition: all 0.2s ease;
+        }
+
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 107, 0, 0.1);
+        }
+    </style>
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+</head>
+
+<body class="flex h-screen selection:bg-orange-500/30">
+
+    <!-- SIDEBAR NAVIGATION (Shared) -->
+    <aside id="sidebar"
+        class="w-64 bg-brand-panel/95 backdrop-blur-md border-r border-white/10 flex flex-col transition-all duration-300 z-40 relative">
+        <div class="h-20 flex items-center px-6 border-b border-white/5">
+            <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar"
+                alt="InnerAnimalMedia" class="w-10 h-10 rounded-xl shrink-0 shadow-lg" />
+            <div class="ml-3 sidebar-text">
+                <h1 class="font-bold text-base tracking-tight text-white leading-tight">InnerAnimal</h1>
+                <span class="text-[10px] text-zinc-500 font-mono tracking-wider">MEDIA OS v5.1</span>
+            </div>
+        </div>
+        <nav class="flex-1 overflow-y-auto p-4 space-y-8 custom-scrollbar">
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Hub
+                </div>
+                <div class="space-y-1">
+                    <a href="/dashboard"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="overview">
+                        <i data-lucide="home" class="w-4 h-4"></i> <span class="sidebar-text">Dashboard</span>
+                    </a>
+                    <a href="/dashboard/projects"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="projects">
+                        <i data-lucide="briefcase" class="w-4 h-4"></i> <span class="sidebar-text">Projects</span>
+                    </a>
+                    <a href="/dashboard/clients"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="clients">
+                        <i data-lucide="users" class="w-4 h-4"></i> <span class="sidebar-text">Clients</span>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Work
+                </div>
+                <div class="space-y-1">
+                    <a href="/dashboard/calendar"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="calendar">
+                        <i data-lucide="calendar" class="w-4 h-4"></i> <span class="sidebar-text">Calendar</span>
+                    </a>
+                    <a href="/dashboard/tasks"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-orange text-white shadow-lg shadow-orange-900/20"
+                        data-page="tasks">
+                        <i data-lucide="check-square" class="w-4 h-4"></i> <span class="sidebar-text">InnerWork</span>
+                    </a>
+                    <a href="/dashboard/workflows"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="workflows">
+                        <i data-lucide="zap" class="w-4 h-4"></i> <span class="sidebar-text">Automation</span>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Engine
+                </div>
+                <div class="space-y-1">
+                    <a href="/dashboard/meauxmcp"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="meauxmcp">
+                        <i data-lucide="server" class="w-4 h-4"></i> <span class="sidebar-text">MeauxMCP</span>
+                    </a>
+                    <a href="/dashboard/meauxsql"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="meauxsql">
+                        <i data-lucide="database" class="w-4 h-4"></i> <span class="sidebar-text">MeauxSQL</span>
+                    </a>
+                    <a href="/dashboard/meauxcad"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="meauxcad">
+                        <i data-lucide="pen-tool" class="w-4 h-4"></i> <span class="sidebar-text">MeauxCAD</span>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Assets
+                </div>
+                <div class="space-y-1">
+                    <a href="/dashboard/library"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="library">
+                        <i data-lucide="layout-grid" class="w-4 h-4"></i> <span class="sidebar-text">CMS</span>
+                    </a>
+                    <a href="/dashboard/analytics"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="analytics">
+                        <i data-lucide="palette" class="w-4 h-4"></i> <span class="sidebar-text">Brand Central</span>
+                    </a>
+                    <a href="/dashboard/workers"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="workers">
+                        <i data-lucide="image" class="w-4 h-4"></i> <span class="sidebar-text">Gallery</span>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">System
+                </div>
+                <div class="space-y-1">
+                    <a href="/dashboard/settings"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="settings">
+                        <i data-lucide="settings" class="w-4 h-4"></i> <span class="sidebar-text">Settings</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+        <div class="p-4 border-t border-white/5">
+            <div
+                class="flex items-center gap-3 p-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition-all">
+                <div
+                    class="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-orange to-brand-red flex items-center justify-center text-xs font-bold text-white shrink-0 ring-2 ring-brand-panel">
+                    SP</div>
+                <div class="flex-1 min-w-0 sidebar-text">
+                    <div class="font-medium text-xs text-zinc-200">Sam Primeaux</div>
+                    <div class="text-[10px] text-zinc-500 truncate">sam@inneranimal.com</div>
+                </div>
+            </div>
+            <button onclick="app.toggleSidebar()"
+                class="w-full flex items-center justify-center p-2 mt-2 rounded-lg hover:bg-white/5 text-zinc-500 transition-colors">
+                <i data-lucide="panel-left-close" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-dark relative">
+        <header
+            class="h-20 border-b border-white/10 bg-brand-panel/95 backdrop-blur-md flex items-center justify-between px-8 z-30">
+            <div class="flex items-center gap-4 flex-1">
+                <div class="flex items-center gap-4 text-sm text-zinc-500">
+                    <i data-lucide="home" class="w-4 h-4 text-zinc-600"></i>
+                    <i data-lucide="chevron-right" class="w-3 h-3 text-zinc-700"></i>
+                    <span id="page-title"
+                        class="text-brand-orange font-semibold capitalize tracking-wide text-lg">InnerWork</span>
+                </div>
+                <div class="flex-1 max-w-md ml-8">
+                    <div class="relative">
+                        <i data-lucide="search"
+                            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500"></i>
+                        <input type="text" id="task-search" placeholder="Search tasks..."
+                            class="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 focus:bg-black/30 transition-all" />
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="h-6 w-px bg-white/10"></div>
+                <button onclick="taskManager.showCreateModal()"
+                    class="flex items-center gap-2 px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-all shadow-lg shadow-orange-900/20">
+                    <i data-lucide="plus" class="w-4 h-4"></i> New Task
+                </button>
+                <button onclick="taskManager.refresh()" id="refresh-tasks-btn"
+                    class="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-medium transition-all text-zinc-300">
+                    <i data-lucide="refresh-cw" class="w-3 h-3" id="refresh-icon"></i> Refresh
+                </button>
+            </div>
+        </header>
+
+        <!-- Task Manager Content -->
+        <div class="flex-1 overflow-hidden flex">
+            <!-- Left: Filters & Stats -->
+            <div class="w-64 border-r border-white/10 bg-brand-panel/50 p-6 overflow-y-auto custom-scrollbar">
+                <!-- Stats -->
+                <div class="mb-6">
+                    <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Overview</h3>
+                    <div class="space-y-3">
+                        <div class="bg-brand-surface border border-white/10 rounded-lg p-3">
+                            <div class="text-xs text-zinc-500 mb-1">Total Tasks</div>
+                            <div class="text-2xl font-bold text-white" id="total-tasks">-</div>
+                        </div>
+                        <div class="bg-brand-surface border border-white/10 rounded-lg p-3">
+                            <div class="text-xs text-zinc-500 mb-1">In Progress</div>
+                            <div class="text-2xl font-bold text-blue-400" id="in-progress-tasks">-</div>
+                        </div>
+                        <div class="bg-brand-surface border border-white/10 rounded-lg p-3">
+                            <div class="text-xs text-zinc-500 mb-1">Completed</div>
+                            <div class="text-2xl font-bold text-emerald-400" id="completed-tasks">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="mb-6">
+                    <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Filters</h3>
+                    <div class="space-y-2">
+                        <button onclick="taskManager.setStatusFilter('all')" data-filter="all"
+                            class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all filter-btn bg-brand-orange/20 text-brand-orange border border-brand-orange/30">
+                            <i data-lucide="list" class="w-4 h-4 inline mr-2"></i> All Tasks
+                        </button>
+                        <button onclick="taskManager.setStatusFilter('todo')" data-filter="todo"
+                            class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all filter-btn hover:bg-white/5 text-zinc-400 hover:text-white">
+                            <i data-lucide="circle" class="w-4 h-4 inline mr-2"></i> To Do
+                        </button>
+                        <button onclick="taskManager.setStatusFilter('in_progress')" data-filter="in_progress"
+                            class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all filter-btn hover:bg-white/5 text-zinc-400 hover:text-white">
+                            <i data-lucide="play-circle" class="w-4 h-4 inline mr-2"></i> In Progress
+                        </button>
+                        <button onclick="taskManager.setStatusFilter('review')" data-filter="review"
+                            class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all filter-btn hover:bg-white/5 text-zinc-400 hover:text-white">
+                            <i data-lucide="eye" class="w-4 h-4 inline mr-2"></i> In Review
+                        </button>
+                        <button onclick="taskManager.setStatusFilter('done')" data-filter="done"
+                            class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all filter-btn hover:bg-white/5 text-zinc-400 hover:text-white">
+                            <i data-lucide="check-circle" class="w-4 h-4 inline mr-2"></i> Done
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Priority Filter -->
+                <div class="mb-6">
+                    <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Priority</h3>
+                    <div class="space-y-2">
+                        <button onclick="taskManager.setPriorityFilter('all')" data-priority="all"
+                            class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all priority-filter bg-brand-orange/20 text-brand-orange border border-brand-orange/30">
+                            All Priorities
+                        </button>
+                        <button onclick="taskManager.setPriorityFilter('urgent')" data-priority="urgent"
+                            class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all priority-filter hover:bg-white/5 text-red-400 hover:text-red-300">
+                            <span class="w-2 h-2 bg-red-500 rounded-full inline-block mr-2"></span> Urgent
+                        </button>
+                        <button onclick="taskManager.setPriorityFilter('high')" data-priority="high"
+                            class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all priority-filter hover:bg-white/5 text-orange-400 hover:text-orange-300">
+                            <span class="w-2 h-2 bg-orange-500 rounded-full inline-block mr-2"></span> High
+                        </button>
+                        <button onclick="taskManager.setPriorityFilter('medium')" data-priority="medium"
+                            class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all priority-filter hover:bg-white/5 text-yellow-400 hover:text-yellow-300">
+                            <span class="w-2 h-2 bg-yellow-500 rounded-full inline-block mr-2"></span> Medium
+                        </button>
+                        <button onclick="taskManager.setPriorityFilter('low')" data-priority="low"
+                            class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all priority-filter hover:bg-white/5 text-zinc-400 hover:text-zinc-300">
+                            <span class="w-2 h-2 bg-zinc-500 rounded-full inline-block mr-2"></span> Low
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Task List -->
+            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                <div id="tasks-container" class="space-y-4 animate-fade-in">
+                    <div class="text-center py-12 text-zinc-500">
+                        <i data-lucide="loader" class="w-8 h-8 mx-auto mb-4 animate-spin"></i>
+                        <div>Loading tasks...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create Task Modal -->
+    <div id="create-task-modal"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center">
+        <div
+            class="bg-brand-surface border border-white/20 rounded-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-white">Create New Task</h2>
+                <button onclick="taskManager.hideCreateModal()"
+                    class="p-2 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="create-task-form" onsubmit="taskManager.createTask(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-400 mb-2">Title *</label>
+                    <input type="text" id="task-title" required
+                        class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 transition-all" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-400 mb-2">Description</label>
+                    <textarea id="task-description" rows="4"
+                        class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 transition-all resize-none"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-400 mb-2">Status</label>
+                        <select id="task-status"
+                            class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-orange/50 transition-all">
+                            <option value="todo">To Do</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="review">In Review</option>
+                            <option value="done">Done</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-400 mb-2">Priority</label>
+                        <select id="task-priority"
+                            class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-orange/50 transition-all">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-400 mb-2">Due Date</label>
+                    <input type="date" id="task-due-date"
+                        class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-orange/50 transition-all" />
+                </div>
+                <div class="flex items-center gap-4 pt-4">
+                    <button type="submit"
+                        class="flex-1 px-6 py-3 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-all">
+                        Create Task
+                    </button>
+                    <button type="button" onclick="taskManager.hideCreateModal()"
+                        class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 rounded-lg font-medium transition-all">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task Detail Modal -->
+    <div id="task-detail-modal"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center">
+        <div
+            class="bg-brand-surface border border-white/20 rounded-2xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div id="task-detail-content">
+                <!-- Content loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme System -->
+    <link rel="stylesheet" href="/shared/themes/base.css">
+
+    <!-- Shared Layout Script -->
+    <script src="/shared/layout.js"></script>
+
+    <!-- Page-Specific Script -->
+    <script>
+        const taskManager = {
+            tasks: [],
+            currentFilter: 'all',
+            currentPriority: 'all',
+            refreshInterval: null,
+
+            async init() {
+                lucide.createIcons();
+                await this.loadTasks();
+                this.setupEventListeners();
+                this.startAutoRefresh();
+            },
+
+            setupEventListeners() {
+                const searchInput = document.getElementById('task-search');
+                if (searchInput) {
+                    let searchTimeout;
+                    searchInput.addEventListener('input', (e) => {
+                        clearTimeout(searchTimeout);
+                        searchTimeout = setTimeout(() => {
+                            this.filterTasks(e.target.value);
+                        }, 300);
+                    });
+                }
+            },
+
+            async loadTasks() {
+                try {
+                    const url = new URL(`${window.location.origin}/api/tasks`);
+                    if (this.currentFilter !== 'all') url.searchParams.set('status', this.currentFilter);
+
+                    const res = await API.get(`tasks${url.search}`);
+                    if (res.success && res.data) {
+                        this.tasks = res.data || [];
+                        this.renderTasks();
+                        this.updateStats();
+                    }
+                } catch (error) {
+                    console.error('Failed to load tasks:', error);
+                    showNotification('Failed to load tasks: ' + error.message, 'error');
+                }
+            },
+
+            renderTasks() {
+                const container = document.getElementById('tasks-container');
+                if (!container) return;
+
+                let filteredTasks = [...this.tasks];
+
+                // Apply priority filter
+                if (this.currentPriority !== 'all') {
+                    filteredTasks = filteredTasks.filter(t => t.priority === this.currentPriority);
+                }
+
+                if (filteredTasks.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-16">
+                            <i data-lucide="check-square" class="w-16 h-16 mx-auto mb-4 text-zinc-700"></i>
+                            <div class="text-lg font-medium text-zinc-400 mb-2">No tasks found</div>
+                            <div class="text-sm text-zinc-600">Create your first task to get started</div>
+                            <button onclick="taskManager.showCreateModal()" class="mt-6 px-6 py-3 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-all">
+                                <i data-lucide="plus" class="w-4 h-4 inline mr-2"></i> Create Task
+                            </button>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+
+                container.innerHTML = filteredTasks.map(task => {
+                    const priorityColors = {
+                        urgent: 'bg-red-500/20 text-red-400 border-red-500/30',
+                        high: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+                        medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                        low: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'
+                    };
+
+                    const statusColors = {
+                        todo: 'bg-zinc-500/20 text-zinc-400',
+                        in_progress: 'bg-blue-500/20 text-blue-400',
+                        review: 'bg-purple-500/20 text-purple-400',
+                        done: 'bg-emerald-500/20 text-emerald-400'
+                    };
+
+                    const dueDate = task.due_date ? new Date(task.due_date * 1000) : null;
+                    const isOverdue = dueDate && dueDate < new Date() && task.status !== 'done';
+
+                    return `
+                        <div class="task-card bg-brand-surface border border-white/10 rounded-xl p-6 cursor-pointer hover:border-brand-orange/50" onclick="taskManager.openTaskDetail('${task.id}')">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-bold text-white mb-2">${this.escapeHtml(task.title)}</h3>
+                                    ${task.description ? `<p class="text-sm text-zinc-400 line-clamp-2">${this.escapeHtml(task.description)}</p>` : ''}
+                                </div>
+                                <div class="flex items-center gap-2 ml-4">
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium border ${priorityColors[task.priority] || priorityColors.medium}">
+                                        ${task.priority || 'medium'}
+                                    </span>
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium ${statusColors[task.status] || statusColors.todo}">
+                                        ${task.status.replace('_', ' ')}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between pt-4 border-t border-white/5">
+                                <div class="flex items-center gap-4 text-xs text-zinc-500">
+                                    ${task.assignee_id ? `<span><i data-lucide="user" class="w-3 h-3 inline mr-1"></i> ${task.assignee_id}</span>` : '<span class="text-zinc-600">Unassigned</span>'}
+                                    ${dueDate ? `<span class="${isOverdue ? 'text-red-400' : ''}"><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i> ${dueDate.toLocaleDateString()}</span>` : ''}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    ${task.is_completed ? '<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                lucide.createIcons();
+            },
+
+            updateStats() {
+                const total = this.tasks.length;
+                const inProgress = this.tasks.filter(t => t.status === 'in_progress').length;
+                const completed = this.tasks.filter(t => t.status === 'done' || t.is_completed).length;
+
+                const totalEl = document.getElementById('total-tasks');
+                const inProgressEl = document.getElementById('in-progress-tasks');
+                const completedEl = document.getElementById('completed-tasks');
+
+                if (totalEl) totalEl.textContent = total;
+                if (inProgressEl) inProgressEl.textContent = inProgress;
+                if (completedEl) completedEl.textContent = completed;
+            },
+
+            setStatusFilter(status) {
+                this.currentFilter = status;
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('bg-brand-orange/20', 'text-brand-orange', 'border-brand-orange/30');
+                    btn.classList.add('hover:bg-white/5', 'text-zinc-400', 'hover:text-white');
+                });
+                const activeBtn = document.querySelector(`[data-filter="${status}"]`);
+                if (activeBtn) {
+                    activeBtn.classList.add('bg-brand-orange/20', 'text-brand-orange', 'border', 'border-brand-orange/30');
+                    activeBtn.classList.remove('hover:bg-white/5', 'text-zinc-400', 'hover:text-white');
+                }
+                this.loadTasks();
+            },
+
+            setPriorityFilter(priority) {
+                this.currentPriority = priority;
+                document.querySelectorAll('.priority-filter').forEach(btn => {
+                    btn.classList.remove('bg-brand-orange/20', 'text-brand-orange', 'border-brand-orange/30');
+                });
+                const activeBtn = document.querySelector(`[data-priority="${priority}"]`);
+                if (activeBtn) {
+                    activeBtn.classList.add('bg-brand-orange/20', 'text-brand-orange', 'border', 'border-brand-orange/30');
+                }
+                this.renderTasks();
+            },
+
+            filterTasks(searchTerm) {
+                if (!searchTerm) {
+                    this.renderTasks();
+                    return;
+                }
+
+                const filtered = this.tasks.filter(task =>
+                    task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()))
+                );
+
+                const container = document.getElementById('tasks-container');
+                if (container && filtered.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-16">
+                            <i data-lucide="search-x" class="w-16 h-16 mx-auto mb-4 text-zinc-700"></i>
+                            <div class="text-lg font-medium text-zinc-400 mb-2">No tasks match your search</div>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+
+                this.tasks = filtered;
+                this.renderTasks();
+            },
+
+            showCreateModal() {
+                const modal = document.getElementById('create-task-modal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                    document.getElementById('task-title')?.focus();
+                }
+            },
+
+            hideCreateModal() {
+                const modal = document.getElementById('create-task-modal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    document.getElementById('create-task-form')?.reset();
+                }
+            },
+
+            async createTask(e) {
+                e.preventDefault();
+                try {
+                    const title = document.getElementById('task-title').value;
+                    const description = document.getElementById('task-description').value;
+                    const status = document.getElementById('task-status').value;
+                    const priority = document.getElementById('task-priority').value;
+                    const dueDate = document.getElementById('task-due-date').value;
+
+                    const taskData = {
+                        title,
+                        description,
+                        status,
+                        priority,
+                        creator_id: 'user-samprimeaux', // TODO: Get from auth
+                        ...(dueDate && { due_date: Math.floor(new Date(dueDate).getTime() / 1000) })
+                    };
+
+                    const res = await API.post('tasks', taskData);
+                    if (res.success) {
+                        showNotification('Task created successfully!', 'success');
+                        this.hideCreateModal();
+                        await this.loadTasks();
+                    } else {
+                        showNotification('Failed to create task: ' + (res.error || 'Unknown error'), 'error');
+                    }
+                } catch (error) {
+                    console.error('Create task error:', error);
+                    showNotification('Failed to create task: ' + error.message, 'error');
+                }
+            },
+
+            async openTaskDetail(taskId) {
+                try {
+                    const res = await API.get(`tasks/${taskId}`);
+                    if (res.success && res.data) {
+                        const task = res.data;
+                        const modal = document.getElementById('task-detail-modal');
+                        const content = document.getElementById('task-detail-content');
+
+                        const priorityColors = {
+                            urgent: 'bg-red-500/20 text-red-400 border-red-500/30',
+                            high: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+                            medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                            low: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'
+                        };
+
+                        const statusOptions = ['todo', 'in_progress', 'review', 'done'].map(s =>
+                            `<option value="${s}" ${task.status === s ? 'selected' : ''}>${s.replace('_', ' ')}</option>`
+                        ).join('');
+
+                        const priorityOptions = ['low', 'medium', 'high', 'urgent'].map(p =>
+                            `<option value="${p}" ${task.priority === p ? 'selected' : ''}>${p}</option>`
+                        ).join('');
+
+                        const dueDate = task.due_date ? new Date(task.due_date * 1000).toISOString().split('T')[0] : '';
+
+                        content.innerHTML = `
+                            <div class="flex items-center justify-between mb-6">
+                                <h2 class="text-2xl font-bold text-white">${this.escapeHtml(task.title)}</h2>
+                                <button onclick="taskManager.closeTaskDetail()"
+                                    class="p-2 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors">
+                                    <i data-lucide="x" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                            <form id="edit-task-form" onsubmit="taskManager.updateTask(event, '${task.id}')" class="space-y-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-400 mb-2">Title</label>
+                                    <input type="text" id="edit-task-title" value="${this.escapeHtml(task.title)}" required
+                                        class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 transition-all" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-400 mb-2">Description</label>
+                                    <textarea id="edit-task-description" rows="6"
+                                        class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 transition-all resize-none">${this.escapeHtml(task.description || '')}</textarea>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-zinc-400 mb-2">Status</label>
+                                        <select id="edit-task-status"
+                                            class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-orange/50 transition-all">
+                                            ${statusOptions}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-zinc-400 mb-2">Priority</label>
+                                        <select id="edit-task-priority"
+                                            class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-orange/50 transition-all">
+                                            ${priorityOptions}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-400 mb-2">Due Date</label>
+                                    <input type="date" id="edit-task-due-date" value="${dueDate}"
+                                        class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-orange/50 transition-all" />
+                                </div>
+                                ${task.comments && task.comments.length > 0 ? `
+                                <div>
+                                    <h3 class="text-lg font-bold text-white mb-4">Comments (${task.comments.length})</h3>
+                                    <div class="space-y-4">
+                                        ${task.comments.map(comment => `
+                                            <div class="bg-black/20 border border-white/10 rounded-lg p-4">
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <span class="text-sm font-medium text-white">${comment.user_id || 'User'}</span>
+                                                    <span class="text-xs text-zinc-500">${new Date(comment.created_at * 1000).toLocaleString()}</span>
+                                                </div>
+                                                <p class="text-sm text-zinc-300">${this.escapeHtml(comment.content)}</p>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                ` : ''}
+                                <div>
+                                    <h3 class="text-lg font-bold text-white mb-4">Add Comment</h3>
+                                    <div class="flex gap-3">
+                                        <input type="text" id="new-comment" placeholder="Write a comment..."
+                                            class="flex-1 px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 transition-all" />
+                                        <button type="button" onclick="taskManager.addComment('${task.id}')"
+                                            class="px-6 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-all">
+                                            Send
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4 pt-4 border-t border-white/10">
+                                    <button type="submit"
+                                        class="flex-1 px-6 py-3 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-all">
+                                        Save Changes
+                                    </button>
+                                    <button type="button" onclick="taskManager.deleteTask('${task.id}')"
+                                        class="px-6 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 rounded-lg font-medium transition-all">
+                                        Delete
+                                    </button>
+                                </div>
+                            </form>
+                        `;
+
+                        if (modal) {
+                            modal.classList.remove('hidden');
+                            modal.classList.add('flex');
+                        }
+                        lucide.createIcons();
+                    }
+                } catch (error) {
+                    console.error('Failed to load task details:', error);
+                    showNotification('Failed to load task: ' + error.message, 'error');
+                }
+            },
+
+            closeTaskDetail() {
+                const modal = document.getElementById('task-detail-modal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            },
+
+            async updateTask(e, taskId) {
+                e.preventDefault();
+                try {
+                    const updates = {
+                        title: document.getElementById('edit-task-title').value,
+                        description: document.getElementById('edit-task-description').value,
+                        status: document.getElementById('edit-task-status').value,
+                        priority: document.getElementById('edit-task-priority').value,
+                        updated_by: 'user-samprimeaux' // TODO: Get from auth
+                    };
+
+                    const dueDate = document.getElementById('edit-task-due-date').value;
+                    if (dueDate) {
+                        updates.due_date = Math.floor(new Date(dueDate).getTime() / 1000);
+                    }
+
+                    const res = await API.put(`tasks/${taskId}`, updates);
+                    if (res.success) {
+                        showNotification('Task updated successfully!', 'success');
+                        this.closeTaskDetail();
+                        await this.loadTasks();
+                    } else {
+                        showNotification('Failed to update task: ' + (res.error || 'Unknown error'), 'error');
+                    }
+                } catch (error) {
+                    console.error('Update task error:', error);
+                    showNotification('Failed to update task: ' + error.message, 'error');
+                }
+            },
+
+            async deleteTask(taskId) {
+                if (!confirm('Are you sure you want to delete this task?')) return;
+
+                try {
+                    const res = await API.delete(`tasks/${taskId}`);
+                    if (res.success) {
+                        showNotification('Task deleted successfully!', 'success');
+                        this.closeTaskDetail();
+                        await this.loadTasks();
+                    } else {
+                        showNotification('Failed to delete task: ' + (res.error || 'Unknown error'), 'error');
+                    }
+                } catch (error) {
+                    console.error('Delete task error:', error);
+                    showNotification('Failed to delete task: ' + error.message, 'error');
+                }
+            },
+
+            async addComment(taskId) {
+                const input = document.getElementById('new-comment');
+                const content = input.value.trim();
+                if (!content) return;
+
+                try {
+                    const res = await API.post(`tasks/${taskId}/comments`, {
+                        content,
+                        user_id: 'user-samprimeaux' // TODO: Get from auth
+                    });
+
+                    if (res.success) {
+                        input.value = '';
+                        showNotification('Comment added!', 'success');
+                        await this.openTaskDetail(taskId); // Reload task details
+                    } else {
+                        showNotification('Failed to add comment: ' + (res.error || 'Unknown error'), 'error');
+                    }
+                } catch (error) {
+                    console.error('Add comment error:', error);
+                    showNotification('Failed to add comment: ' + error.message, 'error');
+                }
+            },
+
+            async refresh() {
+                const btn = document.getElementById('refresh-tasks-btn');
+                const icon = document.getElementById('refresh-icon');
+                if (icon) icon.classList.add('animate-spin');
+                if (btn) btn.disabled = true;
+
+                try {
+                    await this.loadTasks();
+                    showNotification('Tasks refreshed', 'success');
+                } finally {
+                    if (icon) icon.classList.remove('animate-spin');
+                    if (btn) btn.disabled = false;
+                }
+            },
+
+            startAutoRefresh() {
+                // Refresh every 30 seconds for real-time updates
+                this.refreshInterval = setInterval(() => {
+                    this.loadTasks();
+                }, 30000);
+            },
+
+            escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        };
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            taskManager.init();
+        });
+
+        // Cleanup interval on page unload
+        window.addEventListener('beforeunload', () => {
+            if (taskManager.refreshInterval) {
+                clearInterval(taskManager.refreshInterval);
+            }
+        });
+    </script>
+    <script src="/shared/layout-loader.js"></script>
+</body>
+
+</html>

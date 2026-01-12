@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="en" class="dark" data-brand="inneranimal-media">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings & Theme Library | InnerAnimalMedia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#ff6b00',
+                            red: '#dc2626',
+                            dark: '#050507',
+                            panel: '#0a0a0f',
+                            surface: '#171717'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/shared/themes/base.css">
+    <link rel="stylesheet" href="/shared/themes/inneranimal-media.css">
+    <link rel="stylesheet" href="/shared/themes/meaux-tools-24-premium.css">
+    <style>
+        body {
+            background-color: #050507;
+            color: #f4f4f5;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+
+        .theme-card {
+            transition: all 0.3s ease;
+        }
+
+        .theme-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .theme-card.active {
+            border-color: var(--color-primary, #ff6b00);
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.2);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+    </style>
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+</head>
+
+<body class="flex h-screen">
+    <div id="sidebar-container"></div>
+
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-dark">
+        <header
+            class="h-20 border-b border-white/10 bg-brand-panel/95 backdrop-blur-md flex items-center justify-between px-8 z-30">
+            <div class="flex items-center gap-4">
+                <h1 class="text-2xl font-bold text-white">Settings</h1>
+                <span class="text-xs text-zinc-500">Theme library & brand asset management</span>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            <div class="max-w-7xl mx-auto space-y-8">
+                <!-- Settings Tabs -->
+                <div class="bg-brand-panel border border-white/10 rounded-2xl p-2 flex gap-2">
+                    <button onclick="settings.switchTab('integrations')" id="tab-integrations"
+                        class="flex-1 px-6 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 bg-brand-orange text-white">
+                        <i data-lucide="link" class="w-4 h-4"></i>
+                        Integrations
+                    </button>
+                    <button onclick="settings.switchTab('themes')" id="tab-themes"
+                        class="flex-1 px-6 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 bg-transparent text-zinc-400 hover:text-white hover:bg-white/5">
+                        <i data-lucide="palette" class="w-4 h-4"></i>
+                        Themes
+                    </button>
+                    <button onclick="settings.switchTab('preferences')" id="tab-preferences"
+                        class="flex-1 px-6 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 bg-transparent text-zinc-400 hover:text-white hover:bg-white/5">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                        Preferences
+                    </button>
+                </div>
+
+                <!-- Integrations Tab Content -->
+                <div id="integrations-tab" class="space-y-6">
+                    <!-- Integration Status Dashboard -->
+                    <div class="bg-brand-panel border border-white/10 rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                    <i data-lucide="activity" class="w-5 h-5 text-brand-orange"></i>
+                                    Integration Health
+                                </h3>
+                                <p class="text-sm text-zinc-400 mt-1">Overview of all your connected services</p>
+                            </div>
+                            <button onclick="settings.refreshIntegrationStatus()"
+                                class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-zinc-300 transition-colors flex items-center gap-2">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                Refresh
+                            </button>
+                        </div>
+                        <div id="integration-status-summary" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                            <!-- Status cards will be rendered here -->
+                        </div>
+                        <div id="integration-status-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Integration cards will be rendered here -->
+                        </div>
+                    </div>
+
+                    <!-- Google Services -->
+                    <div class="bg-brand-panel border border-white/10 rounded-2xl p-6" id="integration-google">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-red-500 flex items-center justify-center">
+                                    <i data-lucide="mail" class="w-5 h-5 text-white"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-white">Google Services</h3>
+                                    <p class="text-sm text-zinc-400">Drive, Gemini, OAuth</p>
+                                </div>
+                            </div>
+                            <div id="google-status-badge"
+                                class="px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-zinc-400">
+                                Checking...
+                            </div>
+                        </div>
+                        <div id="google-connection-details" class="space-y-4">
+                            <!-- Connection details will be rendered here -->
+                        </div>
+                        <div class="mt-4 flex gap-3">
+                            <button onclick="settings.connectGoogle()" id="google-connect-btn"
+                                class="px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2">
+                                <i data-lucide="link" class="w-4 h-4"></i>
+                                Connect Google
+                            </button>
+                            <button onclick="settings.disconnectGoogle()" id="google-disconnect-btn"
+                                class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-zinc-300 transition-colors flex items-center gap-2 hidden">
+                                <i data-lucide="unlink" class="w-4 h-4"></i>
+                                Disconnect
+                            </button>
+                            <button onclick="settings.testGoogleConnection()" id="google-test-btn"
+                                class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-zinc-300 transition-colors flex items-center gap-2 hidden">
+                                <i data-lucide="test-tube" class="w-4 h-4"></i>
+                                Test Connection
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- GitHub -->
+                    <div class="bg-brand-panel border border-white/10 rounded-2xl p-6" id="integration-github">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center">
+                                    <i data-lucide="github" class="w-5 h-5 text-white"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-white">GitHub</h3>
+                                    <p class="text-sm text-zinc-400">Optional - Connect your GitHub account</p>
+                                </div>
+                            </div>
+                            <div id="github-status-badge"
+                                class="px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-zinc-400">
+                                Checking...
+                            </div>
+                        </div>
+                        <div class="mb-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                            <p class="text-sm text-blue-300">
+                                <i data-lucide="info" class="w-4 h-4 inline mr-2"></i>
+                                GitHub integration is optional. Connect your personal GitHub account to use GitHub
+                                features within the platform.
+                            </p>
+                        </div>
+                        <div id="github-connection-details" class="space-y-4">
+                            <!-- Connection details will be rendered here -->
+                        </div>
+                        <div class="mt-4 flex gap-3">
+                            <button onclick="settings.connectGitHub()" id="github-connect-btn"
+                                class="px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2">
+                                <i data-lucide="link" class="w-4 h-4"></i>
+                                Connect GitHub
+                            </button>
+                            <button onclick="settings.disconnectGitHub()" id="github-disconnect-btn"
+                                class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-zinc-300 transition-colors flex items-center gap-2 hidden">
+                                <i data-lucide="unlink" class="w-4 h-4"></i>
+                                Disconnect
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Supabase -->
+                    <div class="bg-brand-panel border border-white/10 rounded-2xl p-6" id="integration-supabase">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                                    <i data-lucide="database" class="w-5 h-5 text-white"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-white">Supabase</h3>
+                                    <p class="text-sm text-zinc-400">Connect your Supabase project</p>
+                                </div>
+                            </div>
+                            <div id="supabase-status-badge"
+                                class="px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-zinc-400">
+                                Checking...
+                            </div>
+                        </div>
+                        <div id="supabase-connection-form" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-white mb-2">Connection String</label>
+                                <input type="password" id="supabase-connection-string" placeholder="postgresql://..."
+                                    class="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20">
+                                <p class="text-xs text-zinc-500 mt-1">Your Supabase database connection string</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-white mb-2">Project ID (Optional)</label>
+                                <input type="text" id="supabase-project-id" placeholder="your-project-id"
+                                    class="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20">
+                            </div>
+                        </div>
+                        <div class="mt-4 flex gap-3">
+                            <button onclick="settings.connectSupabase()" id="supabase-connect-btn"
+                                class="px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2">
+                                <i data-lucide="save" class="w-4 h-4"></i>
+                                Save Connection
+                            </button>
+                            <button onclick="settings.testSupabaseConnection()" id="supabase-test-btn"
+                                class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-zinc-300 transition-colors flex items-center gap-2 hidden">
+                                <i data-lucide="test-tube" class="w-4 h-4"></i>
+                                Test Connection
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Cursor API -->
+                    <div class="bg-brand-panel border border-white/10 rounded-2xl p-6" id="integration-cursor">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                                    <i data-lucide="mouse-pointer-2" class="w-5 h-5 text-white"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-white">Cursor API</h3>
+                                    <p class="text-sm text-zinc-400">AI-powered code assistance</p>
+                                </div>
+                            </div>
+                            <div id="cursor-status-badge"
+                                class="px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-zinc-400">
+                                Checking...
+                            </div>
+                        </div>
+                        <div id="cursor-connection-form" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-white mb-2">Cursor API Key</label>
+                                <input type="password" id="cursor-api-key" placeholder="key_..."
+                                    class="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20">
+                                <p class="text-xs text-zinc-500 mt-1">Your Cursor API key for code generation</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex gap-3">
+                            <button onclick="settings.connectCursor()" id="cursor-connect-btn"
+                                class="px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2">
+                                <i data-lucide="save" class="w-4 h-4"></i>
+                                Save API Key
+                            </button>
+                            <button onclick="settings.testCursorConnection()" id="cursor-test-btn"
+                                class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-zinc-300 transition-colors flex items-center gap-2 hidden">
+                                <i data-lucide="test-tube" class="w-4 h-4"></i>
+                                Test Connection
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Hyperdrive -->
+                    <div class="bg-brand-panel border border-white/10 rounded-2xl p-6" id="integration-hyperdrive">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center">
+                                    <i data-lucide="zap" class="w-5 h-5 text-white"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-white">Hyperdrive</h3>
+                                    <p class="text-sm text-zinc-400">Cloudflare Hyperdrive connection</p>
+                                </div>
+                            </div>
+                            <div id="hyperdrive-status-badge"
+                                class="px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-zinc-400">
+                                Checking...
+                            </div>
+                        </div>
+                        <div id="hyperdrive-info" class="p-4 bg-zinc-800/50 rounded-lg">
+                            <p class="text-sm text-zinc-300">
+                                Hyperdrive is configured at the platform level. Connection status is managed
+                                automatically.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Cloudflare MCP -->
+                    <div class="bg-brand-panel border border-white/10 rounded-2xl p-6" id="integration-mcp">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
+                                    <i data-lucide="server" class="w-5 h-5 text-white"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-white">Cloudflare MCP</h3>
+                                    <p class="text-sm text-zinc-400">Model Context Protocol servers</p>
+                                </div>
+                            </div>
+                            <div id="mcp-status-badge"
+                                class="px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-zinc-400">
+                                Checking...
+                            </div>
+                        </div>
+                        <div id="mcp-sessions-info" class="space-y-4">
+                            <!-- MCP sessions will be rendered here -->
+                        </div>
+                        <div class="mt-4">
+                            <button onclick="settings.setupMCP()" id="mcp-setup-btn"
+                                class="px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                Setup MCP Server
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- External Apps -->
+                    <div class="bg-brand-panel border border-white/10 rounded-2xl p-6" id="integration-external">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
+                                    <i data-lucide="grid-3x3" class="w-5 h-5 text-white"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-white">External Apps</h3>
+                                    <p class="text-sm text-zinc-400">Claude, OpenAI, CloudConvert, and more</p>
+                                </div>
+                            </div>
+                            <div id="external-status-badge"
+                                class="px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-zinc-400">
+                                Checking...
+                            </div>
+                        </div>
+                        <div id="external-apps-list" class="space-y-3">
+                            <!-- External apps will be rendered here -->
+                        </div>
+                        <div class="mt-4">
+                            <a href="/dashboard" onclick="window.quickConnect?.showSettings?.()"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-zinc-300 transition-colors">
+                                <i data-lucide="settings" class="w-4 h-4"></i>
+                                Manage in Quick-Connect
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Themes Tab Content -->
+                <div id="themes-tab" class="space-y-8 hidden">
+                    <!-- Theme Mode Selector -->
+                    <div class="bg-brand-panel border border-white/10 rounded-2xl p-6">
+                        <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <i data-lucide="monitor" class="w-5 h-5 text-brand-orange"></i>
+                            Theme Mode
+                        </h3>
+                        <div class="flex items-center gap-4">
+                            <button onclick="settings.setThemeMode('light')" id="mode-light"
+                                class="px-6 py-3 rounded-xl border-2 transition-all flex items-center gap-2 font-medium border-white/10 hover:border-white/20 bg-black/40 text-zinc-400 hover:text-white">
+                                <i data-lucide="sun" class="w-4 h-4"></i>
+                                Light
+                            </button>
+                            <button onclick="settings.setThemeMode('dark')" id="mode-dark"
+                                class="px-6 py-3 rounded-xl border-2 transition-all flex items-center gap-2 font-medium border-brand-orange bg-brand-orange/10 text-white">
+                                <i data-lucide="moon" class="w-4 h-4"></i>
+                                Dark
+                            </button>
+                            <button onclick="settings.setThemeMode('system')" id="mode-system"
+                                class="px-6 py-3 rounded-xl border-2 transition-all flex items-center gap-2 font-medium border-white/10 hover:border-white/20 bg-black/40 text-zinc-400 hover:text-white">
+                                <i data-lucide="monitor" class="w-4 h-4"></i>
+                                System
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Brand Preset Themes -->
+                    <div class="bg-brand-panel border border-white/10 rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i data-lucide="palette" class="w-5 h-5 text-brand-orange"></i>
+                                Brand Preset Themes
+                            </h3>
+                            <button onclick="settings.showCreateTheme()"
+                                class="px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                Create Custom Theme
+                            </button>
+                        </div>
+                        <div id="themes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div class="text-zinc-500 text-center py-12 animate-pulse">
+                                <i data-lucide="loader" class="w-8 h-8 mx-auto mb-4 animate-spin"></i>
+                                <div>Loading themes...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Brand Assets Library -->
+                    <div class="bg-brand-panel border border-white/10 rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i data-lucide="image" class="w-5 h-5 text-brand-orange"></i>
+                                Brand Asset Library
+                            </h3>
+                            <div class="flex items-center gap-3">
+                                <select id="asset-type-filter" onchange="settings.filterBrandAssets()"
+                                    class="px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-brand-orange/50">
+                                    <option value="all">All Types</option>
+                                    <option value="logo">Logos</option>
+                                    <option value="icon">Icons</option>
+                                    <option value="image">Images</option>
+                                    <option value="video">Videos</option>
+                                    <option value="color">Colors</option>
+                                </select>
+                                <button onclick="settings.showUploadBrandAsset()"
+                                    class="px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                    <i data-lucide="upload" class="w-4 h-4"></i>
+                                    Upload Asset
+                                </button>
+                            </div>
+                        </div>
+                        <div id="brand-assets-container"
+                            class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                            <div class="text-zinc-500 text-center py-8 animate-pulse">
+                                <i data-lucide="loader" class="w-6 h-6 mx-auto mb-2 animate-spin"></i>
+                                <div class="text-xs">Loading assets...</div>
+                            </div>
+                        </div>
+                        <div id="brand-assets-empty" class="hidden text-center py-12">
+                            <i data-lucide="image-off" class="w-12 h-12 mx-auto text-zinc-700 mb-4"></i>
+                            <h4 class="text-lg font-semibold text-zinc-400 mb-2">No Brand Assets</h4>
+                            <p class="text-sm text-zinc-600 mb-6">Upload your first brand asset to get started</p>
+                            <button onclick="settings.showUploadBrandAsset()"
+                                class="px-6 py-3 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-colors">
+                                Upload Asset
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Theme Customization (Advanced) -->
+                    <div class="bg-brand-panel border border-white/10 rounded-2xl p-6">
+                        <h3 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                            <i data-lucide="sliders-horizontal" class="w-5 h-5 text-brand-orange"></i>
+                            Advanced Theme Customization
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-zinc-300 mb-2">Primary Brand Color</label>
+                                <div class="flex items-center gap-3">
+                                    <input type="color" id="primary-color" value="#ff6b00"
+                                        onchange="settings.updateThemePreview()"
+                                        class="w-16 h-12 rounded-lg border border-white/10 cursor-pointer">
+                                    <input type="text" id="primary-color-hex" value="#ff6b00"
+                                        onchange="settings.updateThemePreview()"
+                                        class="flex-1 px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-brand-orange/50">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-zinc-300 mb-2">Secondary Brand
+                                    Color</label>
+                                <div class="flex items-center gap-3">
+                                    <input type="color" id="secondary-color" value="#dc2626"
+                                        onchange="settings.updateThemePreview()"
+                                        class="w-16 h-12 rounded-lg border border-white/10 cursor-pointer">
+                                    <input type="text" id="secondary-color-hex" value="#dc2626"
+                                        onchange="settings.updateThemePreview()"
+                                        class="flex-1 px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-brand-orange/50">
+                                </div>
+                            </div>
+                            <div class="pt-4 border-t border-white/10 flex items-center justify-end gap-3">
+                                <button onclick="settings.resetThemeColors()"
+                                    class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-zinc-300 transition-colors">
+                                    Reset
+                                </button>
+                                <button onclick="settings.saveThemeCustomization()"
+                                    class="px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-colors">
+                                    Save Custom Theme
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Preferences Tab Content -->
+                <div id="preferences-tab" class="space-y-8 hidden">
+                    <!-- User Preferences -->
+                    <div class="bg-brand-panel border border-white/10 rounded-2xl p-6">
+                        <h3 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                            <i data-lucide="user" class="w-5 h-5 text-brand-orange"></i>
+                            User Preferences
+                        </h3>
+                        <div class="space-y-4">
+                            <div
+                                class="flex items-center justify-between p-4 bg-black/40 rounded-xl border border-white/10">
+                                <div>
+                                    <div class="font-medium text-white">Email Notifications</div>
+                                    <div class="text-sm text-zinc-500">Receive email updates and alerts</div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="email-notifications" class="sr-only peer" checked>
+                                    <div
+                                        class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-orange">
+                                    </div>
+                                </label>
+                            </div>
+                            <div
+                                class="flex items-center justify-between p-4 bg-black/40 rounded-xl border border-white/10">
+                                <div>
+                                    <div class="font-medium text-white">Push Notifications</div>
+                                    <div class="text-sm text-zinc-500">Browser push notifications</div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="push-notifications" class="sr-only peer">
+                                    <div
+                                        class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-orange">
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Theme Preview Modal -->
+    <div id="theme-preview-modal"
+        class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div
+            class="bg-brand-panel border border-white/10 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="p-6 border-b border-white/10 flex items-center justify-between">
+                <h2 class="text-xl font-bold text-white" id="theme-preview-title">Theme Preview</h2>
+                <button onclick="settings.closeThemePreview()"
+                    class="p-2 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="theme-preview-content" class="p-6">
+                <!-- Preview content will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Brand Asset Modal -->
+    <div id="upload-brand-modal"
+        class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div
+            class="bg-brand-panel border border-white/10 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="p-6 border-b border-white/10 flex items-center justify-between">
+                <h2 class="text-xl font-bold text-white">Upload Brand Asset</h2>
+                <button onclick="settings.closeUploadBrandAsset()"
+                    class="p-2 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="upload-brand-form" onsubmit="settings.uploadBrandAsset(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2">Asset Name *</label>
+                    <input type="text" id="asset-name" required
+                        class="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50"
+                        placeholder="e.g., Company Logo">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-300 mb-2">Type *</label>
+                        <select id="asset-type" required
+                            class="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-orange/50">
+                            <option value="">Select type</option>
+                            <option value="logo">Logo</option>
+                            <option value="icon">Icon</option>
+                            <option value="image">Image</option>
+                            <option value="video">Video</option>
+                            <option value="color">Color Palette</option>
+                            <option value="document">Document</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-300 mb-2">Category</label>
+                        <input type="text" id="asset-category"
+                            class="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50"
+                            placeholder="e.g., primary, secondary">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2">File *</label>
+                    <input type="file" id="asset-file" required accept="image/*,video/*,application/pdf,.svg,.ai,.eps"
+                        class="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-orange file:text-white hover:file:bg-orange-600 cursor-pointer"
+                        onchange="settings.handleBrandFileSelect(event)">
+                    <div id="file-preview" class="mt-3 hidden">
+                        <img id="preview-image" src="" alt="Preview"
+                            class="max-w-xs max-h-48 rounded-lg border border-white/10">
+                    </div>
+                </div>
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+                    <button type="button" onclick="settings.closeUploadBrandAsset()"
+                        class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-zinc-300 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-colors">
+                        Upload Asset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard Layout Loader (loads unified sidebar and header) -->
+    <script src="/shared/dashboard-layout-loader.js"></script>
+    <script src="/shared/layout.js"></script>
+
+    <!-- Quick-Connect App Dock -->
+    <script>
+        async function loadQuickConnect() {
+            try {
+                // Load quick-connect.html
+                const response = await fetch('/shared/quick-connect.html');
+                const html = await response.text();
+                const temp = document.createElement('div');
+                temp.innerHTML = html;
+
+                // Append to body
+                while (temp.firstChild) {
+                    document.body.appendChild(temp.firstChild);
+                }
+
+                // Load quick-connect.js script
+                if (!document.querySelector('script[src="/shared/quick-connect.js"]')) {
+                    const script = document.createElement('script');
+                    script.src = '/shared/quick-connect.js';
+                    script.onload = () => {
+                        if (typeof quickConnect !== 'undefined') {
+                            quickConnect.init();
+                        }
+                    };
+                    document.body.appendChild(script);
+                } else if (typeof quickConnect !== 'undefined') {
+                    quickConnect.init();
+                }
+            } catch (error) {
+                console.error('Failed to load quick-connect:', error);
+            }
+        }
+
+        // Load after DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadQuickConnect);
+        } else {
+            loadQuickConnect();
+        }
+    </script>
+    <script>
+        const API_BASE = window.location.origin || 'https://inneranimalmedia-dev.meauxbility.workers.dev';
+        const API_BASE = window.location.origin || 'https://inneranimalmedia-dev.meauxbility.workers.dev';
+
+        const settings = {
+            currentTheme: null,
+            currentBrand: localStorage.getItem('brand') || 'inneranimal-media',
+            currentThemeMode: localStorage.getItem('theme') || 'dark',
+            brandAssets: [],
+            themes: [],
+            integrationStatuses: {},
+
+            async init() {
+                // Start with integrations tab
+                this.switchTab('integrations');
+
+                await Promise.all([
+                    this.loadThemes(),
+                    this.loadBrandAssets(),
+                    this.loadThemeMode(),
+                    this.loadIntegrationStatuses()
+                ]);
+                lucide.createIcons();
+            },
+
+            // Tab Management
+            switchTab(tabName) {
+                // Hide all tabs
+                document.getElementById('integrations-tab')?.classList.add('hidden');
+                document.getElementById('themes-tab')?.classList.add('hidden');
+                document.getElementById('preferences-tab')?.classList.add('hidden');
+
+                // Remove active state from all buttons
+                ['integrations', 'themes', 'preferences'].forEach(tab => {
+                    const btn = document.getElementById(`tab-${tab}`);
+                    if (btn) {
+                        btn.classList.remove('bg-brand-orange', 'text-white');
+                        btn.classList.add('bg-transparent', 'text-zinc-400');
+                    }
+                });
+
+                // Show selected tab
+                const tabElement = document.getElementById(`${tabName}-tab`);
+                if (tabElement) {
+                    tabElement.classList.remove('hidden');
+                }
+
+                // Activate button
+                const btn = document.getElementById(`tab-${tabName}`);
+                if (btn) {
+                    btn.classList.remove('bg-transparent', 'text-zinc-400');
+                    btn.classList.add('bg-brand-orange', 'text-white');
+                }
+
+                // Load data for active tab
+                if (tabName === 'integrations') {
+                    this.loadIntegrationStatuses();
+                }
+            },
+
+            // Integration Management
+            async loadIntegrationStatuses() {
+                try {
+                    const response = await fetch(`${API_BASE}/api/integrations/status`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.renderIntegrationStatus(data.data, data.summary);
+                    }
+                } catch (error) {
+                    console.error('Failed to load integration statuses:', error);
+                    this.showNotification('Failed to load integration status', 'error');
+                }
+            },
+
+            renderIntegrationStatus(statuses, summary) {
+                // Render summary cards
+                this.renderStatusSummary(summary);
+
+                // Render each integration
+                this.renderGoogleIntegration(statuses.google);
+                this.renderGitHubIntegration(statuses.github);
+                this.renderSupabaseIntegration(statuses.supabase);
+                this.renderCursorIntegration(statuses.cursor);
+                this.renderHyperdriveIntegration(statuses.hyperdrive);
+                this.renderMCPIntegration(statuses.mcp);
+                this.renderExternalAppsIntegration(statuses.external_apps);
+            },
+
+            renderStatusSummary(summary) {
+                const container = document.getElementById('integration-status-summary');
+                if (!container) return;
+
+                const healthColor = summary.status === 'excellent' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                    summary.status === 'good' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                        'bg-red-500/20 text-red-400 border-red-500/30';
+
+                container.innerHTML = `
+                    <div class="bg-brand-surface border border-white/10 rounded-xl p-4">
+                        <div class="text-sm text-zinc-400 mb-1">Total Integrations</div>
+                        <div class="text-2xl font-bold text-white">${summary.total}</div>
+                    </div>
+                    <div class="bg-brand-surface border border-white/10 rounded-xl p-4">
+                        <div class="text-sm text-zinc-400 mb-1">Connected</div>
+                        <div class="text-2xl font-bold text-green-400">${summary.connected}</div>
+                    </div>
+                    <div class="bg-brand-surface border border-white/10 rounded-xl p-4">
+                        <div class="text-sm text-zinc-400 mb-1">Disconnected</div>
+                        <div class="text-2xl font-bold text-red-400">${summary.disconnected}</div>
+                    </div>
+                    <div class="bg-brand-surface border ${healthColor} rounded-xl p-4">
+                        <div class="text-sm text-zinc-400 mb-1">Health</div>
+                        <div class="text-2xl font-bold">${summary.health_percentage}%</div>
+                    </div>
+                `;
+            },
+
+            renderGoogleIntegration(status) {
+                const badge = document.getElementById('google-status-badge');
+                const details = document.getElementById('google-connection-details');
+                const connectBtn = document.getElementById('google-connect-btn');
+                const disconnectBtn = document.getElementById('google-disconnect-btn');
+                const testBtn = document.getElementById('google-test-btn');
+
+                if (status.connected) {
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30';
+                    badge.textContent = 'Connected';
+
+                    details.innerHTML = `
+                        <div class="p-4 bg-black/40 rounded-lg space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-zinc-400">Email</span>
+                                <span class="text-sm text-white font-mono">${status.email || 'N/A'}</span>
+                            </div>
+                            ${status.lastSync ? `
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-zinc-400">Last Sync</span>
+                                    <span class="text-sm text-white">${new Date(status.lastSync * 1000).toLocaleString()}</span>
+                                </div>
+                            ` : ''}
+                            ${status.scopes?.length > 0 ? `
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-zinc-400">Scopes</span>
+                                    <span class="text-sm text-white">${status.scopes.join(', ')}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+
+                    connectBtn.classList.add('hidden');
+                    disconnectBtn.classList.remove('hidden');
+                    testBtn.classList.remove('hidden');
+                } else {
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30';
+                    badge.textContent = 'Disconnected';
+
+                    details.innerHTML = `
+                        <div class="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                            <p class="text-sm text-red-300">Google services are not connected. Connect to enable Google Drive, Gemini, and OAuth features.</p>
+                        </div>
+                    `;
+
+                    connectBtn.classList.remove('hidden');
+                    disconnectBtn.classList.add('hidden');
+                    testBtn.classList.add('hidden');
+                }
+            },
+
+            renderGitHubIntegration(status) {
+                const badge = document.getElementById('github-status-badge');
+                const details = document.getElementById('github-connection-details');
+                const connectBtn = document.getElementById('github-connect-btn');
+                const disconnectBtn = document.getElementById('github-disconnect-btn');
+
+                if (status.connected) {
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30';
+                    badge.textContent = 'Connected';
+
+                    details.innerHTML = `
+                        <div class="p-4 bg-black/40 rounded-lg space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-zinc-400">Username</span>
+                                <span class="text-sm text-white font-mono">${status.username || 'N/A'}</span>
+                            </div>
+                            ${status.email ? `
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-zinc-400">Email</span>
+                                    <span class="text-sm text-white">${status.email}</span>
+                                </div>
+                            ` : ''}
+                            ${status.lastSync ? `
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-zinc-400">Last Sync</span>
+                                    <span class="text-sm text-white">${new Date(status.lastSync * 1000).toLocaleString()}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+
+                    connectBtn.classList.add('hidden');
+                    disconnectBtn.classList.remove('hidden');
+                } else {
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-zinc-400';
+                    badge.textContent = 'Not Connected';
+
+                    details.innerHTML = '';
+
+                    connectBtn.classList.remove('hidden');
+                    disconnectBtn.classList.add('hidden');
+                }
+            },
+
+            renderSupabaseIntegration(status) {
+                const badge = document.getElementById('supabase-status-badge');
+                const connectBtn = document.getElementById('supabase-connect-btn');
+                const testBtn = document.getElementById('supabase-test-btn');
+
+                if (status.connected) {
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30';
+                    badge.textContent = 'Connected';
+                    connectBtn.textContent = 'Update Connection';
+                    testBtn.classList.remove('hidden');
+                } else {
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30';
+                    badge.textContent = 'Not Connected';
+                    connectBtn.textContent = 'Save Connection';
+                    testBtn.classList.add('hidden');
+                }
+            },
+
+            renderCursorIntegration(status) {
+                const badge = document.getElementById('cursor-status-badge');
+                const connectBtn = document.getElementById('cursor-connect-btn');
+                const testBtn = document.getElementById('cursor-test-btn');
+
+                if (status.connected) {
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30';
+                    badge.textContent = status.apiKeySet ? 'API Key Set' : 'Connected';
+                    connectBtn.textContent = 'Update API Key';
+                    testBtn.classList.remove('hidden');
+                } else {
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30';
+                    badge.textContent = 'Not Connected';
+                    connectBtn.textContent = 'Save API Key';
+                    testBtn.classList.add('hidden');
+                }
+            },
+
+            renderHyperdriveIntegration(status) {
+                const badge = document.getElementById('hyperdrive-status-badge');
+
+                if (status.connected) {
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30';
+                    badge.textContent = 'Configured';
+                } else {
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30';
+                    badge.textContent = 'Not Configured';
+                }
+            },
+
+            renderMCPIntegration(status) {
+                const badge = document.getElementById('mcp-status-badge');
+                const sessionsInfo = document.getElementById('mcp-sessions-info');
+                const setupBtn = document.getElementById('mcp-setup-btn');
+
+                if (status.connected) {
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30';
+                    badge.textContent = `${status.activeSessions} Active Session${status.activeSessions !== 1 ? 's' : ''}`;
+
+                    sessionsInfo.innerHTML = `
+                        <div class="p-4 bg-black/40 rounded-lg">
+                            <div class="text-sm text-zinc-400 mb-1">Active MCP Sessions</div>
+                            <div class="text-2xl font-bold text-white">${status.activeSessions}</div>
+                        </div>
+                    `;
+
+                    setupBtn.textContent = 'Add MCP Server';
+                } else {
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30';
+                    badge.textContent = 'Not Setup';
+
+                    sessionsInfo.innerHTML = `
+                        <div class="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                            <p class="text-sm text-red-300">No MCP sessions active. Set up your first MCP server to get started.</p>
+                        </div>
+                    `;
+
+                    setupBtn.textContent = 'Setup MCP Server';
+                }
+            },
+
+            renderExternalAppsIntegration(status) {
+                const badge = document.getElementById('external-status-badge');
+                const appsList = document.getElementById('external-apps-list');
+
+                if (status.total > 0) {
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30';
+                    badge.textContent = `${status.connected}/${status.total} Connected`;
+
+                    appsList.innerHTML = status.apps.map(app => `
+                        <div class="flex items-center justify-between p-3 bg-black/40 rounded-lg border border-white/10">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                                    <i data-lucide="grid-3x3" class="w-4 h-4 text-white"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-white">${app.app_name || app.app_id}</div>
+                                    <div class="text-xs text-zinc-400">${app.connection_status}</div>
+                                </div>
+                            </div>
+                            <div class="px-2 py-1 rounded text-xs ${app.connection_status === 'connected' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}">
+                                ${app.connection_status}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-zinc-400';
+                    badge.textContent = 'No Apps';
+
+                    appsList.innerHTML = `
+                        <div class="p-4 bg-zinc-800/50 rounded-lg text-center">
+                            <p class="text-sm text-zinc-400">No external apps connected yet.</p>
+                        </div>
+                    `;
+                }
+
+                lucide.createIcons();
+            },
+
+            // Connection Actions
+            connectGoogle() {
+                window.location.href = `${API_BASE}/api/oauth/google/authorize?redirect_uri=${encodeURIComponent(window.location.origin + '/dashboard/settings')}`;
+            },
+
+            disconnectGoogle() {
+                if (confirm('Are you sure you want to disconnect Google? This will remove access to Google Drive, Gemini, and other Google services.')) {
+                    // TODO: Implement disconnect API call
+                    this.showNotification('Disconnect functionality coming soon', 'info');
+                }
+            },
+
+            testGoogleConnection() {
+                this.showNotification('Testing Google connection...', 'info');
+                // TODO: Implement test connection
+            },
+
+            connectGitHub() {
+                window.location.href = `${API_BASE}/api/oauth/github/authorize?redirect_uri=${encodeURIComponent(window.location.origin + '/dashboard/settings')}`;
+            },
+
+            disconnectGitHub() {
+                if (confirm('Are you sure you want to disconnect GitHub? This will remove access to your GitHub account.')) {
+                    // TODO: Implement disconnect API call
+                    this.showNotification('Disconnect functionality coming soon', 'info');
+                }
+            },
+
+            async connectSupabase() {
+                const connectionString = document.getElementById('supabase-connection-string').value.trim();
+                const projectId = document.getElementById('supabase-project-id').value.trim();
+
+                if (!connectionString) {
+                    this.showNotification('Connection string is required', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/users/${localStorage.getItem('userId') || 'default'}/connections`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            app_id: 'supabase',
+                            app_name: 'Supabase',
+                            app_type: 'api_key',
+                            connection_status: 'connected',
+                            credentials_encrypted: btoa(connectionString), // Simple encoding - should be encrypted in production
+                            config: JSON.stringify({ project_id: projectId })
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        this.showNotification('Supabase connection saved!', 'success');
+                        this.loadIntegrationStatuses();
+                    } else {
+                        this.showNotification(result.error || 'Failed to save connection', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error connecting Supabase:', error);
+                    this.showNotification('Failed to connect Supabase', 'error');
+                }
+            },
+
+            testSupabaseConnection() {
+                this.showNotification('Testing Supabase connection...', 'info');
+                // TODO: Implement test connection
+            },
+
+            async connectCursor() {
+                const apiKey = document.getElementById('cursor-api-key').value.trim();
+
+                if (!apiKey) {
+                    this.showNotification('API key is required', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/users/${localStorage.getItem('userId') || 'default'}/connections`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            app_id: 'cursor',
+                            app_name: 'Cursor',
+                            app_type: 'api_key',
+                            connection_status: 'connected',
+                            credentials_encrypted: btoa(apiKey) // Simple encoding - should be encrypted in production
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        this.showNotification('Cursor API key saved!', 'success');
+                        document.getElementById('cursor-api-key').value = '';
+                        this.loadIntegrationStatuses();
+                    } else {
+                        this.showNotification(result.error || 'Failed to save API key', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error connecting Cursor:', error);
+                    this.showNotification('Failed to connect Cursor', 'error');
+                }
+            },
+
+            testCursorConnection() {
+                this.showNotification('Testing Cursor API connection...', 'info');
+                // TODO: Implement test connection
+            },
+
+            setupMCP() {
+                this.showNotification('MCP setup coming soon. Navigate to MeauxMCP to configure servers.', 'info');
+                window.location.href = '/dashboard/meauxmcp';
+            },
+
+            refreshIntegrationStatus() {
+                this.loadIntegrationStatuses();
+                this.showNotification('Integration status refreshed', 'success');
+            },
+
+            showNotification(message, type = 'info') {
+                // Simple notification system
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${type === 'success' ? 'bg-green-500/90 text-white' :
+                        type === 'error' ? 'bg-red-500/90 text-white' :
+                            type === 'warning' ? 'bg-yellow-500/90 text-white' :
+                                'bg-blue-500/90 text-white'
+                    }`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    notification.style.transition = 'opacity 0.3s';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            },
+
+            async loadThemeMode() {
+                const mode = localStorage.getItem('theme') || 'dark';
+                this.setThemeMode(mode, false);
+            },
+
+            setThemeMode(mode, save = true) {
+                this.currentThemeMode = mode;
+                if (save) {
+                    localStorage.setItem('theme', mode);
+                    if (window.HeaderComponents && window.HeaderComponents.ThemeManager) {
+                        window.HeaderComponents.ThemeManager.setTheme(mode);
+                    } else {
+                        document.documentElement.setAttribute('data-theme', mode);
+                        document.documentElement.classList.toggle('dark', mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches));
+                    }
+                }
+
+                // Update button states
+                ['light', 'dark', 'system'].forEach(m => {
+                    const btn = document.getElementById(`mode-${m}`);
+                    if (btn) {
+                        if (m === mode) {
+                            btn.classList.add('border-brand-orange', 'bg-brand-orange/10', 'text-white');
+                            btn.classList.remove('border-white/10', 'bg-black/40', 'text-zinc-400');
+                        } else {
+                            btn.classList.remove('border-brand-orange', 'bg-brand-orange/10', 'text-white');
+                            btn.classList.add('border-white/10', 'bg-black/40', 'text-zinc-400');
+                        }
+                    }
+                });
+            },
+
+            async loadThemes() {
+                try {
+                    const response = await fetch(`${API_BASE}/api/themes`);
+                    const result = await response.json();
+
+                    if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
+                        // Use API themes if available
+                        this.themes = result.data;
+                        this.renderThemes();
+                    } else {
+                        // Fallback to preset themes (40+ themes available)
+                        this.themes = this.getPresetThemes();
+                        this.renderThemes();
+                    }
+                } catch (error) {
+                    console.error('Error loading themes:', error);
+                    // Use preset themes on error (40+ themes available)
+                    this.themes = this.getPresetThemes();
+                    this.renderThemes();
+                }
+            },
+
+            getPresetThemes() {
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+                const currentBrand = document.documentElement.getAttribute('data-brand') || 'inneranimal-media';
+
+                // All 70 Premium Themes from CSS
+                const allPremiumThemes = [
+                    { id: 'clay-dark', name: 'clay-dark', display_name: 'Clay Dark', type: 'premium', collection: 'Clay' },
+                    { id: 'clay-light', name: 'clay-light', display_name: 'Clay Light', type: 'premium', collection: 'Clay' },
+                    { id: 'inner-animal-dark', name: 'inner-animal-dark', display_name: 'Inner Animal Dark', type: 'premium', collection: 'Inner Animal' },
+                    { id: 'inner-animal-fire', name: 'inner-animal-fire', display_name: 'Inner Animal Fire', type: 'premium', collection: 'Inner Animal' },
+                    { id: 'inner-animal-light', name: 'inner-animal-light', display_name: 'Inner Animal Light', type: 'premium', collection: 'Inner Animal' },
+                    { id: 'inner-animal-ocean', name: 'inner-animal-ocean', display_name: 'Inner Animal Ocean', type: 'premium', collection: 'Inner Animal' },
+                    { id: 'inner-animal-wild', name: 'inner-animal-wild', display_name: 'Inner Animal Wild', type: 'premium', collection: 'Inner Animal' },
+                    { id: 'inner-animal-zen', name: 'inner-animal-zen', display_name: 'Inner Animal Zen', type: 'premium', collection: 'Inner Animal' },
+                    { id: 'meaux-adaptive', name: 'meaux-adaptive', display_name: 'Meaux Adaptive', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-arctic', name: 'meaux-arctic', display_name: 'Meaux Arctic', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-browser', name: 'meaux-browser', display_name: 'Meaux Browser', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-chat', name: 'meaux-chat', display_name: 'Meaux Chat', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-clay-dark', name: 'meaux-clay-dark', display_name: 'Meaux Clay Dark', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-clay-light', name: 'meaux-clay-light', display_name: 'Meaux Clay Light', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-code-dark', name: 'meaux-code-dark', display_name: 'Meaux Code Dark', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-command', name: 'meaux-command', display_name: 'Meaux Command', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-consulting', name: 'meaux-consulting', display_name: 'Meaux Consulting', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-creative', name: 'meaux-creative', display_name: 'Meaux Creative', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-cupertino-dark', name: 'meaux-cupertino-dark', display_name: 'Meaux Cupertino Dark', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-cupertino-light', name: 'meaux-cupertino-light', display_name: 'Meaux Cupertino Light', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-cyber-punk', name: 'meaux-cyber-punk', display_name: 'Meaux Cyber Punk', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-desert-sand', name: 'meaux-desert-sand', display_name: 'Meaux Desert Sand', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-design', name: 'meaux-design', display_name: 'Meaux Design', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-editor', name: 'meaux-editor', display_name: 'Meaux Editor', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-energy', name: 'meaux-energy', display_name: 'Meaux Energy', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-enterprise', name: 'meaux-enterprise', display_name: 'Meaux Enterprise', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-executive', name: 'meaux-executive', display_name: 'Meaux Executive', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-finance', name: 'meaux-finance', display_name: 'Meaux Finance', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-financial', name: 'meaux-financial', display_name: 'Meaux Financial', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-forest-deep', name: 'meaux-forest-deep', display_name: 'Meaux Forest Deep', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-galaxy', name: 'meaux-galaxy', display_name: 'Meaux Galaxy', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-glass-orange', name: 'meaux-glass-orange', display_name: 'Meaux Glass Orange', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-hacker-green', name: 'meaux-hacker-green', display_name: 'Meaux Hacker Green', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-healthcare', name: 'meaux-healthcare', display_name: 'Meaux Healthcare', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-ide', name: 'meaux-ide', display_name: 'Meaux Ide', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-ios-dark', name: 'meaux-ios-dark', display_name: 'Meaux Ios Dark', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-ios-light', name: 'meaux-ios-light', display_name: 'Meaux Ios Light', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-knowledge', name: 'meaux-knowledge', display_name: 'Meaux Knowledge', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-launcher', name: 'meaux-launcher', display_name: 'Meaux Launcher', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-legal', name: 'meaux-legal', display_name: 'Meaux Legal', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-luxury', name: 'meaux-luxury', display_name: 'Meaux Luxury', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-material', name: 'meaux-material', display_name: 'Meaux Material', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-matrix-rain', name: 'meaux-matrix-rain', display_name: 'Meaux Matrix Rain', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-midnight-blue', name: 'meaux-midnight-blue', display_name: 'Meaux Midnight Blue', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-minimal', name: 'meaux-minimal', display_name: 'Meaux Minimal', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-minimal-light', name: 'meaux-minimal-light', display_name: 'Meaux Minimal Light', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-monochrome', name: 'meaux-monochrome', display_name: 'Meaux Monochrome', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-monterey', name: 'meaux-monterey', display_name: 'Meaux Monterey', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-motion', name: 'meaux-motion', display_name: 'Meaux Motion', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-music', name: 'meaux-music', display_name: 'Meaux Music', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-neon', name: 'meaux-neon', display_name: 'Meaux Neon', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-neon-city', name: 'meaux-neon-city', display_name: 'Meaux Neon City', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-obsidian', name: 'meaux-obsidian', display_name: 'Meaux Obsidian', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-ops-dark', name: 'meaux-ops-dark', display_name: 'Meaux Ops Dark', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-orange-glass', name: 'meaux-orange-glass', display_name: 'Meaux Orange Glass', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-os-dark', name: 'meaux-os-dark', display_name: 'Meaux Os Dark', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-pro', name: 'meaux-pro', display_name: 'Meaux Pro', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-productivity', name: 'meaux-productivity', display_name: 'Meaux Productivity', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-property', name: 'meaux-property', display_name: 'Meaux Property', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-solar', name: 'meaux-solar', display_name: 'Meaux Solar', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-spatial', name: 'meaux-spatial', display_name: 'Meaux Spatial', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-storm-gray', name: 'meaux-storm-gray', display_name: 'Meaux Storm Gray', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-sunset-glow', name: 'meaux-sunset-glow', display_name: 'Meaux Sunset Glow', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-synthwave', name: 'meaux-synthwave', display_name: 'Meaux Synthwave', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-system', name: 'meaux-system', display_name: 'Meaux System', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-terminal', name: 'meaux-terminal', display_name: 'Meaux Terminal', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-vampire', name: 'meaux-vampire', display_name: 'Meaux Vampire', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-workflow', name: 'meaux-workflow', display_name: 'Meaux Workflow', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-workspace', name: 'meaux-workspace', display_name: 'Meaux Workspace', type: 'premium', collection: 'Meaux Premium' },
+                    { id: 'meaux-media', name: 'meaux-media', display_name: 'Meaux Media', type: 'premium', collection: 'Meaux Premium' }
+                ];
+
+                // Brand Presets (data-brand)
+                const brandThemes = [
+                    {
+                        id: 'inneranimal-media',
+                        name: 'inneranimal-media',
+                        display_name: 'InnerAnimal Media',
+                        type: 'brand',
+                        is_active: currentBrand === 'inneranimal-media',
+                        config: { colors: { primary: '#ff6b00', secondary: '#dc2626' }, description: 'Orange + Red theme for media/content' }
+                    },
+                    {
+                        id: 'meauxcloud',
+                        name: 'meauxcloud',
+                        display_name: 'MeauxCloud',
+                        type: 'brand',
+                        is_active: currentBrand === 'meauxcloud',
+                        config: { colors: { primary: '#0066ff', secondary: '#00e5a0' }, description: 'Blue + Teal theme for cloud services' }
+                    },
+                    {
+                        id: 'meauxbility',
+                        name: 'meauxbility',
+                        display_name: 'Meauxbility',
+                        type: 'brand',
+                        is_active: currentBrand === 'meauxbility',
+                        config: { colors: { primary: '#9333ea', secondary: '#ec4899' }, description: 'Purple + Pink theme for nonprofits' }
+                    },
+                    {
+                        id: 'meauxos-core',
+                        name: 'meauxos-core',
+                        display_name: 'MeauxOS Core',
+                        type: 'brand',
+                        is_active: currentBrand === 'meauxos-core',
+                        config: { colors: { primary: '#6b7280', secondary: '#475569' }, description: 'Gray + Slate theme for platform admin' }
+                    }
+                ];
+
+                // Premium Theme Presets (data-theme) - 24 themes
+                const premiumThemes = [
+                    // Clay Collection
+                    { id: 'clay-light', name: 'clay-light', display_name: 'Clay Light', type: 'premium', collection: 'Clay', is_active: currentTheme === 'clay-light', config: { colors: { primary: '#2563eb', secondary: '#7c3aed' }, description: 'Light claymorphic design with soft shadows' } },
+                    { id: 'clay-dark', name: 'clay-dark', display_name: 'Clay Dark', type: 'premium', collection: 'Clay', is_active: currentTheme === 'clay-dark', config: { colors: { primary: '#3b82f6', secondary: '#8b5cf6' }, description: 'Dark claymorphic design with depth' } },
+
+                    // Meaux Modern Collection
+                    { id: 'meaux-minimal', name: 'meaux-minimal', display_name: 'Meaux Minimal', type: 'premium', collection: 'Modern', is_active: currentTheme === 'meaux-minimal', config: { colors: { primary: '#ffffff', secondary: '#666666' }, description: 'Ultra-minimal black & white design (Dark)' } },
+                    { id: 'meaux-pro', name: 'meaux-pro', display_name: 'Meaux Pro', type: 'premium', collection: 'Modern', is_active: currentTheme === 'meaux-pro', config: { colors: { primary: '#5e6ad2', secondary: '#26b5ce' }, description: 'Professional gradient theme' } },
+                    { id: 'meaux-workspace', name: 'meaux-workspace', display_name: 'Meaux Workspace', type: 'premium', collection: 'Modern', is_active: currentTheme === 'meaux-workspace', config: { colors: { primary: '#2383e2', secondary: '#ff6b6b' }, description: 'Clean workspace-inspired design' } },
+                    { id: 'meaux-finance', name: 'meaux-finance', display_name: 'Meaux Finance', type: 'premium', collection: 'Modern', is_active: currentTheme === 'meaux-finance', config: { colors: { primary: '#635bff', secondary: '#00d4ff' }, description: 'Finance & banking theme' } },
+                    { id: 'meaux-chat', name: 'meaux-chat', display_name: 'Meaux Chat', type: 'premium', collection: 'Modern', is_active: currentTheme === 'meaux-chat', config: { colors: { primary: '#e01e5a', secondary: '#36c5f0' }, description: 'Chat app inspired purple theme' } },
+                    { id: 'meaux-music', name: 'meaux-music', display_name: 'Meaux Music', type: 'premium', collection: 'Modern', is_active: currentTheme === 'meaux-music', config: { colors: { primary: '#1db954', secondary: '#1ed760' }, description: 'Music streaming service theme' } },
+
+                    // Meaux Cupertino Collection
+                    { id: 'meaux-cupertino-light', name: 'meaux-cupertino-light', display_name: 'Meaux Cupertino Light', type: 'premium', collection: 'Cupertino', is_active: currentTheme === 'meaux-cupertino-light', config: { colors: { primary: '#0071e3', secondary: '#bf5af2' }, description: 'Apple-inspired light theme' } },
+                    { id: 'meaux-cupertino-dark', name: 'meaux-cupertino-dark', display_name: 'Meaux Cupertino Dark', type: 'premium', collection: 'Cupertino', is_active: currentTheme === 'meaux-cupertino-dark', config: { colors: { primary: '#0a84ff', secondary: '#bf5af2' }, description: 'Apple-inspired dark theme' } },
+                    { id: 'meaux-monterey', name: 'meaux-monterey', display_name: 'Meaux Monterey', type: 'premium', collection: 'Cupertino', is_active: currentTheme === 'meaux-monterey', config: { colors: { primary: '#ffffff', secondary: '#a78bfa' }, description: 'Gradient glassmorphic design' } },
+                    { id: 'meaux-spatial', name: 'meaux-spatial', display_name: 'Meaux Spatial', type: 'premium', collection: 'Cupertino', is_active: currentTheme === 'meaux-spatial', config: { colors: { primary: '#a78bfa', secondary: '#60a5fa' }, description: 'Spatial computing theme' } },
+
+                    // Meaux Developer Collection
+                    { id: 'meaux-code-dark', name: 'meaux-code-dark', display_name: 'Meaux Code Dark', type: 'premium', collection: 'Developer', is_active: currentTheme === 'meaux-code-dark', config: { colors: { primary: '#58a6ff', secondary: '#f778ba' }, description: 'GitHub-inspired dark theme' } },
+                    { id: 'meaux-ide', name: 'meaux-ide', display_name: 'Meaux IDE', type: 'premium', collection: 'Developer', is_active: currentTheme === 'meaux-ide', config: { colors: { primary: '#007acc', secondary: '#c586c0' }, description: 'VS Code-inspired theme' } },
+                    { id: 'meaux-browser', name: 'meaux-browser', display_name: 'Meaux Browser', type: 'premium', collection: 'Developer', is_active: currentTheme === 'meaux-browser', config: { colors: { primary: '#ff6b6b', secondary: '#4ecdc4' }, description: 'Browser dev tools theme' } },
+                    { id: 'meaux-motion', name: 'meaux-motion', display_name: 'Meaux Motion', type: 'premium', collection: 'Developer', is_active: currentTheme === 'meaux-motion', config: { colors: { primary: '#0099ff', secondary: '#ff0080' }, description: 'Motion design tool theme' } },
+                    { id: 'meaux-design', name: 'meaux-design', display_name: 'Meaux Design', type: 'premium', collection: 'Developer', is_active: currentTheme === 'meaux-design', config: { colors: { primary: '#0acf83', secondary: '#a259ff' }, description: 'Figma-inspired design theme' } },
+                    { id: 'meaux-launcher', name: 'meaux-launcher', display_name: 'Meaux Launcher', type: 'premium', collection: 'Developer', is_active: currentTheme === 'meaux-launcher', config: { colors: { primary: '#ff6363', secondary: '#ff9500' }, description: 'App launcher theme' } },
+
+                    // Meaux Cosmic Collection
+                    { id: 'meaux-obsidian', name: 'meaux-obsidian', display_name: 'Meaux Obsidian', type: 'premium', collection: 'Cosmic', is_active: currentTheme === 'meaux-obsidian', config: { colors: { primary: '#ff6b00', secondary: '#dc2626' }, description: 'Obsidian note-taking theme' } },
+                    { id: 'meaux-galaxy', name: 'meaux-galaxy', display_name: 'Meaux Galaxy', type: 'premium', collection: 'Cosmic', is_active: currentTheme === 'meaux-galaxy', config: { colors: { primary: '#c084fc', secondary: '#e879f9' }, description: 'Galactic purple theme' } },
+                    { id: 'meaux-material', name: 'meaux-material', display_name: 'Meaux Material', type: 'premium', collection: 'Cosmic', is_active: currentTheme === 'meaux-material', config: { colors: { primary: '#1a73e8', secondary: '#ea4335' }, description: 'Google Material Design theme' } },
+                    { id: 'meaux-arctic', name: 'meaux-arctic', display_name: 'Meaux Arctic', type: 'premium', collection: 'Cosmic', is_active: currentTheme === 'meaux-arctic', config: { colors: { primary: '#88c0d0', secondary: '#81a1c1' }, description: 'Nord-inspired arctic theme' } },
+                    { id: 'meaux-vampire', name: 'meaux-vampire', display_name: 'Meaux Vampire', type: 'premium', collection: 'Cosmic', is_active: currentTheme === 'meaux-vampire', config: { colors: { primary: '#bd93f9', secondary: '#ff79c6' }, description: 'Dracula-inspired theme' } },
+                    { id: 'meaux-neon', name: 'meaux-neon', display_name: 'Meaux Neon', type: 'premium', collection: 'Cosmic', is_active: currentTheme === 'meaux-neon', config: { colors: { primary: '#7aa2f7', secondary: '#bb9af7' }, description: 'Tokyo Night neon theme' } },
+
+                    // Meaux Special Collection (New)
+                    { id: 'meaux-terminal', name: 'meaux-terminal', display_name: 'Meaux Terminal', type: 'premium', collection: 'Special', is_active: currentTheme === 'meaux-terminal', config: { colors: { primary: '#00FF88', secondary: '#00FFFF' }, description: 'Terminal/hacker aesthetic with green glow' } },
+                    { id: 'meaux-minimal-light', name: 'meaux-minimal-light', display_name: 'Meaux Minimal Light', type: 'premium', collection: 'Special', is_active: currentTheme === 'meaux-minimal-light', config: { colors: { primary: '#171717', secondary: '#404040' }, description: 'Ultra clean/light minimal design' } },
+                    { id: 'meaux-orange-glass', name: 'meaux-orange-glass', display_name: 'Meaux Orange Glass', type: 'premium', collection: 'Special', is_active: currentTheme === 'meaux-orange-glass', config: { colors: { primary: '#FF6B00', secondary: '#339999' }, description: 'Complete white/orange glassmorphic theme - premium marketing design' } },
+                    { id: 'meaux-os-dark', name: 'meaux-os-dark', display_name: 'Meaux OS Dark', type: 'premium', collection: 'Special', is_active: currentTheme === 'meaux-os-dark', config: { colors: { primary: '#00D4FF', secondary: '#0077FF' }, description: 'Complete dark cyan/blue dashboard theme - MeauxOS Unified Operations Hub' } }
+                ];
+
+                return [...brandThemes, ...allPremiumThemes];
+            },
+
+            renderThemes() {
+                const container = document.getElementById('themes-container');
+                if (!container) return;
+
+                if (this.themes.length === 0) {
+                    container.innerHTML = '<div class="col-span-full text-zinc-500 text-center py-8">No themes available</div>';
+                    return;
+                }
+
+                // Group themes by collection
+                const grouped = {};
+                this.themes.forEach(theme => {
+                    let collection = 'Other';
+                    if (theme.type === 'brand') {
+                        collection = 'Brand Presets';
+                    } else if (theme.collection) {
+                        collection = `${theme.collection} Collection`;
+                    } else if (theme.type === 'premium') {
+                        collection = 'Premium Themes';
+                    }
+                    if (!grouped[collection]) grouped[collection] = [];
+                    grouped[collection].push(theme);
+                });
+
+                let html = '';
+                Object.keys(grouped).forEach(collection => {
+                    html += `<div class="col-span-full mb-2 mt-6 first:mt-0"><h5 class="text-sm font-semibold text-zinc-400 uppercase tracking-wider">${escapeHtml(collection)}</h5></div>`;
+                    grouped[collection].forEach(theme => {
+                        const colors = theme.config?.colors || {};
+                        const primary = colors.primary || '#ff6b00';
+                        const secondary = colors.secondary || '#dc2626';
+                        const isActive = theme.is_active ||
+                            (theme.type === 'brand' && this.currentBrand === theme.name) ||
+                            (theme.type === 'premium' && document.documentElement.getAttribute('data-theme') === theme.name);
+
+                        html += `
+                            <div onclick="settings.activateTheme('${theme.name}', '${theme.type || 'brand'}')" 
+                                class="theme-card p-6 border-2 rounded-xl cursor-pointer transition-all ${isActive ? 'active border-brand-orange bg-brand-orange/5' : 'border-white/10 hover:border-white/20 bg-black/40'}">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h4 class="font-bold text-white text-lg">${escapeHtml(theme.display_name || theme.name)}</h4>
+                                    <div class="flex items-center gap-2">
+                                        ${theme.type === 'premium' ? '<span class="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-[10px] rounded-full border border-purple-500/30">Premium</span>' : ''}
+                                        ${isActive ? '<span class="px-2 py-1 bg-brand-orange/20 text-brand-orange text-xs rounded-full border border-brand-orange/30">Active</span>' : ''}
+                                    </div>
+                                </div>
+                                <div class="space-y-2 mb-4">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-lg border-2 border-white/20" style="background: ${primary}"></div>
+                                        <div class="flex-1">
+                                            <div class="text-xs text-zinc-400">Primary</div>
+                                            <div class="text-sm font-mono text-white">${escapeHtml(primary)}</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-lg border-2 border-white/20" style="background: ${secondary}"></div>
+                                        <div class="flex-1">
+                                            <div class="text-xs text-zinc-400">Secondary</div>
+                                            <div class="text-sm font-mono text-white">${escapeHtml(secondary)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="h-16 rounded-lg mb-3" style="background: linear-gradient(135deg, ${primary} 0%, ${secondary} 100%);"></div>
+                                <p class="text-xs text-zinc-500 mb-1">${escapeHtml(theme.config?.description || 'Theme configuration')}</p>
+                                ${theme.collection ? `<p class="text-xs text-zinc-600">${escapeHtml(theme.collection)} Collection</p>` : ''}
+                                <div class="mt-4 pt-4 border-t border-white/10 flex items-center justify-end">
+                                    <button onclick="event.stopPropagation(); settings.previewTheme('${theme.name}', '${theme.type || 'brand'}')" 
+                                        class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-zinc-300 hover:text-white transition-colors flex items-center gap-1">
+                                        <i data-lucide="eye" class="w-3 h-3"></i>
+                                        Preview
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                });
+
+                container.innerHTML = html;
+                lucide.createIcons();
+            },
+
+            async activateTheme(themeName, themeType = 'brand') {
+                try {
+                    const theme = this.themes.find(t => t.name === themeName || t.id === themeName);
+
+                    if (themeType === 'premium' || theme?.type === 'premium') {
+                        // Premium themes use data-theme attribute (overrides light/dark/system mode)
+                        document.documentElement.setAttribute('data-theme', themeName);
+                        localStorage.setItem('premium_theme', themeName);
+
+                        // Also save to theme_mode localStorage so mode selector reflects it
+                        localStorage.setItem('theme', themeName);
+
+                        // Also load premium CSS if not already loaded
+                        this.loadPremiumThemeCSS();
+
+                        // Update body background for gradient themes (handled by CSS)
+                        // CSS handles: meaux-monterey, meaux-spatial, meaux-pro gradients
+
+                        // Update theme mode button state to reflect premium theme selection
+                        this.setThemeMode(themeName, false); // Don't save since we already saved above
+
+                        this.showNotification(`🎨 ${theme?.display_name || themeName} premium theme activated!`, 'success');
+                    } else {
+                        // Brand themes use data-brand attribute (works with data-theme)
+                        this.currentBrand = themeName;
+                        document.documentElement.setAttribute('data-brand', themeName);
+                        localStorage.setItem('brand', themeName);
+
+                        // Load the brand theme CSS
+                        this.loadThemeCSS(themeName);
+
+                        // Try to activate via API
+                        if (theme && theme.id) {
+                            try {
+                                const response = await fetch(`${API_BASE}/api/themes`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ theme_id: theme.id })
+                                });
+                                const result = await response.json();
+                                if (result.success) {
+                                    this.showNotification(`✅ ${theme.display_name || themeName} brand theme activated!`, 'success');
+                                }
+                            } catch (err) {
+                                console.warn('Failed to save theme to API, using localStorage only:', err);
+                                this.showNotification(`✅ ${theme.display_name || themeName} brand theme applied locally!`, 'success');
+                            }
+                        } else {
+                            this.showNotification(`✅ ${theme?.display_name || themeName} brand theme applied!`, 'success');
+                        }
+                    }
+
+                    // Re-render to update active state
+                    await this.loadThemes();
+                } catch (error) {
+                    console.error('Error activating theme:', error);
+                    this.showNotification('Failed to activate theme', 'error');
+                }
+            },
+
+            loadThemeCSS(brandName) {
+                // Remove existing brand theme link
+                const existing = document.querySelector(`link[href*="themes/${brandName}.css"]`);
+                if (existing) existing.remove();
+
+                // Add new brand theme
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = `/shared/themes/${brandName}.css`;
+                document.head.appendChild(link);
+            },
+
+            loadPremiumThemeCSS() {
+                // Check if premium CSS is already loaded
+                const existing = document.querySelector('link[href*="meaux-tools-24-premium.css"]');
+                if (!existing) {
+                    // Should already be in head from initial load, but ensure it's there
+                    const link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.href = `/shared/themes/meaux-tools-24-premium.css`;
+                    document.head.appendChild(link);
+                }
+            },
+
+            previewTheme(themeName, themeType = 'brand') {
+                const theme = this.themes.find(t => t.name === themeName || t.id === themeName);
+                if (!theme) return;
+
+                const colors = theme.config?.colors || {};
+                const primary = colors.primary || '#ff6b00';
+                const secondary = colors.secondary || '#dc2626';
+                const typeLabel = themeType === 'premium' ? 'Premium Theme' : 'Brand Theme';
+                const collectionLabel = theme.collection ? `${theme.collection} Collection` : '';
+
+                document.getElementById('theme-preview-title').textContent = `Preview: ${theme.display_name || theme.name}`;
+                document.getElementById('theme-preview-content').innerHTML = `
+                    <div class="space-y-6">
+                        <div class="p-6 rounded-xl" style="background: linear-gradient(135deg, ${primary} 0%, ${secondary} 100%);">
+                            <div class="flex items-center gap-2 mb-2">
+                                <h3 class="text-2xl font-bold text-white">${theme.display_name}</h3>
+                                ${themeType === 'premium' ? '<span class="px-2 py-1 bg-purple-500/30 text-white text-xs rounded-full">Premium</span>' : ''}
+                            </div>
+                            <p class="text-white/80 mb-1">${theme.config?.description || 'Theme preview'}</p>
+                            ${collectionLabel ? `<p class="text-white/60 text-sm">${collectionLabel}</p>` : ''}
+                            <p class="text-white/50 text-xs mt-2">${typeLabel}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-4 bg-brand-panel border border-white/10 rounded-xl">
+                                <div class="text-sm text-zinc-400 mb-2">Primary Color</div>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 rounded-lg border-2 border-white/20" style="background: ${primary}"></div>
+                                    <div class="font-mono text-white">${primary}</div>
+                                </div>
+                            </div>
+                            <div class="p-4 bg-brand-panel border border-white/10 rounded-xl">
+                                <div class="text-sm text-zinc-400 mb-2">Secondary Color</div>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 rounded-lg border-2 border-white/20" style="background: ${secondary}"></div>
+                                    <div class="font-mono text-white">${secondary}</div>
+                                </div>
+                            </div>
+                        </div>
+                        ${themeType === 'premium' ? `
+                            <div class="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i data-lucide="sparkles" class="w-4 h-4 text-blue-400"></i>
+                                    <span class="text-sm font-medium text-blue-400">Premium Features</span>
+                                </div>
+                                <ul class="text-xs text-blue-300 space-y-1 list-disc list-inside">
+                                    <li>Enhanced glassmorphism effects</li>
+                                    <li>Custom shadow & border radius</li>
+                                    <li>Optimized color palettes</li>
+                                    <li>Collection-specific enhancements</li>
+                                </ul>
+                            </div>
+                        ` : ''}
+                        <div class="pt-6 border-t border-white/10 flex items-center justify-end gap-3">
+                            <button onclick="settings.closeThemePreview()" class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-zinc-300 transition-colors">
+                                Close
+                            </button>
+                            <button onclick="settings.activateTheme('${themeName}', '${themeType}'); settings.closeThemePreview();" class="px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-colors">
+                                Apply Theme
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('theme-preview-modal').classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            closeThemePreview() {
+                document.getElementById('theme-preview-modal').classList.add('hidden');
+            },
+
+            async loadBrandAssets(type = 'all') {
+                try {
+                    const url = type === 'all' ? `${API_BASE}/api/brand` : `${API_BASE}/api/brand?type=${type}`;
+                    const response = await fetch(url);
+                    const result = await response.json();
+
+                    if (result.success && result.data && result.data.assets) {
+                        this.brandAssets = result.data.assets;
+                        this.renderBrandAssets();
+                    } else {
+                        this.brandAssets = [];
+                        this.renderBrandAssets();
+                    }
+                } catch (error) {
+                    console.error('Error loading brand assets:', error);
+                    this.brandAssets = [];
+                    this.renderBrandAssets();
+                }
+            },
+
+            renderBrandAssets() {
+                const container = document.getElementById('brand-assets-container');
+                const empty = document.getElementById('brand-assets-empty');
+
+                if (!container) return;
+
+                if (this.brandAssets.length === 0) {
+                    container.classList.add('hidden');
+                    empty.classList.remove('hidden');
+                    return;
+                }
+
+                container.classList.remove('hidden');
+                empty.classList.add('hidden');
+
+                container.innerHTML = this.brandAssets.map(asset => {
+                    const isImage = asset.type === 'image' || asset.file_type?.startsWith('image/');
+                    const sizeKB = asset.file_size ? (asset.file_size / 1024).toFixed(2) : 'N/A';
+
+                    return `
+                        <div class="bg-black/40 border border-white/10 rounded-xl p-3 hover:border-brand-orange/50 transition-all group cursor-pointer">
+                            <div class="aspect-square bg-black/20 rounded-lg mb-2 overflow-hidden flex items-center justify-center">
+                                ${isImage ? `
+                                    <img src="${asset.file_url || `${API_BASE}/api/brand/assets/${asset.id}/download`}" 
+                                         alt="${escapeHtml(asset.name)}"
+                                         class="max-w-full max-h-full object-contain"
+                                         onerror="this.parentElement.innerHTML='<i data-lucide=\\'image-off\\' class=\\'w-8 h-8 text-zinc-600\\'></i>'">
+                                ` : `
+                                    <i data-lucide="${asset.type === 'video' ? 'video' : asset.type === 'color' ? 'palette' : 'file'}" class="w-8 h-8 text-zinc-600"></i>
+                                `}
+                                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onclick="event.stopPropagation(); settings.deleteBrandAsset('${asset.id}')" 
+                                        class="p-1.5 bg-red-500/20 hover:bg-red-500/30 rounded text-red-400 transition-colors"
+                                        title="Delete asset">
+                                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="text-xs font-medium text-white truncate mb-1">${escapeHtml(asset.name)}</div>
+                            <div class="text-xs text-zinc-500 capitalize">${asset.type || 'unknown'}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                lucide.createIcons();
+            },
+
+            filterBrandAssets() {
+                const type = document.getElementById('asset-type-filter').value;
+                this.loadBrandAssets(type === 'all' ? 'all' : type);
+            },
+
+            showUploadBrandAsset() {
+                document.getElementById('upload-brand-form').reset();
+                document.getElementById('file-preview').classList.add('hidden');
+                document.getElementById('upload-brand-modal').classList.remove('hidden');
+            },
+
+            closeUploadBrandAsset() {
+                document.getElementById('upload-brand-modal').classList.add('hidden');
+                document.getElementById('upload-brand-form').reset();
+                document.getElementById('file-preview').classList.add('hidden');
+            },
+
+            handleBrandFileSelect(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const preview = document.getElementById('file-preview');
+                const previewImg = document.getElementById('preview-image');
+
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        previewImg.src = e.target.result;
+                        preview.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.classList.add('hidden');
+                }
+            },
+
+            async uploadBrandAsset(e) {
+                e.preventDefault();
+                const formData = new FormData();
+                const file = document.getElementById('asset-file').files[0];
+                const name = document.getElementById('asset-name').value;
+                const type = document.getElementById('asset-type').value;
+                const category = document.getElementById('asset-category').value || 'general';
+
+                if (!file || !name || !type) {
+                    this.showNotification('Please fill all required fields', 'error');
+                    return;
+                }
+
+                formData.append('file', file);
+                formData.append('name', name);
+                formData.append('type', type);
+                formData.append('category', category);
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/brand/assets`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.showNotification('Brand asset uploaded successfully!', 'success');
+                        this.closeUploadBrandAsset();
+                        await this.loadBrandAssets();
+                    } else {
+                        this.showNotification(`Upload failed: ${result.error || 'Unknown error'}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error uploading brand asset:', error);
+                    this.showNotification(`Error: ${error.message}`, 'error');
+                }
+            },
+
+            async deleteBrandAsset(assetId) {
+                if (!confirm('Are you sure you want to delete this brand asset? This cannot be undone.')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/brand/assets/${assetId}`, {
+                        method: 'DELETE'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.showNotification('Asset deleted successfully', 'success');
+                        await this.loadBrandAssets();
+                    } else {
+                        this.showNotification(`Error: ${result.error || 'Failed to delete asset'}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error deleting brand asset:', error);
+                    this.showNotification(`Error: ${error.message}`, 'error');
+                }
+            },
+
+            updateThemePreview() {
+                const primary = document.getElementById('primary-color-hex').value;
+                const secondary = document.getElementById('secondary-color-hex').value;
+                document.getElementById('primary-color').value = primary;
+                document.getElementById('secondary-color').value = secondary;
+            },
+
+            resetThemeColors() {
+                document.getElementById('primary-color').value = '#ff6b00';
+                document.getElementById('primary-color-hex').value = '#ff6b00';
+                document.getElementById('secondary-color').value = '#dc2626';
+                document.getElementById('secondary-color-hex').value = '#dc2626';
+            },
+
+            async saveThemeCustomization() {
+                const primary = document.getElementById('primary-color-hex').value;
+                const secondary = document.getElementById('secondary-color-hex').value;
+
+                // This would create a custom theme - for now just show notification
+                this.showNotification('Custom theme builder coming soon! You can add CSS files to /shared/themes/ and they will appear here.', 'info');
+            },
+
+            showCreateTheme() {
+                this.showNotification('Custom theme builder coming soon! For now, you can add CSS files to /shared/themes/ and they will automatically appear in the theme library.', 'info');
+            },
+
+            async refreshAll() {
+                await Promise.all([
+                    this.loadThemes(),
+                    this.loadBrandAssets()
+                ]);
+                this.showNotification('Refreshed successfully!', 'success');
+            },
+
+            showNotification(message, type = 'info') {
+                const bgColor = type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-3 rounded-lg shadow-xl z-50 flex items-center gap-2 animate-fade-in`;
+                notification.innerHTML = `
+                    <span>${escapeHtml(message)}</span>
+                    <button onclick="this.parentElement.remove()" class="ml-2 hover:opacity-70">×</button>
+                `;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 5000);
+            }
+        };
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load saved premium theme if available
+            const savedPremiumTheme = localStorage.getItem('premium_theme');
+            if (savedPremiumTheme) {
+                document.documentElement.setAttribute('data-theme', savedPremiumTheme);
+            }
+
+            await settings.init();
+        });
+    </script>
+</body>
+
+</html>

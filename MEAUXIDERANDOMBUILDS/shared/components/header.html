@@ -1,0 +1,110 @@
+<!-- Sitewide Header Component -->
+<!-- Supports: dual theme (light/dark), brand presets, global search, notifications, user menu -->
+<header id="sitewide-header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+    data-theme-bg="bg-brand-panel/95 backdrop-blur-md border-b border-white/10"
+    data-theme-light-bg="bg-white/95 backdrop-blur-md border-b border-gray-200">
+    
+    <div class="max-w-full mx-auto px-6 lg:px-8">
+        <div class="flex items-center justify-between h-20">
+            
+            <!-- Left: Logo + Navigation -->
+            <div class="flex items-center gap-8 flex-1">
+                <!-- Logo -->
+                <a href="/" class="flex items-center gap-3 group shrink-0">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center text-white font-bold shadow-lg shadow-orange-900/20 group-hover:scale-105 transition-transform">
+                        IA
+                    </div>
+                    <div class="hidden md:block">
+                        <span class="text-xl font-bold text-brand-text-primary tracking-tight">InnerAnimal</span>
+                        <span class="text-[10px] text-brand-text-tertiary font-mono tracking-wider block">MEDIA OS v5.1</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Navigation -->
+                <nav class="hidden lg:flex items-center gap-6">
+                    <a href="/" class="text-sm font-medium text-brand-text-secondary hover:text-brand-text-primary transition-colors">Home</a>
+                    <a href="/about" class="text-sm font-medium text-brand-text-secondary hover:text-brand-text-primary transition-colors">About</a>
+                    <a href="/work" class="text-sm font-medium text-brand-text-secondary hover:text-brand-text-primary transition-colors">Work</a>
+                    <a href="/contact" class="text-sm font-medium text-brand-text-secondary hover:text-brand-text-primary transition-colors">Contact</a>
+                    <a href="/dashboard" class="text-sm font-medium text-brand-text-secondary hover:text-brand-text-primary transition-colors">Dashboard</a>
+                </nav>
+            </div>
+
+            <!-- Center: Global Search (Desktop) -->
+            <div class="hidden md:flex items-center flex-1 max-w-md mx-8">
+                <div class="relative w-full">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-text-tertiary"></i>
+                    <input type="text" id="global-search-input" placeholder="Search projects, workflows, tools..."
+                        class="w-full pl-10 pr-4 py-2 bg-brand-bg-surface border border-brand-border-primary rounded-lg text-sm text-brand-text-primary placeholder-brand-text-tertiary focus:outline-none focus:border-brand-color-primary focus:ring-2 focus:ring-brand-color-primary/20 transition-all"
+                        autocomplete="off">
+                    <kbd class="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:flex items-center gap-1 px-2 py-1 text-xs font-medium text-brand-text-tertiary bg-brand-bg-panel border border-brand-border-secondary rounded">
+                        <kbd>⌘</kbd><kbd>K</kbd>
+                    </kbd>
+                </div>
+            </div>
+
+            <!-- Right: Actions -->
+            <div class="flex items-center gap-4 shrink-0">
+                <!-- Theme Toggle -->
+                <button id="theme-toggle" 
+                    class="p-2 rounded-lg hover:bg-brand-bg-surface border border-brand-border-primary transition-all text-brand-text-secondary hover:text-brand-text-primary"
+                    aria-label="Toggle theme">
+                    <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                    <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+                </button>
+
+                <!-- Notifications -->
+                <button id="notifications-btn" 
+                    class="p-2 rounded-lg hover:bg-brand-bg-surface border border-brand-border-primary transition-all text-brand-text-secondary hover:text-brand-text-primary relative"
+                    aria-label="Notifications">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-brand-color-error rounded-full border-2 border-brand-bg-panel hidden" id="notification-badge"></span>
+                </button>
+
+                <!-- User Menu -->
+                <div class="relative" id="user-menu-container">
+                    <button id="user-menu-btn" 
+                        class="flex items-center gap-2 p-2 rounded-lg hover:bg-brand-bg-surface border border-brand-border-primary transition-all"
+                        aria-label="User menu">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-orange to-brand-red flex items-center justify-center text-xs font-bold text-white shrink-0 ring-2 ring-brand-bg-panel">
+                            SP
+                        </div>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-brand-text-tertiary hidden md:block"></i>
+                    </button>
+                    
+                    <!-- User Dropdown Menu -->
+                    <div id="user-menu-dropdown" 
+                        class="absolute right-0 mt-2 w-48 bg-brand-bg-surface border border-brand-border-primary rounded-lg shadow-lg py-2 z-50 hidden">
+                        <a href="/dashboard/settings" class="flex items-center gap-3 px-4 py-2 text-sm text-brand-text-primary hover:bg-brand-bg-panel transition-colors">
+                            <i data-lucide="settings" class="w-4 h-4"></i>
+                            <span>Settings</span>
+                        </a>
+                        <a href="/dashboard/billing" class="flex items-center gap-3 px-4 py-2 text-sm text-brand-text-primary hover:bg-brand-bg-panel transition-colors">
+                            <i data-lucide="credit-card" class="w-4 h-4"></i>
+                            <span>Billing</span>
+                        </a>
+                        <hr class="my-2 border-brand-border-secondary">
+                        <a href="/logout" class="flex items-center gap-3 px-4 py-2 text-sm text-brand-text-secondary hover:bg-brand-bg-panel transition-colors">
+                            <i data-lucide="log-out" class="w-4 h-4"></i>
+                            <span>Sign Out</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" class="lg:hidden p-2 rounded-lg hover:bg-brand-bg-surface border border-brand-border-primary transition-all text-brand-text-secondary">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Search Bar (shown on mobile when search is active) -->
+    <div id="mobile-search" class="hidden md:hidden px-6 pb-4 border-t border-brand-border-secondary">
+        <div class="relative">
+            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-text-tertiary"></i>
+            <input type="text" placeholder="Search..."
+                class="w-full pl-10 pr-4 py-2 bg-brand-bg-surface border border-brand-border-primary rounded-lg text-sm text-brand-text-primary placeholder-brand-text-tertiary focus:outline-none focus:border-brand-color-primary">
+        </div>
+    </div>
+</header>

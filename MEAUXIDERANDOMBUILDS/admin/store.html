@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title id="page-title">Store Management • Admin - InnerAnimal Media</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #050505;
+            --sidebar-bg: rgba(255, 255, 255, 0.9);
+            --sidebar-border: rgba(255, 255, 255, 0.5);
+            --sidebar-text: #475569;
+            --sidebar-text-hover: #0f172a;
+            --sidebar-active-bg: #0f172a;
+            --sidebar-active-text: #ff6b00;
+            --border: #222;
+            --primary: #ff6b00;
+            --text: #e5e5e5;
+            --text-muted: #888;
+            --nav-w: 260px;
+            --header-bg: rgba(255, 255, 255, 0.85);
+            --header-border: rgba(0, 0, 0, 0.06);
+            --header-text: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidenav {
+            width: var(--nav-w);
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-right: 1px solid var(--sidebar-border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            z-index: 50;
+        }
+
+        .brand {
+            padding: 24px 28px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            font-size: 16px;
+            color: #0f172a;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand .logo-square {
+            width: 28px;
+            height: 28px;
+            background: #0f172a;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .nav-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-top: 20px;
+        }
+
+        .nav-section {
+            padding-bottom: 24px;
+        }
+
+        .nav-header {
+            padding: 0 28px 10px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 28px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            border-right: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            color: var(--sidebar-text-hover);
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .header {
+            height: 72px;
+            border-bottom: 1px solid var(--header-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            background: var(--header-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            gap: 24px;
+            color: var(--header-text);
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--sidebar-text);
+        }
+
+        .breadcrumb a {
+            color: var(--sidebar-text);
+            text-decoration: none;
+            transition: 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: var(--primary);
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+            background: linear-gradient(180deg, #050505 0%, #0a0a0a 100%);
+        }
+
+        .store-header {
+            margin-bottom: 32px;
+        }
+
+        .store-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .store-meta {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-top: 12px;
+        }
+
+        .store-status-badge {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .store-status-badge.active {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .store-status-badge.inactive {
+            background: rgba(113, 113, 122, 0.2);
+            color: #71717a;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: #0f0f0f;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(255, 107, 0, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -1px;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .detail-card {
+            background: #0f0f0f;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .detail-card h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 16px;
+        }
+
+        .detail-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .chart-card {
+            background: #0f0f0f;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            min-height: 300px;
+        }
+
+        .chart-card h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="sidenav">
+        <div class="brand">
+            <div class="logo-square">
+                <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar" 
+                     alt="InnerAnimalMedia" style="width:20px;height:20px;border-radius:4px;" />
+            </div>
+            InnerAnimal<span style="color:var(--primary)">Media</span>
+        </div>
+        <div class="nav-content">
+            <div class="nav-section">
+                <div class="nav-header">Admin</div>
+                <a href="/" class="nav-item">
+                    <i data-lucide="layout-grid"></i> Dashboard
+                </a>
+                <a href="/stores" class="nav-item">
+                    <i data-lucide="store"></i> Stores
+                </a>
+                <a href="/settings" class="nav-item">
+                    <i data-lucide="settings"></i> Settings
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main">
+        <header class="header">
+            <div class="breadcrumb">
+                <a href="/">Dashboard</a>
+                <i data-lucide="chevron-right" style="width:14px;color:#64748b"></i>
+                <a href="/stores">Stores</a>
+                <i data-lucide="chevron-right" style="width:14px;color:#64748b"></i>
+                <span id="breadcrumb-store" style="color:var(--header-text)">Store</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center">
+                <a href="/stores" style="font-size:13px;color:var(--sidebar-text);text-decoration:none">← Back</a>
+            </div>
+        </header>
+
+        <div class="content">
+            <div id="loading-state" class="text-center py-12 text-zinc-400">
+                Loading store details...
+            </div>
+
+            <div id="store-content" class="hidden">
+                <div class="store-header">
+                    <h1 class="store-title" id="store-name">Store Name</h1>
+                    <div class="store-meta">
+                        <code style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace" id="store-slug">store-slug</code>
+                        <span class="store-status-badge" id="store-status">Active</span>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Users</div>
+                        <div class="stat-value" id="stat-users">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Active Projects</div>
+                        <div class="stat-value" id="stat-projects">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Storage Used</div>
+                        <div class="stat-value" id="stat-storage">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">API Requests (24h)</div>
+                        <div class="stat-value" id="stat-api">-</div>
+                    </div>
+                </div>
+
+                <div class="details-grid">
+                    <div class="detail-card">
+                        <h3>Store Information</h3>
+                        <div class="detail-item">
+                            <div class="detail-label">Store Name</div>
+                            <div class="detail-value" id="info-name">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Slug</div>
+                            <div class="detail-value" id="info-slug" style="font-family:'JetBrains Mono',monospace">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Store ID</div>
+                            <div class="detail-value" id="info-id" style="font-family:'JetBrains Mono',monospace;font-size:12px">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Created</div>
+                            <div class="detail-value" id="info-created">-</div>
+                        </div>
+                    </div>
+
+                    <div class="detail-card">
+                        <h3>Quick Actions</h3>
+                        <div style="display:flex;flex-direction:column;gap:8px">
+                            <a href="#" id="view-dashboard-link" 
+                               style="padding:12px;background:#151515;border:1px solid #333;border-radius:8px;color:#fff;text-decoration:none;font-size:13px;transition:0.2s;display:flex;align-items:center;gap:8px"
+                               onmouseover="this.style.borderColor='var(--primary)'"
+                               onmouseout="this.style.borderColor='#333'">
+                                <i data-lucide="external-link" style="width:16px"></i>
+                                View Store Dashboard
+                            </a>
+                            <button onclick="toggleStoreStatus()" 
+                                    style="padding:12px;background:#151515;border:1px solid #333;border-radius:8px;color:#fff;font-size:13px;cursor:pointer;transition:0.2s;text-align:left;display:flex;align-items:center;gap:8px"
+                                    onmouseover="this.style.borderColor='var(--primary)'"
+                                    onmouseout="this.style.borderColor='#333'">
+                                <i data-lucide="power" style="width:16px"></i>
+                                <span id="toggle-status-text">Toggle Status</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>User Growth (Last 30 Days)</h3>
+                    <canvas id="userGrowthChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+        let currentStore = null;
+        let storeSlug = null;
+
+        function getStoreSlug() {
+            if (window.ADMIN_ROUTE && window.ADMIN_ROUTE.slug) {
+                return window.ADMIN_ROUTE.slug;
+            }
+            const path = window.location.pathname;
+            const match = path.match(/\/store\/([^\/]+)/);
+            return match ? match[1] : null;
+        }
+
+        async function loadStore() {
+            storeSlug = getStoreSlug();
+            if (!storeSlug) {
+                document.getElementById('loading-state').innerHTML = 
+                    '<div class="text-red-400">Store slug not found</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/store/${storeSlug}`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    currentStore = data.data;
+                    renderStore(currentStore);
+                } else {
+                    document.getElementById('loading-state').innerHTML = 
+                        '<div class="text-red-400">Store not found</div>';
+                }
+            } catch (error) {
+                console.error('Error loading store:', error);
+                document.getElementById('loading-state').innerHTML = 
+                    '<div class="text-red-400">Error loading store</div>';
+            }
+        }
+
+        function renderStore(store) {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('store-content').classList.remove('hidden');
+
+            document.getElementById('page-title').textContent = `${store.name} • Admin`;
+            document.getElementById('store-name').textContent = store.name;
+            document.getElementById('store-slug').textContent = store.slug;
+            document.getElementById('breadcrumb-store').textContent = store.name;
+
+            const isActive = store.is_active === 1;
+            const statusEl = document.getElementById('store-status');
+            statusEl.textContent = isActive ? 'Active' : 'Inactive';
+            statusEl.className = `store-status-badge ${isActive ? 'active' : 'inactive'}`;
+            document.getElementById('toggle-status-text').textContent = isActive ? 'Deactivate Store' : 'Activate Store';
+
+            document.getElementById('stat-users').textContent = store.stats?.users || 0;
+            document.getElementById('stat-projects').textContent = '-';
+            document.getElementById('stat-storage').textContent = '-';
+            document.getElementById('stat-api').textContent = '-';
+
+            document.getElementById('info-name').textContent = store.name;
+            document.getElementById('info-slug').textContent = store.slug;
+            document.getElementById('info-id').textContent = store.id;
+            document.getElementById('info-created').textContent = new Date(store.created_at * 1000).toLocaleDateString();
+
+            const dashboardLink = document.getElementById('view-dashboard-link');
+            dashboardLink.href = `https://${store.slug}.inneranimalmedia.com/dashboard` || `https://inneranimalmedia.com/dashboard?tenant=${store.slug}`;
+
+            // Initialize user growth chart
+            initUserGrowthChart(store.stats?.users || 0);
+        }
+
+        function initUserGrowthChart(currentUsers) {
+            const ctx = document.getElementById('userGrowthChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'Users',
+                        data: [
+                            Math.max(0, currentUsers - 3),
+                            Math.max(0, currentUsers - 2),
+                            Math.max(0, currentUsers - 1),
+                            currentUsers
+                        ],
+                        borderColor: '#ff6b00',
+                        backgroundColor: 'rgba(255, 107, 0, 0.05)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: '#222' }, ticks: { color: '#888' } },
+                        y: { grid: { color: '#222' }, ticks: { color: '#888' } }
+                    }
+                }
+            });
+        }
+
+        async function toggleStoreStatus() {
+            if (!currentStore) return;
+            alert(`Store status toggle - API endpoint to be implemented`);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStore();
+            setTimeout(() => lucide.createIcons(), 100);
+        });
+    </script>
+</body>
+</html>

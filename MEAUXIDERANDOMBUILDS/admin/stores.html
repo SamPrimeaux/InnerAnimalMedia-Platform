@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Stores • Admin - InnerAnimal Media</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg: #050505;
+            --sidebar-bg: rgba(255, 255, 255, 0.9);
+            --sidebar-border: rgba(255, 255, 255, 0.5);
+            --sidebar-text: #475569;
+            --sidebar-text-hover: #0f172a;
+            --sidebar-active-bg: #0f172a;
+            --sidebar-active-text: #ff6b00;
+            --border: #222;
+            --primary: #ff6b00;
+            --text: #e5e5e5;
+            --text-muted: #888;
+            --nav-w: 260px;
+            --header-bg: rgba(255, 255, 255, 0.85);
+            --header-border: rgba(0, 0, 0, 0.06);
+            --header-text: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidenav {
+            width: var(--nav-w);
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-right: 1px solid var(--sidebar-border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            z-index: 50;
+        }
+
+        .brand {
+            padding: 24px 28px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            font-size: 16px;
+            color: #0f172a;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand .logo-square {
+            width: 28px;
+            height: 28px;
+            background: #0f172a;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .nav-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-top: 20px;
+        }
+
+        .nav-section {
+            padding-bottom: 24px;
+        }
+
+        .nav-header {
+            padding: 0 28px 10px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 28px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            border-right: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            color: var(--sidebar-text-hover);
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .nav-item.active {
+            background: var(--sidebar-active-bg);
+            color: var(--sidebar-active-text);
+            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.15);
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .header {
+            height: 72px;
+            border-bottom: 1px solid var(--header-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            background: var(--header-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            gap: 24px;
+            color: var(--header-text);
+        }
+
+        .search-container {
+            flex: 1;
+            max-width: 480px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            background: #0f0f0f;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 10px 16px 10px 40px;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: #888;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .profile-pic {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #e2e8f0;
+            transition: 0.2s;
+            object-fit: cover;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+            background: linear-gradient(180deg, #050505 0%, #0a0a0a 100%);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+
+        .section-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .filters-bar {
+            background: #0f0f0f;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            background: #151515;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .stores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .store-card {
+            background: #0f0f0f;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .store-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 107, 0, 0.1);
+        }
+
+        .store-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 16px;
+        }
+
+        .store-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .store-slug {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .store-status {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .store-status.active {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .store-status.inactive {
+            background: rgba(113, 113, 122, 0.2);
+            color: #71717a;
+        }
+
+        .store-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .store-stat {
+            text-align: center;
+        }
+
+        .store-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .store-stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="sidenav">
+        <div class="brand">
+            <div class="logo-square">
+                <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar" 
+                     alt="InnerAnimalMedia" style="width:20px;height:20px;border-radius:4px;" />
+            </div>
+            InnerAnimal<span style="color:var(--primary)">Media</span>
+        </div>
+        <div class="nav-content">
+            <div class="nav-section">
+                <div class="nav-header">Admin</div>
+                <a href="/" class="nav-item">
+                    <i data-lucide="layout-grid"></i> Dashboard
+                </a>
+                <a href="/stores" class="nav-item active">
+                    <i data-lucide="store"></i> Stores
+                </a>
+                <a href="/settings" class="nav-item">
+                    <i data-lucide="settings"></i> Settings
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main">
+        <header class="header">
+            <div class="search-container">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" class="search-input" id="searchInput" placeholder="Search stores... (⌘K)">
+            </div>
+            <div class="header-actions">
+                <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar" 
+                     class="profile-pic" alt="Profile">
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="section-header">
+                <div>
+                    <h1 class="section-title">All Stores</h1>
+                    <div class="section-subtitle">Manage all stores and tenants on the platform</div>
+                </div>
+            </div>
+
+            <div class="filters-bar">
+                <select id="statusFilter" class="filter-select">
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+                <select id="sortFilter" class="filter-select">
+                    <option value="name">Sort by Name</option>
+                    <option value="created">Sort by Created</option>
+                    <option value="users">Sort by Users</option>
+                </select>
+            </div>
+
+            <div class="stores-grid" id="storesGrid">
+                <div class="text-center text-zinc-400 py-12">Loading stores...</div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+        let allStores = [];
+
+        async function loadStores() {
+            try {
+                const response = await fetch('/api/admin/stores');
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    allStores = data.data;
+                    renderStores(allStores);
+                }
+            } catch (error) {
+                console.error('Error loading stores:', error);
+                document.getElementById('storesGrid').innerHTML = 
+                    '<div class="text-center text-red-400 py-12">Error loading stores</div>';
+            }
+        }
+
+        function renderStores(stores) {
+            const grid = document.getElementById('storesGrid');
+            
+            if (stores.length === 0) {
+                grid.innerHTML = '<div class="text-center text-zinc-400 py-12">No stores found</div>';
+                return;
+            }
+            
+            grid.innerHTML = stores.map(store => {
+                const isActive = store.is_active === 1;
+                const createdDate = new Date(store.created_at * 1000).toLocaleDateString();
+                
+                return `
+                    <div class="store-card" onclick="window.location.href='/store/${store.slug}'">
+                        <div class="store-card-header">
+                            <div>
+                                <div class="store-name">${store.name || 'Unnamed Store'}</div>
+                                <div class="store-slug">${store.slug}</div>
+                            </div>
+                            <span class="store-status ${isActive ? 'active' : 'inactive'}">
+                                ${isActive ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+                        <div class="store-stats">
+                            <div class="store-stat">
+                                <div class="store-stat-value">-</div>
+                                <div class="store-stat-label">Users</div>
+                            </div>
+                            <div class="store-stat">
+                                <div class="store-stat-value">-</div>
+                                <div class="store-stat-label">Projects</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Load stats for each store
+            stores.forEach(store => {
+                loadStoreStats(store.slug);
+            });
+        }
+
+        async function loadStoreStats(slug) {
+            try {
+                const response = await fetch(`/api/admin/store/${slug}`);
+                const data = await response.json();
+                if (data.success && data.data) {
+                    // Update store card stats
+                    const card = document.querySelector(`[onclick*="${slug}"]`);
+                    if (card) {
+                        const stats = card.querySelectorAll('.store-stat-value');
+                        if (stats[0]) stats[0].textContent = data.data.stats?.users || 0;
+                        if (stats[1]) stats[1].textContent = '-'; // Projects count
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading store stats:', e);
+            }
+        }
+
+        // Search
+        document.getElementById('searchInput')?.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = allStores.filter(store => 
+                store.name?.toLowerCase().includes(query) || 
+                store.slug?.toLowerCase().includes(query)
+            );
+            renderStores(filtered);
+        });
+
+        // Filter
+        document.getElementById('statusFilter')?.addEventListener('change', (e) => {
+            const status = e.target.value;
+            let filtered = allStores;
+            if (status === 'active') {
+                filtered = allStores.filter(s => s.is_active === 1);
+            } else if (status === 'inactive') {
+                filtered = allStores.filter(s => s.is_active !== 1);
+            }
+            renderStores(filtered);
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStores();
+            setTimeout(() => lucide.createIcons(), 100);
+        });
+    </script>
+</body>
+</html>

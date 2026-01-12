@@ -1,0 +1,50 @@
+/**
+ * Meauxbility Brand Preset
+ * Purple (#9333ea) + Pink (#ec4899) theme for nonprofits
+ */
+
+[data-brand="meauxbility"] {
+  /* Primary Brand Colors */
+  --color-primary: #9333ea;
+  --color-primary-hover: #a855f7;
+  --color-primary-light: rgba(147, 51, 234, 0.1);
+  --color-primary-dark: #7e22ce;
+
+  --color-secondary: #ec4899;
+  --color-secondary-hover: #f472b6;
+  --color-secondary-light: rgba(236, 72, 153, 0.1);
+  --color-secondary-dark: #db2777;
+
+  /* Accent Colors */
+  --color-accent: #10b981;
+  --color-accent-hover: #34d399;
+  --color-accent-light: rgba(16, 185, 129, 0.1);
+
+  /* Gradient */
+  --gradient-primary: linear-gradient(135deg, #9333ea 0%, #ec4899 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #a855f7 0%, #f472b6 100%);
+
+  /* Shadow with brand color */
+  --shadow-primary: 0 8px 30px rgba(147, 51, 234, 0.4);
+  --shadow-primary-lg: 0 20px 40px rgba(147, 51, 234, 0.3);
+}
+
+[data-brand="meauxbility"][data-theme="dark"] {
+  --bg-primary: #050507;
+  --bg-panel: #0a0a0f;
+  --bg-surface: #171717;
+  
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+}
+
+[data-brand="meauxbility"][data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-panel: #faf5ff;
+  --bg-surface: #ffffff;
+  
+  --text-primary: #1e1b4b;
+  --text-secondary: #5b21b6;
+  --text-tertiary: #7c3aed;
+}

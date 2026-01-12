@@ -1,0 +1,254 @@
+<!-- Unified Dashboard Sidebar Component -->
+<!-- Include this on all dashboard pages for consistent navigation -->
+
+<aside id="dashboard-sidebar"
+    class="w-64 bg-brand-panel border-r border-white/10 flex flex-col transition-all duration-300 z-40 relative">
+    <!-- Brand Header -->
+    <div class="h-20 flex items-center px-6 border-b border-white/5">
+        <a href="/dashboard" class="flex items-center gap-3 flex-1 min-w-0">
+            <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar"
+                alt="InnerAnimalMedia Logo"
+                class="w-12 h-12 rounded-xl shrink-0 shadow-lg shadow-orange-900/20 object-cover" />
+            <div class="min-w-0 sidebar-text">
+                <h1 class="font-bold text-base tracking-tight text-white leading-tight truncate">InnerAnimalMedia</h1>
+                <span class="text-[10px] text-zinc-500 font-mono tracking-wider">MEDIA OS v5.1</span>
+            </div>
+        </a>
+        <button onclick="toggleSidebar()" class="ml-2 p-2 hover:bg-white/5 rounded-lg transition-colors"
+            aria-label="Toggle sidebar">
+            <i data-lucide="panel-left-close" class="w-4 h-4 text-zinc-400"></i>
+        </button>
+    </div>
+
+    <!-- Menu Items -->
+    <nav class="flex-1 overflow-y-auto p-4 space-y-8 custom-scrollbar">
+        <!-- Hub Group -->
+        <div>
+            <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Hub</div>
+            <div class="space-y-1">
+                <a href="/dashboard"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="overview">
+                    <i data-lucide="home" class="w-4 h-4"></i> <span class="sidebar-text">Dashboard</span>
+                </a>
+                <a href="/dashboard/projects"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="projects">
+                    <i data-lucide="briefcase" class="w-4 h-4"></i> <span class="sidebar-text">Projects</span>
+                </a>
+                <a href="/dashboard/clients"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="clients">
+                    <i data-lucide="users" class="w-4 h-4"></i> <span class="sidebar-text">Clients</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Work Group -->
+        <div>
+            <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Work</div>
+            <div class="space-y-1">
+                <a href="/dashboard/calendar"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="calendar">
+                    <i data-lucide="calendar" class="w-4 h-4"></i> <span class="sidebar-text">Calendar</span>
+                </a>
+                <a href="/dashboard/tasks"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="tasks">
+                    <i data-lucide="check-square" class="w-4 h-4"></i> <span class="sidebar-text">InnerWork</span>
+                </a>
+                <a href="/dashboard/workflows"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="workflows">
+                    <i data-lucide="zap" class="w-4 h-4"></i> <span class="sidebar-text">Automation</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Engine Group -->
+        <div>
+            <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Engine
+            </div>
+            <div class="space-y-1">
+                <a href="/dashboard/meauxmcp"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="meauxmcp">
+                    <i data-lucide="server" class="w-4 h-4"></i> <span class="sidebar-text">MeauxMCP</span>
+                </a>
+                <a href="/dashboard/meauxsql"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="meauxsql">
+                    <i data-lucide="database" class="w-4 h-4"></i> <span class="sidebar-text">MeauxSQL</span>
+                </a>
+                <a href="/dashboard/meauxcad"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="meauxcad">
+                    <i data-lucide="pen-tool" class="w-4 h-4"></i> <span class="sidebar-text">MeauxCAD</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Assets Group -->
+        <div>
+            <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Assets
+            </div>
+            <div class="space-y-1">
+                <a href="/dashboard/library"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="cms">
+                    <i data-lucide="layout-grid" class="w-4 h-4"></i> <span class="sidebar-text">CMS</span>
+                </a>
+                <a href="/dashboard/brand"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="brand">
+                    <i data-lucide="palette" class="w-4 h-4"></i> <span class="sidebar-text">Brand Central</span>
+                </a>
+                <a href="/dashboard/gallery"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="gallery">
+                    <i data-lucide="image" class="w-4 h-4"></i> <span class="sidebar-text">Gallery</span>
+                </a>
+                <a href="/dashboard/templates"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="templates">
+                    <i data-lucide="file-code" class="w-4 h-4"></i> <span class="sidebar-text">Templates</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Infrastructure Group -->
+        <div>
+            <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">
+                Infrastructure</div>
+            <div class="space-y-1">
+                <a href="/dashboard/deployments"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="deployments">
+                    <i data-lucide="rocket" class="w-4 h-4"></i> <span class="sidebar-text">Deployments</span>
+                </a>
+                <a href="/dashboard/workers"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="workers">
+                    <i data-lucide="cloud" class="w-4 h-4"></i> <span class="sidebar-text">Workers</span>
+                </a>
+                <a href="/dashboard/tenants"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="tenants">
+                    <i data-lucide="layers" class="w-4 h-4"></i> <span class="sidebar-text">Tenants</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Support Group -->
+        <div>
+            <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Support
+            </div>
+            <div class="space-y-1">
+                <a href="/dashboard/support"
+                    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                    data-page="support">
+                    <i data-lucide="ticket" class="w-4 h-4"></i> <span class="sidebar-text">Support Center</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- User Profile Footer -->
+    <div class="p-4 border-t border-white/5">
+        <div class="flex items-center gap-3 p-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition-all">
+            <div
+                class="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-orange to-brand-red flex items-center justify-center text-xs font-bold text-white shrink-0 ring-2 ring-brand-panel">
+                SP</div>
+            <div class="flex-1 min-w-0 sidebar-text">
+                <div class="font-medium text-xs text-zinc-200 truncate">Sam Primeaux</div>
+                <div class="text-[10px] text-zinc-500 truncate">sam@inneranimal.com</div>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<script>
+    // Unified Sidebar Toggle Function
+    function toggleSidebar() {
+        const sidebar = document.getElementById('dashboard-sidebar');
+        const sidebarTexts = document.querySelectorAll('.sidebar-text');
+        const isCollapsed = sidebar.classList.contains('collapsed');
+
+        if (isCollapsed) {
+            sidebar.classList.remove('collapsed');
+            sidebar.classList.add('w-64');
+            sidebar.classList.remove('w-20');
+            sidebarTexts.forEach(t => t.classList.remove('hidden'));
+            localStorage.setItem('sidebarCollapsed', 'false');
+        } else {
+            sidebar.classList.add('collapsed');
+            sidebar.classList.remove('w-64');
+            sidebar.classList.add('w-20');
+            sidebarTexts.forEach(t => t.classList.add('hidden'));
+            localStorage.setItem('sidebarCollapsed', 'true');
+        }
+
+        // Update toggle button icon
+        const toggleBtn = document.querySelector('[onclick="toggleSidebar()"] i');
+        if (toggleBtn) {
+            toggleBtn.setAttribute('data-lucide', isCollapsed ? 'panel-left-close' : 'panel-left-open');
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+    }
+
+    // Set active nav item based on current page
+    (function () {
+        const currentPath = window.location.pathname;
+        const currentPage = currentPath.split('/').pop() || 'overview';
+
+        // Handle dashboard root
+        if (currentPath === '/dashboard' || currentPath === '/dashboard/') {
+            document.querySelector('[data-page="overview"]')?.classList.add('bg-brand-orange', 'text-white', 'shadow-lg', 'shadow-orange-900/20');
+        } else {
+            document.querySelector(`[data-page="${currentPage.replace('.html', '')}"]`)?.classList.add('bg-brand-orange', 'text-white', 'shadow-lg', 'shadow-orange-900/20');
+        }
+
+        // Restore sidebar state
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+            const sidebar = document.getElementById('dashboard-sidebar');
+            if (sidebar) {
+                sidebar.classList.add('collapsed', 'w-20');
+                sidebar.classList.remove('w-64');
+                document.querySelectorAll('.sidebar-text').forEach(t => t.classList.add('hidden'));
+                const toggleBtn = document.querySelector('[onclick="toggleSidebar()"] i');
+                if (toggleBtn) {
+                    toggleBtn.setAttribute('data-lucide', 'panel-left-open');
+                }
+            }
+        }
+
+        // Initialize icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    })();
+</script>
+
+<style>
+    #dashboard-sidebar.collapsed {
+        width: 80px;
+    }
+
+    #dashboard-sidebar.collapsed .nav-item {
+        justify-content: center;
+        padding: 10px;
+    }
+
+    #dashboard-sidebar.collapsed .sidebar-text {
+        display: none;
+    }
+
+    .nav-item.active,
+    .nav-item[class*="bg-brand-orange"] {
+        background: linear-gradient(135deg, rgba(255, 107, 0, 0.2) 0%, rgba(255, 107, 0, 0.1) 100%);
+        color: #ff6b00;
+    }
+</style>

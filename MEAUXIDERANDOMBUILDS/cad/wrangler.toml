@@ -1,0 +1,48 @@
+name = "meauxcad"
+main = "worker.js"
+compatibility_date = "2025-11-17"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database - inneranimalmedia-business
+[[d1_databases]]
+binding = "DB"
+database_name = "inneranimalmedia-business"
+database_id = "cf87b717-d4e2-4cf8-bab0-a81268e32d49"
+
+# R2 Bucket for CAD assets and 3D scenes
+[[r2_buckets]]
+binding = "CAD_STORAGE"
+bucket_name = "cad"
+
+# R2 Bucket for SaaS platform assets
+[[r2_buckets]]
+binding = "PLATFORM_STORAGE"
+bucket_name = "inneranimalmedia-assets"
+
+# R2 Bucket for Spline Icons (3D models/icons)
+[[r2_buckets]]
+binding = "SPLINEICONS_STORAGE"
+bucket_name = "splineicons"
+
+[env.production]
+name = "meauxcad"
+workers_dev = true
+
+# D1 Database (production)
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "inneranimalmedia-business"
+database_id = "cf87b717-d4e2-4cf8-bab0-a81268e32d49"
+
+# R2 Buckets (production)
+[[env.production.r2_buckets]]
+binding = "CAD_STORAGE"
+bucket_name = "cad"
+
+[[env.production.r2_buckets]]
+binding = "PLATFORM_STORAGE"
+bucket_name = "inneranimalmedia-assets"
+
+[[env.production.r2_buckets]]
+binding = "SPLINEICONS_STORAGE"
+bucket_name = "splineicons"

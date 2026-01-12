@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Admin Dashboard • InnerAnimal Media</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #050505;
+            --sidebar-bg: rgba(255, 255, 255, 0.9);
+            --sidebar-border: rgba(255, 255, 255, 0.5);
+            --sidebar-text: #475569;
+            --sidebar-text-hover: #0f172a;
+            --sidebar-active-bg: #0f172a;
+            --sidebar-active-text: #ff6b00;
+            --border: #222;
+            --primary: #ff6b00;
+            --primary-dim: rgba(255, 107, 0, 0.1);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --text: #e5e5e5;
+            --text-muted: #888;
+            --nav-w: 260px;
+            --header-bg: rgba(255, 255, 255, 0.85);
+            --header-border: rgba(0, 0, 0, 0.06);
+            --header-text: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            outline: none;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Frosted Sidebar */
+        .sidenav {
+            width: var(--nav-w);
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-right: 1px solid var(--sidebar-border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            z-index: 50;
+            position: relative;
+            transition: width 0.1s;
+        }
+
+        .resizer {
+            position: absolute;
+            right: -4px;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            cursor: col-resize;
+            z-index: 100;
+        }
+
+        .resizer:hover {
+            background: rgba(255, 107, 0, 0.3);
+        }
+
+        .brand {
+            padding: 24px 28px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            font-size: 16px;
+            color: #0f172a;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand .logo-square {
+            width: 28px;
+            height: 28px;
+            background: #0f172a;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .nav-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-top: 20px;
+            padding-bottom: 100px;
+        }
+
+        .nav-section {
+            padding-bottom: 24px;
+        }
+
+        .nav-header {
+            padding: 0 28px 10px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 28px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            border-right: 3px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            color: var(--sidebar-text-hover);
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .nav-item.active {
+            background: var(--sidebar-active-bg);
+            color: var(--sidebar-active-text);
+            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.15);
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            position: relative;
+        }
+
+        .header {
+            height: 72px;
+            border-bottom: 1px solid var(--header-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            background: var(--header-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            gap: 24px;
+            color: var(--header-text);
+            z-index: 100;
+        }
+
+        .store-select-wrapper {
+            position: relative;
+            min-width: 200px;
+        }
+
+        .store-select {
+            width: 100%;
+            padding: 8px 12px 8px 40px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            color: #0f172a;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 8px;
+            appearance: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .store-select:hover {
+            border-color: #cbd5e1;
+        }
+
+        .store-select:focus {
+            border-color: var(--primary);
+        }
+
+        .store-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--primary);
+            pointer-events: none;
+        }
+
+        .store-chevron {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            color: #64748b;
+            pointer-events: none;
+        }
+
+        /* Dark Search Bar & Smart Dropdown */
+        .search-container {
+            flex: 1;
+            max-width: 480px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            background: #0f0f0f;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 10px 16px 10px 40px;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: #888;
+        }
+
+        .search-input::placeholder {
+            color: #666;
+        }
+
+        /* Search Dropdown */
+        .search-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: #0f0f0f;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            overflow: hidden;
+            padding: 8px 0;
+        }
+
+        .search-dropdown.active {
+            display: block;
+        }
+
+        .suggestion-group {
+            padding: 8px 16px 4px;
+            font-size: 11px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .suggestion-item {
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #ccc;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        .suggestion-item:hover {
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        .suggestion-item i {
+            width: 14px;
+            height: 14px;
+            color: var(--primary);
+        }
+
+        .suggestion-shortcut {
+            margin-left: auto;
+            font-size: 10px;
+            color: #666;
+            background: #222;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .profile-pic {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #e2e8f0;
+            transition: 0.2s;
+            object-fit: cover;
+        }
+
+        .profile-pic:hover {
+            border-color: var(--primary);
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+            background: linear-gradient(180deg, #050505 0%, #0a0a0a 100%);
+            padding-bottom: 140px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+
+        .section-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: #0f0f0f;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(255, 107, 0, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -1px;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .change-up {
+            color: var(--success);
+        }
+
+        .change-down {
+            color: var(--warning);
+        }
+
+        .charts-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .chart-card {
+            background: #0f0f0f;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            min-height: 350px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (max-width: 1024px) {
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+
+            .sidenav {
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                padding-top: 60px;
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sidenav.mobile-open {
+                transform: translateX(0);
+                width: 260px;
+            }
+
+            .resizer {
+                display: none;
+            }
+        }
+
+        .app-dock-wrapper {
+            position: fixed;
+            bottom: 20px;
+            left: calc(50% + var(--nav-w) / 2);
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .app-dock {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            padding: 10px 14px;
+            display: flex;
+            gap: 12px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        .dock-item {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            text-decoration: none;
+            transition: 0.2s;
+            cursor: pointer;
+            border: 1px solid transparent;
+            position: relative;
+        }
+
+        .dock-item:hover {
+            background: rgba(0, 0, 0, 0.1);
+            color: #000;
+            transform: translateY(-4px) scale(1.1);
+        }
+
+        .tooltip {
+            position: absolute;
+            top: -30px;
+            background: #000;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            opacity: 0;
+            transition: 0.2s;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .dock-item:hover .tooltip {
+            opacity: 1;
+            top: -35px;
+        }
+
+        .dock-item.add-new {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            color: var(--primary);
+        }
+
+        .dock-item.add-new:hover {
+            background: var(--primary);
+            color: #000;
+            border-color: var(--primary);
+        }
+
+        .dock-toggle {
+            width: 40px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .dock-toggle:hover {
+            background: var(--primary);
+        }
+
+        .app-dock-wrapper.minimized {
+            transform: translate(-50%, 90px);
+        }
+
+        .agent-fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--primary);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 1100;
+            transition: 0.2s;
+        }
+
+        .agent-fab:hover {
+            transform: scale(1.05);
+            background: var(--primary);
+            color: #000;
+        }
+
+        .chat-modal {
+            display: none;
+            position: fixed;
+            bottom: 90px;
+            right: 24px;
+            width: 380px;
+            height: 520px;
+            background: #0a0a0a;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            z-index: 1090;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            animation: slideUp 0.2s ease-out;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .chat-modal.active {
+            display: flex;
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            color: #fff;
+        }
+
+        .agent-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 5px var(--success);
+        }
+
+        .chat-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: radial-gradient(circle at top right, rgba(255, 107, 0, 0.02), transparent 40%);
+        }
+
+        .chat-msg {
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 13.5px;
+            line-height: 1.5;
+            max-width: 85%;
+            position: relative;
+        }
+
+        .chat-msg.agent {
+            background: #1a1a1a;
+            color: #e5e5e5;
+            align-self: flex-start;
+            border: 1px solid #222;
+            border-bottom-left-radius: 2px;
+        }
+
+        .chat-msg.user {
+            background: var(--primary);
+            color: #0f172a;
+            align-self: flex-end;
+            font-weight: 500;
+            border-bottom-right-radius: 2px;
+        }
+
+        .chat-input-area {
+            padding: 16px;
+            background: #0a0a0a;
+            border-top: 1px solid var(--border);
+        }
+
+        .chat-input-wrapper {
+            background: #151515;
+            border: 1px solid #333;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            padding: 4px 6px 4px 16px;
+            transition: 0.2s;
+        }
+
+        .chat-input-wrapper:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px rgba(255, 107, 0, 0.2);
+        }
+
+        .chat-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 13px;
+            padding: 8px 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .send-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #000;
+            transition: 0.2s;
+            border: none;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="resizer" id="dragHandle"></div>
+    <nav class="sidenav" id="sidebar">
+        <div class="brand">
+            <div class="logo-square">
+                <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar" 
+                     alt="InnerAnimalMedia" style="width:20px;height:20px;border-radius:4px;" />
+            </div>
+            InnerAnimal<span style="color:var(--primary)">Media</span>
+        </div>
+        <div class="nav-content">
+            <div class="nav-section">
+                <div class="nav-header">Admin</div>
+                <a href="/" class="nav-item active">
+                    <i data-lucide="layout-grid"></i> Dashboard
+                </a>
+                <a href="/stores" class="nav-item">
+                    <i data-lucide="store"></i> Stores
+                </a>
+                <a href="/store/inneranimalmedia" class="nav-item">
+                    <i data-lucide="layers"></i> Store Management
+                </a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-header">Analytics</div>
+                <a href="/analytics" class="nav-item">
+                    <i data-lucide="bar-chart"></i> Platform Analytics
+                </a>
+                <a href="/revenue" class="nav-item">
+                    <i data-lucide="dollar-sign"></i> Revenue
+                </a>
+                <a href="/users" class="nav-item">
+                    <i data-lucide="users"></i> User Analytics
+                </a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-header">System</div>
+                <a href="/settings" class="nav-item">
+                    <i data-lucide="settings"></i> Settings
+                </a>
+                <a href="/integrations" class="nav-item">
+                    <i data-lucide="cable"></i> Integrations
+                </a>
+                <a href="/audit" class="nav-item">
+                    <i data-lucide="shield"></i> Audit Log
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main">
+        <header class="header">
+            <div class="store-select-wrapper">
+                <i data-lucide="layers" class="store-icon"></i>
+                <select id="storeSelect" class="store-select">
+                    <option value="all">All Stores</option>
+                </select>
+                <i data-lucide="chevron-down" class="store-chevron"></i>
+            </div>
+
+            <!-- Smart Search with Dropdown -->
+            <div class="search-container">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" class="search-input" id="searchInput" placeholder="Search stores, users, analytics... (⌘K)" 
+                       onfocus="showSearchSuggestions()" onblur="hideSearchSuggestions()">
+
+                <!-- Search Dropdown -->
+                <div class="search-dropdown" id="searchDropdown">
+                    <div class="suggestion-group">Quick Actions</div>
+                    <div class="suggestion-item" onclick="window.location.href='/stores'">
+                        <i data-lucide="store"></i> View All Stores
+                        <span class="suggestion-shortcut">⌘S</span>
+                    </div>
+                    <div class="suggestion-item" onclick="window.location.href='/settings'">
+                        <i data-lucide="settings"></i> Platform Settings
+                    </div>
+                    <div class="suggestion-item" onclick="window.location.href='/analytics'">
+                        <i data-lucide="bar-chart"></i> View Analytics
+                    </div>
+
+                    <div class="suggestion-group">Recent</div>
+                    <div class="suggestion-item" id="recent-1">
+                        <i data-lucide="clock"></i> Loading...
+                    </div>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar" 
+                     id="avatarImg" class="profile-pic" alt="Profile">
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="section-header">
+                <div>
+                    <h1 class="section-title">Admin Dashboard</h1>
+                    <div class="section-subtitle">Platform-wide analytics and management</div>
+                </div>
+                <div style="font-size:12px;color:var(--text-muted)">
+                    Live Data • <span style="color:var(--success)">Connected</span>
+                </div>
+            </div>
+
+            <!-- Ecosystem Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">
+                        Total Stores
+                        <i data-lucide="store" style="width:14px"></i>
+                    </div>
+                    <div class="stat-value" id="total-stores">-</div>
+                    <div class="stat-change change-up">
+                        <i data-lucide="trending-up" style="width:12px"></i> Active
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">
+                        Total Users
+                        <i data-lucide="users" style="width:14px"></i>
+                    </div>
+                    <div class="stat-value" id="total-users">-</div>
+                    <div class="stat-change">Across all stores</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">
+                        Active Projects
+                        <i data-lucide="briefcase" style="width:14px"></i>
+                    </div>
+                    <div class="stat-value" id="total-projects">-</div>
+                    <div class="stat-change">Platform-wide</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">
+                        API Requests (24h)
+                        <i data-lucide="activity" style="width:14px"></i>
+                    </div>
+                    <div class="stat-value" id="api-requests">-</div>
+                    <div class="stat-change change-up">
+                        <i data-lucide="trending-up" style="width:12px"></i> Real-time
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="charts-row">
+                <div class="chart-card">
+                    <div style="margin-bottom:20px;font-weight:700;color:#fff">Store Growth (Last 30 Days)</div>
+                    <div style="position:relative;flex:1;min-height:0;width:100%">
+                        <canvas id="storesChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div style="margin-bottom:20px;font-weight:700;color:#fff">User Distribution</div>
+                    <div style="position:relative;flex:1;min-height:0;width:100%">
+                        <canvas id="usersChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="chart-card">
+                <div style="margin-bottom:20px;font-weight:700;color:#fff">Recent Platform Activity</div>
+                <div id="recent-activity" style="flex:1;overflow-y:auto;max-height:300px;">
+                    <div class="text-center text-zinc-400 py-8">Loading activity...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- App Dock -->
+    <div class="app-dock-wrapper" id="appDock">
+        <div class="dock-toggle" onclick="toggleDock()"></div>
+        <div class="app-dock">
+            <a href="/" class="dock-item">
+                <i data-lucide="layout-grid" style="width:20px"></i>
+                <span class="tooltip">Dashboard</span>
+            </a>
+            <a href="/stores" class="dock-item">
+                <i data-lucide="store" style="width:20px"></i>
+                <span class="tooltip">Stores</span>
+            </a>
+            <a href="/analytics" class="dock-item">
+                <i data-lucide="bar-chart" style="width:20px"></i>
+                <span class="tooltip">Analytics</span>
+            </a>
+            <a href="/settings" class="dock-item">
+                <i data-lucide="settings" style="width:20px"></i>
+                <span class="tooltip">Settings</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Agent FAB -->
+    <div class="agent-fab" onclick="toggleChat()">
+        <i data-lucide="terminal-square" style="width:24px"></i>
+    </div>
+
+    <!-- Chat Modal -->
+    <div class="chat-modal" id="chatModal">
+        <div class="chat-header">
+            <div class="agent-status">
+                <div class="status-dot"></div> Agent Sam
+            </div>
+            <div style="cursor:pointer;padding:8px" onclick="toggleChat()">
+                <i data-lucide="x" style="width:18px;color:#fff"></i>
+            </div>
+        </div>
+        <div class="chat-body" id="chatBody">
+            <div class="chat-msg agent">Hello! I'm Agent Sam. How can I help you manage the platform?</div>
+        </div>
+        <div class="chat-input-area">
+            <div class="chat-input-wrapper">
+                <input type="text" id="agentInput" class="chat-input" placeholder="Type a message..." 
+                       onkeydown="if(event.key==='Enter') sendAgentMsg()">
+                <button class="send-btn" onclick="sendAgentMsg()">
+                    <i data-lucide="arrow-up" style="width:16px;color:#000;"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        // Sidebar Resizer
+        const sidebar = document.getElementById('sidebar');
+        const handle = document.getElementById('dragHandle');
+        let isResizing = false;
+        handle.addEventListener('mousedown', () => { 
+            isResizing = true; 
+            document.body.style.cursor = 'col-resize'; 
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            const w = Math.max(200, Math.min(e.clientX, 600));
+            sidebar.style.width = w + 'px';
+            document.documentElement.style.setProperty('--nav-w', w + 'px');
+        });
+        document.addEventListener('mouseup', () => { 
+            isResizing = false; 
+            document.body.style.cursor = 'default'; 
+        });
+
+        // Dock Toggle
+        function toggleDock() { 
+            document.getElementById('appDock').classList.toggle('minimized'); 
+        }
+
+        // Chat Toggle
+        function toggleChat() {
+            const modal = document.getElementById('chatModal');
+            modal.classList.toggle('active');
+            if (modal.classList.contains('active')) {
+                document.getElementById('agentInput').focus();
+            }
+        }
+
+        // Send Agent Message
+        function sendAgentMsg() {
+            const inp = document.getElementById('agentInput');
+            const txt = inp.value.trim();
+            if (!txt) return;
+            const body = document.getElementById('chatBody');
+            body.innerHTML += `<div class="chat-msg user">${txt}</div>`;
+            inp.value = '';
+            body.scrollTop = body.scrollHeight;
+            
+            // Simulate agent response
+            setTimeout(() => {
+                body.innerHTML += `<div class="chat-msg agent">Processing: "${txt}". This will connect to your MCP agent system.</div>`;
+                body.scrollTop = body.scrollHeight;
+            }, 800);
+        }
+
+        // Search Dropdown
+        function showSearchSuggestions() { 
+            document.getElementById('searchDropdown').classList.add('active'); 
+        }
+        function hideSearchSuggestions() {
+            setTimeout(() => document.getElementById('searchDropdown').classList.remove('active'), 200);
+        }
+
+        // Keyboard shortcut (⌘K)
+        document.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+                showSearchSuggestions();
+            }
+        });
+
+        // Load Admin Data
+        async function loadAdminData() {
+            try {
+                // Load stores
+                const storesRes = await fetch('/api/admin/stores');
+                const storesData = await storesRes.json();
+                
+                if (storesData.success && storesData.data) {
+                    const stores = storesData.data;
+                    const activeStores = stores.filter(s => s.is_active === 1);
+                    
+                    document.getElementById('total-stores').textContent = stores.length;
+                    
+                    // Update store select
+                    const storeSelect = document.getElementById('storeSelect');
+                    storeSelect.innerHTML = '<option value="all">All Stores</option>' + 
+                        stores.map(s => `<option value="${s.slug}">${s.name}</option>`).join('');
+                    
+                    // Load users count
+                    try {
+                        const usersRes = await fetch('/api/users?limit=1');
+                        const usersData = await usersRes.json();
+                        if (usersData.success && usersData.total) {
+                            document.getElementById('total-users').textContent = usersData.total;
+                        }
+                    } catch (e) {
+                        console.error('Error loading users:', e);
+                    }
+                    
+                    // Initialize charts
+                    initCharts(stores, activeStores.length);
+                }
+            } catch (error) {
+                console.error('Error loading admin data:', error);
+            }
+        }
+
+        // Initialize Charts
+        function initCharts(stores, activeCount) {
+            // Stores Growth Chart
+            const storesCtx = document.getElementById('storesChart').getContext('2d');
+            new Chart(storesCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'Stores',
+                        data: [Math.max(0, stores.length - 3), Math.max(0, stores.length - 2), Math.max(0, stores.length - 1), stores.length],
+                        borderColor: '#ff6b00',
+                        backgroundColor: 'rgba(255, 107, 0, 0.05)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: '#222' }, ticks: { color: '#888' } },
+                        y: { grid: { color: '#222' }, ticks: { color: '#888' } }
+                    }
+                }
+            });
+
+            // Users Distribution Chart
+            const usersCtx = document.getElementById('usersChart').getContext('2d');
+            new Chart(usersCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Active Stores', 'Inactive Stores'],
+                    datasets: [{
+                        data: [activeCount, Math.max(0, stores.length - activeCount)],
+                        backgroundColor: ['#ff6b00', '#333'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { color: '#888' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load recent activity
+        async function loadRecentActivity() {
+            const activityEl = document.getElementById('recent-activity');
+            try {
+                // This would connect to your analytics API
+                activityEl.innerHTML = `
+                    <div style="padding:12px;border-bottom:1px solid #222;color:#ccc;font-size:13px">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                            <span>New store created: InnerAnimal Media</span>
+                            <span style="color:#666">2h ago</span>
+                        </div>
+                    </div>
+                    <div style="padding:12px;border-bottom:1px solid #222;color:#ccc;font-size:13px">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                            <span>User login: info@inneranimals.com</span>
+                            <span style="color:#666">5h ago</span>
+                        </div>
+                    </div>
+                `;
+            } catch (e) {
+                activityEl.innerHTML = '<div class="text-center text-zinc-400 py-8">Error loading activity</div>';
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminData();
+            loadRecentActivity();
+            setTimeout(() => lucide.createIcons(), 100);
+        });
+    </script>
+</body>
+</html>

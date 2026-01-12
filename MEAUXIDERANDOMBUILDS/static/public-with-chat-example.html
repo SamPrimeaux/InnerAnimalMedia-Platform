@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InnerAnimal Media - Customer Support</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #050507;
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        h1 {
+            color: #ff6b00;
+            margin-bottom: 20px;
+        }
+        p {
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to InnerAnimal Media</h1>
+        <p>This is a public page example with customer support chat enabled.</p>
+        <p>The chat widget will appear as a message icon in the bottom-right corner.</p>
+        <p>Click it to start a conversation with our AI customer support assistant.</p>
+    </div>
+
+    <!-- Universal AI Chat Widget - Customer Support Mode -->
+    <script>
+        // Set API base for chat
+        window.API_BASE = 'https://iaccess-api.meauxbility.workers.dev';
+    </script>
+    <script src="/shared/ai-chat.js"></script>
+    <script>
+        // Initialize chat widget for public pages (customer support mode)
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof AIChat !== 'undefined') {
+                AIChat.init({ 
+                    mode: 'support',  // Customer support mode
+                    position: 'bottom-right',  // or 'bottom-left'
+                    sessionId: `public-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                });
+            }
+        });
+    </script>
+</body>
+</html>

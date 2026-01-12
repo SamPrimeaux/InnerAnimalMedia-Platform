@@ -1,0 +1,50 @@
+/**
+ * MeauxOS Core Brand Preset
+ * Gray (#6b7280) + Slate (#475569) theme for platform admin
+ */
+
+[data-brand="meauxos-core"] {
+  /* Primary Brand Colors */
+  --color-primary: #6b7280;
+  --color-primary-hover: #9ca3af;
+  --color-primary-light: rgba(107, 114, 128, 0.1);
+  --color-primary-dark: #4b5563;
+
+  --color-secondary: #475569;
+  --color-secondary-hover: #64748b;
+  --color-secondary-light: rgba(71, 85, 105, 0.1);
+  --color-secondary-dark: #334155;
+
+  /* Accent Colors */
+  --color-accent: #0ea5e9;
+  --color-accent-hover: #38bdf8;
+  --color-accent-light: rgba(14, 165, 233, 0.1);
+
+  /* Gradient */
+  --gradient-primary: linear-gradient(135deg, #6b7280 0%, #475569 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #9ca3af 0%, #64748b 100%);
+
+  /* Shadow with brand color */
+  --shadow-primary: 0 8px 30px rgba(107, 114, 128, 0.3);
+  --shadow-primary-lg: 0 20px 40px rgba(107, 114, 128, 0.2);
+}
+
+[data-brand="meauxos-core"][data-theme="dark"] {
+  --bg-primary: #050507;
+  --bg-panel: #0a0a0f;
+  --bg-surface: #171717;
+  
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+}
+
+[data-brand="meauxos-core"][data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-panel: #f8fafc;
+  --bg-surface: #ffffff;
+  
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+}

@@ -1,0 +1,214 @@
+<!-- Quick-Connect Toolbar Component -->
+<div id="quick-connect-toolbar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 hidden">
+    <div
+        class="bg-brand-surface border border-white/20 rounded-2xl p-3 shadow-2xl backdrop-blur-xl flex items-center gap-2 max-w-[90vw]">
+        <!-- Connections (Scrollable) -->
+        <div id="quick-connect-apps"
+            class="flex items-center gap-2 overflow-x-auto custom-scrollbar max-w-[calc(90vw-120px)]"
+            style="scrollbar-width: thin;">
+            <!-- Apps will be dynamically loaded here -->
+        </div>
+
+        <!-- Divider -->
+        <div class="h-8 w-px bg-white/10 mx-1"></div>
+
+        <!-- Settings Button -->
+        <button onclick="quickConnect.showSettings()"
+            class="p-2 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-all"
+            title="Configure Quick-Connect">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Quick-Connect Settings Modal -->
+<div id="quick-connect-settings"
+    class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div
+        class="bg-brand-surface border border-white/20 rounded-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-white">Configure Quick-Connect</h2>
+            <button onclick="quickConnect.hideSettings()"
+                class="p-2 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-all">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <p class="text-sm text-zinc-400 mb-6">Select unlimited applications and connect external services for quick
+            access. Drag to reorder.</p>
+
+        <div id="available-tools-list" class="space-y-3 mb-6">
+            <!-- Available tools will be loaded here -->
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+            <button onclick="quickConnect.hideSettings()"
+                class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 transition-colors">
+                Cancel
+            </button>
+            <button onclick="quickConnect.savePreferences()"
+                class="px-4 py-2 rounded-lg bg-brand-orange hover:bg-orange-600 text-white transition-colors">
+                Save Preferences
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MeauxMCP Lightbox Modal -->
+<div id="meauxmcp-lightbox"
+    class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div
+        class="bg-brand-surface border border-white/20 rounded-2xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center">
+                    <i data-lucide="server" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">MeauxMCP Quick Actions</h2>
+                    <p class="text-sm text-zinc-400">Superadmin Control Panel</p>
+                </div>
+            </div>
+            <button onclick="quickConnect.closeLightbox('meauxmcp-lightbox')"
+                class="p-2 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-all">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Quick Actions Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <!-- Restart Builds -->
+            <button onclick="quickConnect.restartBuilds()"
+                class="p-4 bg-black/40 border border-white/10 rounded-xl hover:border-brand-orange/50 hover:bg-white/5 transition-all text-left group">
+                <div class="flex items-center gap-3 mb-2">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center group-hover:bg-orange-500/30 transition-colors">
+                        <i data-lucide="refresh-cw" class="w-5 h-5 text-brand-orange"></i>
+                    </div>
+                    <h3 class="font-semibold text-white">Restart Builds</h3>
+                </div>
+                <p class="text-xs text-zinc-400">Restart all active builds and deployments</p>
+            </button>
+
+            <!-- Refine Workflows -->
+            <button onclick="quickConnect.refineWorkflows()"
+                class="p-4 bg-black/40 border border-white/10 rounded-xl hover:border-brand-orange/50 hover:bg-white/5 transition-all text-left group">
+                <div class="flex items-center gap-3 mb-2">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
+                        <i data-lucide="zap" class="w-5 h-5 text-purple-400"></i>
+                    </div>
+                    <h3 class="font-semibold text-white">Refine Workflows</h3>
+                </div>
+                <p class="text-xs text-zinc-400">Optimize and update workflow configurations</p>
+            </button>
+
+            <!-- Sync Cloudflare -->
+            <button onclick="quickConnect.syncCloudflare()"
+                class="p-4 bg-black/40 border border-white/10 rounded-xl hover:border-brand-orange/50 hover:bg-white/5 transition-all text-left group">
+                <div class="flex items-center gap-3 mb-2">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
+                        <i data-lucide="cloud" class="w-5 h-5 text-blue-400"></i>
+                    </div>
+                    <h3 class="font-semibold text-white">Sync Cloudflare</h3>
+                </div>
+                <p class="text-xs text-zinc-400">Sync deployments and workers from Cloudflare</p>
+            </button>
+
+            <!-- View Logs -->
+            <button onclick="quickConnect.viewLogs()"
+                class="p-4 bg-black/40 border border-white/10 rounded-xl hover:border-brand-orange/50 hover:bg-white/5 transition-all text-left group">
+                <div class="flex items-center gap-3 mb-2">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
+                        <i data-lucide="file-text" class="w-5 h-5 text-green-400"></i>
+                    </div>
+                    <h3 class="font-semibold text-white">View Logs</h3>
+                </div>
+                <p class="text-xs text-zinc-400">Access system and workflow execution logs</p>
+            </button>
+        </div>
+
+        <!-- Recent Developments -->
+        <div class="border-t border-white/10 pt-6">
+            <h3 class="text-lg font-semibold text-white mb-4">Recent Developments</h3>
+            <div id="recent-developments" class="space-y-3">
+                <!-- Recent developments will load here -->
+                <div class="text-center py-8 text-zinc-500">
+                    <i data-lucide="loader" class="w-8 h-8 mx-auto mb-2 animate-spin"></i>
+                    <div class="text-sm">Loading recent developments...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- IDE Lightbox Modal -->
+<div id="ide-lightbox" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div
+        class="bg-brand-surface border border-white/20 rounded-2xl p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center">
+                    <i data-lucide="code" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">MeauxIDE Quick Access</h2>
+                    <p class="text-sm text-zinc-400">CLI / CI/CD / IDE Workflows</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="quickConnect.openFullIDE()"
+                    class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 text-sm transition-colors">
+                    Open Full IDE
+                </button>
+                <button onclick="quickConnect.closeLightbox('ide-lightbox')"
+                    class="p-2 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-all">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-3 gap-3 mb-4">
+            <button onclick="quickConnect.runCLI()"
+                class="p-3 bg-black/40 border border-white/10 rounded-lg hover:border-green-500/50 hover:bg-white/5 transition-all text-left group">
+                <div class="flex items-center gap-2 mb-1">
+                    <i data-lucide="terminal" class="w-4 h-4 text-green-400"></i>
+                    <span class="text-sm font-medium text-white">CLI</span>
+                </div>
+                <p class="text-xs text-zinc-400">Run commands</p>
+            </button>
+
+            <button onclick="quickConnect.runCI()"
+                class="p-3 bg-black/40 border border-white/10 rounded-lg hover:border-blue-500/50 hover:bg-white/5 transition-all text-left group">
+                <div class="flex items-center gap-2 mb-1">
+                    <i data-lucide="git-branch" class="w-4 h-4 text-blue-400"></i>
+                    <span class="text-sm font-medium text-white">CI/CD</span>
+                </div>
+                <p class="text-xs text-zinc-400">Build & deploy</p>
+            </button>
+
+            <button onclick="quickConnect.openEditor()"
+                class="p-3 bg-black/40 border border-white/10 rounded-lg hover:border-purple-500/50 hover:bg-white/5 transition-all text-left group">
+                <div class="flex items-center gap-2 mb-1">
+                    <i data-lucide="file-code" class="w-4 h-4 text-purple-400"></i>
+                    <span class="text-sm font-medium text-white">Editor</span>
+                </div>
+                <p class="text-xs text-zinc-400">Code editor</p>
+            </button>
+        </div>
+
+        <!-- Terminal Preview -->
+        <div
+            class="flex-1 bg-black/60 border border-white/10 rounded-lg p-4 font-mono text-sm overflow-auto custom-scrollbar">
+            <div id="ide-terminal" class="text-green-400">
+                <div class="mb-2">$ Ready for commands...</div>
+                <div class="text-zinc-500">Type commands or use quick actions above</div>
+            </div>
+        </div>
+    </div>
+</div>

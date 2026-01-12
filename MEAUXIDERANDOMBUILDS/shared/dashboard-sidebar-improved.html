@@ -1,0 +1,232 @@
+<!-- Improved Dashboard Sidebar with Search, Favorites, and Better Organization -->
+<!-- Replace existing sidebar with this for better navigation -->
+
+<aside id="dashboard-sidebar"
+    class="w-64 bg-brand-panel border-r border-white/10 flex flex-col transition-all duration-300 z-40 relative">
+    
+    <!-- Brand Header -->
+    <div class="h-20 flex items-center px-6 border-b border-white/5">
+        <a href="/dashboard" class="flex items-center gap-3 flex-1 min-w-0">
+            <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar"
+                alt="InnerAnimalMedia Logo"
+                class="w-12 h-12 rounded-xl shrink-0 shadow-lg shadow-orange-900/20 object-cover" />
+            <div class="min-w-0 sidebar-text">
+                <h1 class="font-bold text-base tracking-tight text-white leading-tight truncate">InnerAnimalMedia</h1>
+                <span class="text-[10px] text-zinc-500 font-mono tracking-wider">MEDIA OS v5.1</span>
+            </div>
+        </a>
+        <button onclick="toggleSidebar()" class="ml-2 p-2 hover:bg-white/5 rounded-lg transition-colors"
+            aria-label="Toggle sidebar">
+            <i data-lucide="panel-left-close" class="w-4 h-4 text-zinc-400"></i>
+        </button>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="px-4 py-3 border-b border-white/5">
+        <div class="relative">
+            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500"></i>
+            <input type="text" 
+                   id="nav-search" 
+                   placeholder="Search pages... (⌘K)" 
+                   class="w-full pl-10 pr-3 py-2 bg-black/20 border border-white/10 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 focus:bg-black/30 transition-all sidebar-text" />
+        </div>
+    </div>
+
+    <!-- Menu Items -->
+    <nav class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar" id="sidebar-nav">
+        
+        <!-- Favorites Section (only show if favorites exist) -->
+        <div id="favorites-section" class="hidden">
+            <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">
+                ⭐ Favorites
+            </div>
+            <div class="space-y-1" id="favorites-list">
+                <!-- Favorites populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Recent Section -->
+        <div id="recent-section">
+            <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">
+                🔍 Recent
+            </div>
+            <div class="space-y-1" id="recent-list">
+                <!-- Recent pages populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Core Group -->
+        <div class="nav-group" data-group="core">
+            <button onclick="toggleNavGroup('core')" class="w-full flex items-center justify-between px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text hover:text-zinc-400 transition-colors">
+                <span>📋 Core</span>
+                <i data-lucide="chevron-down" class="w-3 h-3 nav-group-icon transition-transform" data-group="core"></i>
+            </button>
+            <div class="space-y-1 nav-group-items" data-group="core">
+                <a href="/dashboard" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="overview">
+                    <i data-lucide="home" class="w-4 h-4"></i> <span class="sidebar-text">Dashboard</span>
+                </a>
+                <a href="/dashboard/projects" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="projects">
+                    <i data-lucide="briefcase" class="w-4 h-4"></i> <span class="sidebar-text">Projects</span>
+                    <button onclick="toggleFavorite('projects'); event.stopPropagation();" class="ml-auto p-1 hover:bg-white/5 rounded transition-colors favorite-btn" data-page="projects">
+                        <i data-lucide="star" class="w-3 h-3 text-zinc-600"></i>
+                    </button>
+                </a>
+                <a href="/dashboard/clients" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="clients">
+                    <i data-lucide="users" class="w-4 h-4"></i> <span class="sidebar-text">Clients</span>
+                    <button onclick="toggleFavorite('clients'); event.stopPropagation();" class="ml-auto p-1 hover:bg-white/5 rounded transition-colors favorite-btn" data-page="clients">
+                        <i data-lucide="star" class="w-3 h-3 text-zinc-600"></i>
+                    </button>
+                </a>
+                <a href="/dashboard/calendar" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="calendar">
+                    <i data-lucide="calendar" class="w-4 h-4"></i> <span class="sidebar-text">Calendar</span>
+                    <button onclick="toggleFavorite('calendar'); event.stopPropagation();" class="ml-auto p-1 hover:bg-white/5 rounded transition-colors favorite-btn" data-page="calendar">
+                        <i data-lucide="star" class="w-3 h-3 text-zinc-600"></i>
+                    </button>
+                </a>
+            </div>
+        </div>
+
+        <!-- Tools Group -->
+        <div class="nav-group" data-group="tools">
+            <button onclick="toggleNavGroup('tools')" class="w-full flex items-center justify-between px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text hover:text-zinc-400 transition-colors">
+                <span>🛠️ Tools</span>
+                <i data-lucide="chevron-down" class="w-3 h-3 nav-group-icon transition-transform" data-group="tools"></i>
+            </button>
+            <div class="space-y-1 nav-group-items" data-group="tools">
+                <a href="/dashboard/meauxmcp" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="meauxmcp">
+                    <i data-lucide="server" class="w-4 h-4"></i> <span class="sidebar-text">MeauxMCP</span>
+                    <button onclick="toggleFavorite('meauxmcp'); event.stopPropagation();" class="ml-auto p-1 hover:bg-white/5 rounded transition-colors favorite-btn" data-page="meauxmcp">
+                        <i data-lucide="star" class="w-3 h-3 text-zinc-600"></i>
+                    </button>
+                </a>
+                <a href="/dashboard/meauxsql" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="meauxsql">
+                    <i data-lucide="database" class="w-4 h-4"></i> <span class="sidebar-text">MeauxSQL</span>
+                    <button onclick="toggleFavorite('meauxsql'); event.stopPropagation();" class="ml-auto p-1 hover:bg-white/5 rounded transition-colors favorite-btn" data-page="meauxsql">
+                        <i data-lucide="star" class="w-3 h-3 text-zinc-600"></i>
+                    </button>
+                </a>
+                <a href="/dashboard/meauxcad" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="meauxcad">
+                    <i data-lucide="pen-tool" class="w-4 h-4"></i> <span class="sidebar-text">MeauxCAD</span>
+                    <button onclick="toggleFavorite('meauxcad'); event.stopPropagation();" class="ml-auto p-1 hover:bg-white/5 rounded transition-colors favorite-btn" data-page="meauxcad">
+                        <i data-lucide="star" class="w-3 h-3 text-zinc-600"></i>
+                    </button>
+                </a>
+                <a href="/dashboard/meauxide" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="meauxide">
+                    <i data-lucide="code" class="w-4 h-4"></i> <span class="sidebar-text">MeauxIDE</span>
+                    <button onclick="toggleFavorite('meauxide'); event.stopPropagation();" class="ml-auto p-1 hover:bg-white/5 rounded transition-colors favorite-btn" data-page="meauxide">
+                        <i data-lucide="star" class="w-3 h-3 text-zinc-600"></i>
+                    </button>
+                </a>
+                <a href="/dashboard/meauxwork" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="meauxwork">
+                    <i data-lucide="briefcase" class="w-4 h-4"></i> <span class="sidebar-text">MeauxWork</span>
+                    <button onclick="toggleFavorite('meauxwork'); event.stopPropagation();" class="ml-auto p-1 hover:bg-white/5 rounded transition-colors favorite-btn" data-page="meauxwork">
+                        <i data-lucide="star" class="w-3 h-3 text-zinc-600"></i>
+                    </button>
+                </a>
+            </div>
+        </div>
+
+        <!-- Content Group -->
+        <div class="nav-group" data-group="content">
+            <button onclick="toggleNavGroup('content')" class="w-full flex items-center justify-between px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text hover:text-zinc-400 transition-colors">
+                <span>📦 Content</span>
+                <i data-lucide="chevron-down" class="w-3 h-3 nav-group-icon transition-transform" data-group="content"></i>
+            </button>
+            <div class="space-y-1 nav-group-items" data-group="content">
+                <a href="/dashboard/library" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="library">
+                    <i data-lucide="layout-grid" class="w-4 h-4"></i> <span class="sidebar-text">Library (CMS)</span>
+                </a>
+                <a href="/dashboard/gallery" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="gallery">
+                    <i data-lucide="image" class="w-4 h-4"></i> <span class="sidebar-text">Gallery</span>
+                </a>
+                <a href="/dashboard/templates" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="templates">
+                    <i data-lucide="file-code" class="w-4 h-4"></i> <span class="sidebar-text">Templates</span>
+                </a>
+                <a href="/dashboard/brand" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="brand">
+                    <i data-lucide="palette" class="w-4 h-4"></i> <span class="sidebar-text">Brand Central</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Automation Group -->
+        <div class="nav-group" data-group="automation">
+            <button onclick="toggleNavGroup('automation')" class="w-full flex items-center justify-between px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text hover:text-zinc-400 transition-colors">
+                <span>⚡ Automation</span>
+                <i data-lucide="chevron-down" class="w-3 h-3 nav-group-icon transition-transform" data-group="automation"></i>
+            </button>
+            <div class="space-y-1 nav-group-items" data-group="automation">
+                <a href="/dashboard/workflows" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="workflows">
+                    <i data-lucide="zap" class="w-4 h-4"></i> <span class="sidebar-text">Workflows</span>
+                </a>
+                <a href="/dashboard/tasks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="tasks">
+                    <i data-lucide="check-square" class="w-4 h-4"></i> <span class="sidebar-text">Tasks</span>
+                </a>
+                <a href="/dashboard/messages" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="messages">
+                    <i data-lucide="message-square" class="w-4 h-4"></i> <span class="sidebar-text">Messages</span>
+                </a>
+                <a href="/dashboard/video" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="video">
+                    <i data-lucide="video" class="w-4 h-4"></i> <span class="sidebar-text">Video Calls</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Infrastructure Group -->
+        <div class="nav-group" data-group="infrastructure">
+            <button onclick="toggleNavGroup('infrastructure')" class="w-full flex items-center justify-between px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text hover:text-zinc-400 transition-colors">
+                <span>🏗️ Infrastructure</span>
+                <i data-lucide="chevron-down" class="w-3 h-3 nav-group-icon transition-transform" data-group="infrastructure"></i>
+            </button>
+            <div class="space-y-1 nav-group-items" data-group="infrastructure">
+                <a href="/dashboard/deployments" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="deployments">
+                    <i data-lucide="rocket" class="w-4 h-4"></i> <span class="sidebar-text">Deployments</span>
+                </a>
+                <a href="/dashboard/workers" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="workers">
+                    <i data-lucide="cloud" class="w-4 h-4"></i> <span class="sidebar-text">Workers</span>
+                </a>
+                <a href="/dashboard/tenants" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="tenants">
+                    <i data-lucide="layers" class="w-4 h-4"></i> <span class="sidebar-text">Tenants</span>
+                </a>
+                <a href="/dashboard/databases" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="databases">
+                    <i data-lucide="database" class="w-4 h-4"></i> <span class="sidebar-text">Databases</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- System Group -->
+        <div class="nav-group" data-group="system">
+            <button onclick="toggleNavGroup('system')" class="w-full flex items-center justify-between px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text hover:text-zinc-400 transition-colors">
+                <span>⚙️ System</span>
+                <i data-lucide="chevron-down" class="w-3 h-3 nav-group-icon transition-transform" data-group="system"></i>
+            </button>
+            <div class="space-y-1 nav-group-items" data-group="system">
+                <a href="/dashboard/settings" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="settings">
+                    <i data-lucide="settings" class="w-4 h-4"></i> <span class="sidebar-text">Settings</span>
+                </a>
+                <a href="/dashboard/analytics" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="analytics">
+                    <i data-lucide="bar-chart" class="w-4 h-4"></i> <span class="sidebar-text">Analytics</span>
+                </a>
+                <a href="/dashboard/ai-services" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="ai-services">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i> <span class="sidebar-text">AI Services</span>
+                </a>
+                <a href="/dashboard/support" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white" data-page="support">
+                    <i data-lucide="ticket" class="w-4 h-4"></i> <span class="sidebar-text">Support</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- User Profile Footer -->
+    <div class="p-4 border-t border-white/5">
+        <div class="flex items-center gap-3 p-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition-all">
+            <div
+                class="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-orange to-brand-red flex items-center justify-center text-xs font-bold text-white shrink-0 ring-2 ring-brand-panel">
+                SP</div>
+            <div class="flex-1 min-w-0 sidebar-text">
+                <div class="font-medium text-xs text-zinc-200 truncate">Sam Primeaux</div>
+                <div class="text-[10px] text-zinc-500 truncate">sam@inneranimal.com</div>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<script src="/shared/sidebar-improvements.js"></script>

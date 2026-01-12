@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workers | InnerAnimalMedia OS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#ff6b00',
+                            red: '#dc2626',
+                            dark: '#050507',
+                            panel: '#0a0a0f',
+                            surface: '#171717'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background-color: #050507; color: #f4f4f5; overflow: hidden; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #ff6b00; }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+    <link rel="stylesheet" href="/shared/themes/base.css">
+    <link rel="stylesheet" href="/shared/themes/inneranimal-media.css">
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+</head>
+<body class="flex h-screen selection:bg-orange-500/30">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-64 bg-brand-panel border-r border-white/10 flex flex-col transition-all duration-300 z-40 relative">
+        <div class="h-20 flex items-center px-6 border-b border-white/5">
+            <img 
+                src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar" 
+                alt="InnerAnimalMedia Logo" 
+                class="w-12 h-12 rounded-xl shrink-0 shadow-lg shadow-orange-900/20 object-cover"
+                style="width: 48px; height: 48px;"
+            />
+            <div class="ml-3 sidebar-text">
+                <h1 class="font-bold text-base tracking-tight text-white leading-tight">InnerAnimalMedia</h1>
+                <span class="text-[10px] text-zinc-500 font-mono tracking-wider">MEDIA OS v5.1</span>
+            </div>
+        </div>
+        <nav class="flex-1 overflow-y-auto p-4 space-y-8 custom-scrollbar">
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Hub</div>
+                <div class="space-y-1">
+                    <a href="/dashboard/" class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white">
+                        <i data-lucide="home" class="w-4 h-4"></i> <span class="sidebar-text">Dashboard</span>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Infrastructure</div>
+                <div class="space-y-1">
+                    <a href="/dashboard/deployments" class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white">
+                        <i data-lucide="rocket" class="w-4 h-4"></i> <span class="sidebar-text">Deployments</span>
+                    </a>
+                    <a href="/dashboard/workers" class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-orange text-white shadow-lg shadow-orange-900/20">
+                        <i data-lucide="cloud" class="w-4 h-4"></i> <span class="sidebar-text">Workers</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-dark relative">
+        <header class="h-20 border-b border-white/10 bg-brand-panel/95 backdrop-blur-md flex items-center justify-between px-8 z-30">
+            <div class="flex items-center gap-4 text-sm text-zinc-500">
+                <i data-lucide="home" class="w-4 h-4 text-zinc-600"></i>
+                <i data-lucide="chevron-right" class="w-3 h-3 text-zinc-700"></i>
+                <span class="text-brand-orange font-semibold capitalize tracking-wide text-lg">Workers</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="syncFromCloudflare()" class="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-medium transition-all text-zinc-300">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Sync from Cloudflare
+                </button>
+                <button onclick="loadWorkers()" class="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-medium transition-all text-zinc-300">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Refresh
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            <div class="space-y-6 animate-fade-in">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-brand-surface border border-white/10 rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-zinc-500 uppercase tracking-wider">Total Workers</span>
+                            <i data-lucide="cloud" class="w-5 h-5 text-purple-400"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-white" id="total-workers">-</div>
+                    </div>
+                    <div class="bg-brand-surface border border-white/10 rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-zinc-500 uppercase tracking-wider">Active</span>
+                            <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-white" id="active-workers">-</div>
+                    </div>
+                    <div class="bg-brand-surface border border-white/10 rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-zinc-500 uppercase tracking-wider">Total Requests</span>
+                            <i data-lucide="activity" class="w-5 h-5 text-blue-400"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-white" id="total-requests">-</div>
+                    </div>
+                </div>
+
+                <!-- Workers Table -->
+                <div class="bg-brand-surface border border-white/10 rounded-xl overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-brand-panel border-b border-white/10">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Name</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Script</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Requests</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Created</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="workers-table" class="divide-y divide-white/5">
+                                <tr>
+                                    <td colspan="6" class="px-6 py-12 text-center text-zinc-500">
+                                        <i data-lucide="loader" class="w-8 h-8 mx-auto mb-4 animate-spin"></i>
+                                        <div>Loading workers...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div id="pagination" class="flex items-center justify-center gap-2"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Quick-Connect Container -->
+    <div id="quick-connect-container"></div>
+
+    <script src="/shared/layout.js"></script>
+    <script>
+        const API_BASE = 'https://iaccess-api.meauxbility.workers.dev';
+        let currentPage = 1;
+
+        function formatDate(timestamp) {
+            if (!timestamp) return 'Never';
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function formatNumber(num) {
+            if (!num) return '0';
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toString();
+        }
+
+        function getStatusBadge(status) {
+            if (status === 'active') {
+                return `<span class="px-2 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 flex items-center gap-1">
+                    <i data-lucide="check-circle" class="w-3 h-3"></i> Active
+                </span>`;
+            } else {
+                return `<span class="px-2 py-1 rounded-full text-xs font-medium bg-zinc-500/20 text-zinc-400">${status || 'Unknown'}</span>`;
+            }
+        }
+
+        function renderWorkerRow(worker) {
+            return `
+                <tr class="hover:bg-white/5 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="font-medium text-white">${worker.name || worker.id}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <code class="text-xs text-zinc-400 font-mono bg-black/40 px-2 py-1 rounded">${worker.script_name || worker.id}</code>
+                    </td>
+                    <td class="px-6 py-4">${getStatusBadge(worker.status)}</td>
+                    <td class="px-6 py-4 text-sm text-zinc-400">${formatNumber(worker.requests)}</td>
+                    <td class="px-6 py-4 text-sm text-zinc-500">${formatDate(worker.created_at)}</td>
+                    <td class="px-6 py-4 text-sm text-zinc-500">${formatDate(worker.updated_at)}</td>
+                </tr>
+            `;
+        }
+
+        async function syncFromCloudflare() {
+            const btn = event.target.closest('button');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="w-3 h-3 animate-spin"></i> Syncing...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/workers?sync=true&per_page=50`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    await loadWorkers();
+                    alert('Successfully synced from Cloudflare!');
+                } else {
+                    alert('Failed to sync from Cloudflare');
+                }
+            } catch (error) {
+                console.error('Sync error:', error);
+                alert('Error syncing from Cloudflare');
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                lucide.createIcons();
+            }
+        }
+
+        async function loadWorkers(page = 1) {
+            currentPage = page;
+
+            try {
+                const params = new URLSearchParams({
+                    page: page.toString(),
+                    per_page: '25'
+                });
+
+                const response = await fetch(`${API_BASE}/api/workers?${params}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const workers = data.data || [];
+                    const pagination = data.pagination || {};
+
+                    // Update stats
+                    const total = pagination.total || 0;
+                    const active = workers.filter(w => w.status === 'active').length;
+                    const totalRequests = workers.reduce((sum, w) => sum + (w.requests || 0), 0);
+
+                    document.getElementById('total-workers').textContent = total;
+                    document.getElementById('active-workers').textContent = active;
+                    document.getElementById('total-requests').textContent = formatNumber(totalRequests);
+
+                    const tbody = document.getElementById('workers-table');
+                    if (workers.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="px-6 py-12 text-center text-zinc-500">
+                                    <i data-lucide="cloud" class="w-12 h-12 mx-auto mb-4 text-zinc-700"></i>
+                                    <div class="font-medium mb-2">No workers found</div>
+                                    <div class="text-sm">Sync from Cloudflare to load workers</div>
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        tbody.innerHTML = workers.map(renderWorkerRow).join('');
+                    }
+
+                    // Pagination
+                    const paginationEl = document.getElementById('pagination');
+                    if (pagination.total_pages > 1) {
+                        paginationEl.innerHTML = `
+                            <button onclick="loadWorkers(${pagination.page - 1})" ${!pagination.has_prev ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg bg-brand-surface border border-white/10 text-sm text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/5 transition-colors">
+                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                            </button>
+                            <span class="px-4 py-1.5 text-sm text-zinc-400">
+                                Page ${pagination.page} of ${pagination.total_pages} (${pagination.total} total)
+                            </span>
+                            <button onclick="loadWorkers(${pagination.page + 1})" ${!pagination.has_next ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg bg-brand-surface border border-white/10 text-sm text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/5 transition-colors">
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </button>
+                        `;
+                    } else {
+                        paginationEl.innerHTML = '';
+                    }
+
+                    lucide.createIcons();
+                } else {
+                    console.error('Failed to load workers:', data);
+                    document.getElementById('workers-table').innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-red-400">
+                                <i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-4"></i>
+                                <div>Failed to load workers</div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading workers:', error);
+                document.getElementById('workers-table').innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-red-400">
+                            <i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-4"></i>
+                            <div>Error loading workers</div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadWorkers();
+        });
+    </script>
+    <script src="/shared/layout-loader.js"></script>
+    <script src="/shared/onboarding-wizard.js"></script>
+</body>
+</html>

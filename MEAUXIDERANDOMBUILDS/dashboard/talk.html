@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talk | InnerAnimalMedia OS</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#ff6b00',
+                            red: '#dc2626',
+                            dark: '#050507',
+                            panel: '#0a0a0f',
+                            surface: '#171717'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            background-color: #050507;
+            color: #f4f4f5;
+            overflow: hidden;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+
+        .glass-panel {
+            background: rgba(23, 23, 23, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .video-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            color: #71717a;
+        }
+    </style>
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+</head>
+
+<body class="flex h-screen selection:bg-orange-500/30">
+
+    <!-- SIDEBAR NAVIGATION (Shared) -->
+    <aside id="sidebar"
+        class="w-64 bg-brand-panel/95 backdrop-blur-md border-r border-white/10 flex flex-col transition-all duration-300 z-40 relative">
+        <div class="h-20 flex items-center px-6 border-b border-white/5">
+            <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar"
+                alt="InnerAnimalMedia" class="w-10 h-10 rounded-xl shrink-0 shadow-lg" />
+            <div class="ml-3 sidebar-text">
+                <h1 class="font-bold text-base tracking-tight text-white leading-tight">InnerAnimalMedia</h1>
+                <span class="text-[10px] text-zinc-500 font-mono tracking-wider">MEDIA OS v5.1</span>
+            </div>
+        </div>
+        <nav class="flex-1 overflow-y-auto p-4 space-y-8 custom-scrollbar">
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Hub
+                </div>
+                <div class="space-y-1">
+                    <a href="/dashboard"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="overview">
+                        <i data-lucide="home" class="w-4 h-4"></i> <span class="sidebar-text">Dashboard</span>
+                    </a>
+                    <a href="/dashboard/projects"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="projects">
+                        <i data-lucide="briefcase" class="w-4 h-4"></i> <span class="sidebar-text">Projects</span>
+                    </a>
+                    <a href="/dashboard/clients"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="clients">
+                        <i data-lucide="users" class="w-4 h-4"></i> <span class="sidebar-text">Clients</span>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Work
+                </div>
+                <div class="space-y-1">
+                    <a href="/dashboard/calendar"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="calendar">
+                        <i data-lucide="calendar" class="w-4 h-4"></i> <span class="sidebar-text">Calendar</span>
+                    </a>
+                    <a href="/dashboard/tasks"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="tasks">
+                        <i data-lucide="check-square" class="w-4 h-4"></i> <span class="sidebar-text">InnerWork</span>
+                    </a>
+                    <a href="/dashboard/workflows"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="workflows">
+                        <i data-lucide="zap" class="w-4 h-4"></i> <span class="sidebar-text">Automation</span>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">
+                    Community
+                </div>
+                <div class="space-y-1">
+                    <a href="/dashboard/messages"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="messages">
+                        <i data-lucide="message-square" class="w-4 h-4"></i> <span class="sidebar-text">Message
+                            Board</span>
+                    </a>
+                    <a href="/dashboard/talk"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-orange text-white shadow-lg shadow-orange-900/20"
+                        data-page="talk">
+                        <i data-lucide="phone" class="w-4 h-4"></i> <span class="sidebar-text">Talk</span>
+                    </a>
+                    <a href="/dashboard/video"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="video">
+                        <i data-lucide="video" class="w-4 h-4"></i> <span class="sidebar-text">Video Calls</span>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Engine
+                </div>
+                <div class="space-y-1">
+                    <a href="/dashboard/meauxmcp"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="meauxmcp">
+                        <i data-lucide="server" class="w-4 h-4"></i> <span class="sidebar-text">MeauxMCP</span>
+                    </a>
+                    <a href="/dashboard/meauxsql"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="meauxsql">
+                        <i data-lucide="database" class="w-4 h-4"></i> <span class="sidebar-text">MeauxSQL</span>
+                    </a>
+                    <a href="/dashboard/meauxcad"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="meauxcad">
+                        <i data-lucide="pen-tool" class="w-4 h-4"></i> <span class="sidebar-text">MeauxCAD</span>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Assets
+                </div>
+                <div class="space-y-1">
+                    <a href="/dashboard/library"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="library">
+                        <i data-lucide="layout-grid" class="w-4 h-4"></i> <span class="sidebar-text">CMS</span>
+                    </a>
+                    <a href="/dashboard/brand"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="brand">
+                        <i data-lucide="palette" class="w-4 h-4"></i> <span class="sidebar-text">Brand Central</span>
+                    </a>
+                    <a href="/dashboard/gallery"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="gallery">
+                        <i data-lucide="image" class="w-4 h-4"></i> <span class="sidebar-text">Gallery</span>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">System
+                </div>
+                <div class="space-y-1">
+                    <a href="/dashboard/settings"
+                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
+                        data-page="settings">
+                        <i data-lucide="settings" class="w-4 h-4"></i> <span class="sidebar-text">Settings</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+        <div class="p-4 border-t border-white/5">
+            <div
+                class="flex items-center gap-3 p-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition-all">
+                <div
+                    class="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-orange to-brand-red flex items-center justify-center text-xs font-bold text-white shrink-0 ring-2 ring-brand-panel">
+                    SP</div>
+                <div class="flex-1 min-w-0 sidebar-text">
+                    <div class="font-medium text-xs text-zinc-200">Sam Primeaux</div>
+                    <div class="text-[10px] text-zinc-500 truncate">sam@inneranimal.com</div>
+                </div>
+            </div>
+            <button onclick="app.toggleSidebar()"
+                class="w-full flex items-center justify-center p-2 mt-2 rounded-lg hover:bg-white/5 text-zinc-500 transition-colors">
+                <i data-lucide="panel-left-close" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-dark relative">
+        <header
+            class="h-20 border-b border-white/10 bg-brand-panel/95 backdrop-blur-md flex items-center justify-between px-8 z-30">
+            <div class="flex items-center gap-4 flex-1">
+                <div class="flex items-center gap-4 text-sm text-zinc-500">
+                    <i data-lucide="home" class="w-4 h-4 text-zinc-600"></i>
+                    <i data-lucide="chevron-right" class="w-3 h-3 text-zinc-700"></i>
+                    <span id="page-title"
+                        class="text-brand-orange font-semibold capitalize tracking-wide text-lg">Talk</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-3">
+                    <span class="status-dot bg-emerald-500 animate-pulse"></span>
+                    <span class="text-xs text-zinc-400 font-mono" id="stream-status">STREAM_READY</span>
+                </div>
+                <div class="h-6 w-px bg-white/10"></div>
+                <button onclick="talkApp.refreshStatus()" id="refresh-status-btn"
+                    class="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-medium transition-all text-zinc-300">
+                    <i data-lucide="refresh-cw" class="w-3 h-3" id="refresh-icon"></i> Refresh
+                </button>
+            </div>
+        </header>
+
+        <!-- Talk Content -->
+        <div class="flex-1 overflow-hidden flex">
+            <!-- Left: Communication Options -->
+            <div class="w-80 border-r border-white/10 bg-brand-panel/50 flex flex-col">
+                <div class="p-4 border-b border-white/10">
+                    <h3 class="text-sm font-bold text-white mb-4">Communication Channels</h3>
+                    <div class="space-y-2">
+                        <button onclick="talkApp.showEmailPanel()"
+                            class="w-full flex items-center gap-3 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm text-zinc-300 transition-all text-left">
+                            <i data-lucide="mail" class="w-5 h-5 text-blue-400"></i>
+                            <div class="flex-1">
+                                <div class="font-medium text-white">Email</div>
+                                <div class="text-xs text-zinc-500">Send & receive</div>
+                            </div>
+                        </button>
+                        <button onclick="talkApp.showVideoCallPanel()"
+                            class="w-full flex items-center gap-3 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm text-zinc-300 transition-all text-left">
+                            <i data-lucide="video" class="w-5 h-5 text-purple-400"></i>
+                            <div class="flex-1">
+                                <div class="font-medium text-white">Video Call</div>
+                                <div class="text-xs text-zinc-500">1-on-1 or group</div>
+                            </div>
+                        </button>
+                        <button onclick="talkApp.showStreamPanel()"
+                            class="w-full flex items-center gap-3 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm text-zinc-300 transition-all text-left">
+                            <i data-lucide="radio" class="w-5 h-5 text-brand-orange"></i>
+                            <div class="flex-1">
+                                <div class="font-medium text-white">Live Stream</div>
+                                <div class="text-xs text-zinc-500">Broadcast status</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="p-4 border-b border-white/10">
+                    <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Quick Actions</h3>
+                    <div class="space-y-2">
+                        <button onclick="talkApp.startVideoCall()"
+                            class="w-full px-4 py-2 bg-brand-orange/20 hover:bg-brand-orange/30 border border-brand-orange/30 text-brand-orange rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="phone" class="w-4 h-4"></i> Start Call
+                        </button>
+                        <button onclick="talkApp.composeEmail()"
+                            class="w-full px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="mail" class="w-4 h-4"></i> Compose Email
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stream Status -->
+                <div class="p-4 border-b border-white/10">
+                    <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Stream Status</h3>
+                    <div id="stream-status-card" class="space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-zinc-400">Status</span>
+                            <span id="stream-status-badge" class="px-2 py-1 rounded-full bg-zinc-500/20 text-zinc-400">Checking...</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-zinc-400">Input</span>
+                            <span class="text-zinc-300 font-mono text-[10px]">meauxcloudconnected</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Active Panel -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+                <div id="active-panel" class="flex-1 overflow-y-auto custom-scrollbar p-6">
+                    <div class="max-w-4xl mx-auto">
+                        <div class="text-center py-16">
+                            <i data-lucide="phone" class="w-16 h-16 mx-auto mb-4 text-zinc-700"></i>
+                            <div class="text-lg font-medium text-zinc-400 mb-2">Select a communication channel</div>
+                            <div class="text-sm text-zinc-600">Choose email, video call, or live stream to get started</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Email Compose Modal -->
+    <div id="email-modal"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center">
+        <div class="bg-brand-surface border border-white/20 rounded-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-white">Compose Email</h2>
+                <button onclick="talkApp.hideEmailModal()"
+                    class="p-2 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="email-form" onsubmit="talkApp.sendEmail(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-400 mb-2">To *</label>
+                    <input type="email" id="email-to" required multiple
+                        class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 transition-all"
+                        placeholder="recipient@example.com" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-400 mb-2">Subject *</label>
+                    <input type="text" id="email-subject" required
+                        class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 transition-all"
+                        placeholder="Email subject" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-400 mb-2">Message *</label>
+                    <textarea id="email-body" rows="8" required
+                        class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 transition-all resize-none"
+                        placeholder="Your message..."></textarea>
+                </div>
+                <div class="flex items-center gap-4 pt-4">
+                    <button type="submit"
+                        class="flex-1 px-6 py-3 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-all">
+                        Send Email
+                    </button>
+                    <button type="button" onclick="talkApp.hideEmailModal()"
+                        class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 rounded-lg font-medium transition-all">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Video Call Modal -->
+    <div id="video-call-modal"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center">
+        <div class="bg-brand-surface border border-white/20 rounded-2xl p-8 max-w-4xl w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-white">Video Call</h2>
+                <button onclick="talkApp.hideVideoCallModal()"
+                    class="p-2 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-400 mb-2">Call Type</label>
+                    <select id="call-type" onchange="talkApp.updateCallType()"
+                        class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-orange/50 transition-all">
+                        <option value="turn">1-on-1 Call (TURN)</option>
+                        <option value="sfu">Group Call (SFU)</option>
+                    </select>
+                </div>
+                <div id="participants-field" class="hidden">
+                    <label class="block text-sm font-medium text-zinc-400 mb-2">Participants (comma-separated)</label>
+                    <input type="text" id="call-participants"
+                        class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 transition-all"
+                        placeholder="user1, user2, user3" />
+                </div>
+            </div>
+            <div class="mt-6">
+                <div id="video-preview" class="video-container video-placeholder">
+                    <div class="text-center">
+                        <i data-lucide="video" class="w-12 h-12 mx-auto mb-2 text-zinc-600"></i>
+                        <div class="text-sm text-zinc-500">Video preview will appear here</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 pt-6">
+                <button onclick="talkApp.startCall()"
+                    class="flex-1 px-6 py-3 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-all">
+                    Start Call
+                </button>
+                <button onclick="talkApp.hideVideoCallModal()"
+                    class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 rounded-lg font-medium transition-all">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shared Layout Script -->
+    <script src="/shared/layout.js"></script>
+
+    <!-- Page-Specific Script -->
+    <script>
+        const talkApp = {
+            streamStatus: null,
+            currentPanel: null,
+            callType: 'turn',
+
+            async init() {
+                lucide.createIcons();
+                await this.loadStreamStatus();
+                this.startAutoRefresh();
+            },
+
+            async loadStreamStatus() {
+                try {
+                    const res = await API.get('stream/status');
+                    if (res.success && res.data) {
+                        this.streamStatus = res.data;
+                        this.updateStreamStatusUI();
+                    }
+                } catch (error) {
+                    console.error('Failed to load stream status:', error);
+                    this.updateStreamStatusUI({ status: 'error', connected: false });
+                }
+            },
+
+            updateStreamStatusUI(status = null) {
+                const data = status || this.streamStatus;
+                if (!data) return;
+
+                const statusBadge = document.getElementById('stream-status-badge');
+                const statusText = document.getElementById('stream-status');
+
+                if (statusBadge) {
+                    if (data.connected || data.status === 'connected') {
+                        statusBadge.className = 'px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400';
+                        statusBadge.textContent = 'Connected';
+                        if (statusText) statusText.textContent = 'STREAM_LIVE';
+                    } else {
+                        statusBadge.className = 'px-2 py-1 rounded-full bg-zinc-500/20 text-zinc-400';
+                        statusBadge.textContent = 'Disconnected';
+                        if (statusText) statusText.textContent = 'STREAM_READY';
+                    }
+                }
+            },
+
+            async refreshStatus() {
+                const btn = document.getElementById('refresh-status-btn');
+                const icon = document.getElementById('refresh-icon');
+                if (icon) icon.classList.add('animate-spin');
+                if (btn) btn.disabled = true;
+
+                try {
+                    await this.loadStreamStatus();
+                    showNotification('Status refreshed', 'success');
+                } finally {
+                    if (icon) icon.classList.remove('animate-spin');
+                    if (btn) btn.disabled = false;
+                }
+            },
+
+            startAutoRefresh() {
+                // Refresh stream status every 30 seconds
+                setInterval(() => {
+                    this.loadStreamStatus();
+                }, 30000);
+            },
+
+            showEmailPanel() {
+                this.currentPanel = 'email';
+                this.renderPanel('email');
+            },
+
+            showVideoCallPanel() {
+                this.currentPanel = 'video';
+                this.renderPanel('video');
+            },
+
+            showStreamPanel() {
+                this.currentPanel = 'stream';
+                this.renderPanel('stream');
+            },
+
+            renderPanel(type) {
+                const container = document.getElementById('active-panel');
+                if (!container) return;
+
+                if (type === 'email') {
+                    container.innerHTML = `
+                        <div class="max-w-4xl mx-auto space-y-6 animate-fade-in">
+                            <div class="bg-brand-surface border border-white/10 rounded-2xl p-8">
+                                <h2 class="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                                    <i data-lucide="mail" class="w-6 h-6 text-blue-400"></i> Email
+                                </h2>
+                                <p class="text-zinc-400 mb-6">Send and receive emails via Resend. Inbound emails are automatically processed and stored.</p>
+                                <button onclick="talkApp.composeEmail()"
+                                    class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-all flex items-center gap-2">
+                                    <i data-lucide="plus" class="w-4 h-4"></i> Compose Email
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else if (type === 'video') {
+                    container.innerHTML = `
+                        <div class="max-w-4xl mx-auto space-y-6 animate-fade-in">
+                            <div class="bg-brand-surface border border-white/10 rounded-2xl p-8">
+                                <h2 class="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                                    <i data-lucide="video" class="w-6 h-6 text-purple-400"></i> Video Calls
+                                </h2>
+                                <p class="text-zinc-400 mb-6">Start 1-on-1 calls using TURN servers or group calls using SFU. All powered by Cloudflare Realtime Kit.</p>
+                                <div class="grid grid-cols-2 gap-4 mb-6">
+                                    <div class="p-4 bg-black/40 rounded-xl border border-white/10">
+                                        <h3 class="font-semibold text-white mb-2">1-on-1 Calls</h3>
+                                        <p class="text-xs text-zinc-400 mb-4">Direct peer-to-peer connections via TURN servers</p>
+                                        <button onclick="talkApp.startVideoCall()"
+                                            class="w-full px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-400 rounded-lg text-sm font-medium transition-all">
+                                            Start 1-on-1 Call
+                                        </button>
+                                    </div>
+                                    <div class="p-4 bg-black/40 rounded-xl border border-white/10">
+                                        <h3 class="font-semibold text-white mb-2">Group Calls</h3>
+                                        <p class="text-xs text-zinc-400 mb-4">Multi-party calls using Serverless SFU</p>
+                                        <button onclick="talkApp.startGroupCall()"
+                                            class="w-full px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-400 rounded-lg text-sm font-medium transition-all">
+                                            Start Group Call
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (type === 'stream') {
+                    const status = this.streamStatus || {};
+                    container.innerHTML = `
+                        <div class="max-w-4xl mx-auto space-y-6 animate-fade-in">
+                            <div class="bg-brand-surface border border-white/10 rounded-2xl p-8">
+                                <h2 class="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                                    <i data-lucide="radio" class="w-6 h-6 text-brand-orange"></i> Live Stream Status
+                                </h2>
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between p-4 bg-black/40 rounded-xl border border-white/10">
+                                        <div>
+                                            <div class="font-semibold text-white">Stream Input</div>
+                                            <div class="text-sm text-zinc-400">${status.name || 'meauxcloudconnected'}</div>
+                                        </div>
+                                        <span class="px-3 py-1 rounded-full text-xs font-medium ${status.connected ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-500/20 text-zinc-400'}">
+                                            ${status.connected ? 'Connected' : 'Disconnected'}
+                                        </span>
+                                    </div>
+                                    ${status.hls_url ? `
+                                        <div class="p-4 bg-black/40 rounded-xl border border-white/10">
+                                            <div class="font-semibold text-white mb-2">HLS Playback URL</div>
+                                            <div class="text-xs text-zinc-400 font-mono break-all">${status.hls_url}</div>
+                                            <button onclick="navigator.clipboard.writeText('${status.hls_url}')" class="mt-2 text-xs text-brand-orange hover:text-orange-400">
+                                                Copy URL
+                                            </button>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                lucide.createIcons();
+            },
+
+            composeEmail() {
+                const modal = document.getElementById('email-modal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                    document.getElementById('email-to')?.focus();
+                }
+            },
+
+            hideEmailModal() {
+                const modal = document.getElementById('email-modal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    document.getElementById('email-form')?.reset();
+                }
+            },
+
+            async sendEmail(e) {
+                e.preventDefault();
+                try {
+                    const to = document.getElementById('email-to').value;
+                    const subject = document.getElementById('email-subject').value;
+                    const body = document.getElementById('email-body').value;
+
+                    const res = await API.post('resend/emails', {
+                        to: to.split(',').map(email => email.trim()),
+                        subject,
+                        html: body.replace(/\n/g, '<br>'),
+                        from: 'InnerAnimal Media <noreply@inneranimalmedia.com>'
+                    });
+
+                    if (res.success) {
+                        showNotification('Email sent successfully!', 'success');
+                        this.hideEmailModal();
+                    } else {
+                        showNotification('Failed to send email: ' + (res.error || 'Unknown error'), 'error');
+                    }
+                } catch (error) {
+                    console.error('Send email error:', error);
+                    showNotification('Failed to send email: ' + error.message, 'error');
+                }
+            },
+
+            startVideoCall() {
+                this.callType = 'turn';
+                this.showVideoCallModal();
+            },
+
+            startGroupCall() {
+                this.callType = 'sfu';
+                this.showVideoCallModal();
+            },
+
+            showVideoCallModal() {
+                const modal = document.getElementById('video-call-modal');
+                const callTypeSelect = document.getElementById('call-type');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                    if (callTypeSelect) {
+                        callTypeSelect.value = this.callType;
+                        this.updateCallType();
+                    }
+                }
+            },
+
+            hideVideoCallModal() {
+                const modal = document.getElementById('video-call-modal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            },
+
+            updateCallType() {
+                const select = document.getElementById('call-type');
+                const participantsField = document.getElementById('participants-field');
+                if (select && participantsField) {
+                    this.callType = select.value;
+                    if (select.value === 'sfu') {
+                        participantsField.classList.remove('hidden');
+                    } else {
+                        participantsField.classList.add('hidden');
+                    }
+                }
+            },
+
+            async startCall() {
+                try {
+                    let credentials;
+                    if (this.callType === 'turn') {
+                        const res = await API.post('realtime/turn', {});
+                        if (res.success && res.data) {
+                            credentials = res.data;
+                            showNotification('TURN credentials generated. Ready to connect!', 'success');
+                            // Here you would initialize WebRTC with these credentials
+                            console.log('TURN Credentials:', credentials);
+                        }
+                    } else {
+                        const participants = document.getElementById('call-participants')?.value || '';
+                        const res = await API.post('realtime/sfu', {
+                            participants: participants.split(',').map(p => p.trim()).filter(p => p)
+                        });
+                        if (res.success && res.data) {
+                            credentials = res.data;
+                            showNotification('SFU session created. Ready to connect!', 'success');
+                            // Here you would initialize WebRTC with SFU session
+                            console.log('SFU Session:', credentials);
+                        }
+                    }
+                    this.hideVideoCallModal();
+                } catch (error) {
+                    console.error('Start call error:', error);
+                    showNotification('Failed to start call: ' + error.message, 'error');
+                }
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            talkApp.init();
+        });
+    </script>
+    <script src="/shared/layout-loader.js"></script>
+</body>
+
+</html>
