@@ -117,6 +117,157 @@
             padding: 24px;
             margin-top: 32px;
         }
+
+        /* Footer - Glassmorphic with 3D Background */
+        .footer {
+            width: 100%;
+            margin-top: 80px;
+            padding: 80px 0 40px;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            background: rgba(10, 14, 26, 0.4);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* 3D Model Background Container */
+        .footer-model-bg {
+            position: absolute;
+            top: 50%;
+            right: 5%;
+            transform: translateY(-50%);
+            width: clamp(300px, 40vw, 600px);
+            height: clamp(300px, 40vw, 600px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(2px);
+        }
+
+        .footer-model-bg model-viewer {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            --poster-color: transparent;
+            --progress-bar-color: transparent;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 40px;
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 32px;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .footer-logo-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(17, 24, 39, 0.5);
+            border-radius: 12px;
+            border: 1.5px solid var(--border-color);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .footer-logo-icon svg {
+            width: 28px;
+            height: 28px;
+            color: #4A9FFF;
+        }
+
+        .footer-logo-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .footer-logo-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text-dark);
+            letter-spacing: -0.8px;
+        }
+
+        .footer-logo-subtitle {
+            font-size: 10px;
+            font-weight: 600;
+            color: #4A9FFF;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .footer-text {
+            font-size: 14px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 12px;
+        }
+
+        .social-link {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(17, 24, 39, 0.5);
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-dark);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .social-link svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .social-link:hover {
+            background: #4A9FFF;
+            border-color: #4A9FFF;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(74, 159, 255, 0.35);
+        }
+
+        .social-link:hover svg {
+            color: #fff;
+        }
+
+        @media (max-width: 768px) {
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+                padding: 0 20px;
+            }
+
+            .footer-model-bg {
+                width: clamp(200px, 50vw, 400px);
+                height: clamp(200px, 50vw, 400px);
+                opacity: 0.1;
+                right: 50%;
+                transform: translate(50%, -50%);
+            }
+        }
     </style>
 </head>
 
@@ -253,6 +404,77 @@
             </p>
         </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <!-- 3D Model Background -->
+        <div class="footer-model-bg">
+            <model-viewer
+                src="https://cdn.shopify.com/3d/models/ba3d2c5ba2a0e1d1/Rocket_Growth_Chart_0831082632_generate.glb"
+                alt="3D Model Background"
+                camera-orbit="0deg 75deg 8m"
+                field-of-view="35deg"
+                disable-zoom
+                disable-pan
+                disable-tap
+                interaction-prompt="none"
+                shadow-intensity="0"
+                exposure="1.2"
+                auto-rotate
+                rotation-per-second="10deg"
+                environment-image="neutral">
+            </model-viewer>
+        </div>
+        
+        <div class="footer-content">
+            <div class="footer-logo">
+                <div class="footer-logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                        <path d="M2 17l10 5 10-5" />
+                        <path d="M2 12l10 5 10-5" />
+                    </svg>
+                </div>
+                <div class="footer-logo-text">
+                    <span class="footer-logo-title">Inner Animal Media</span>
+                    <span class="footer-logo-subtitle">Creative Agency</span>
+                </div>
+            </div>
+
+            <p class="footer-text">© 2026 Inner Animal Media. All rights reserved.</p>
+            <p class="footer-text" style="margin-top: 8px; font-size: 14px;">
+                <a href="/legal/privacy" style="color: #4A9FFF; text-decoration: none; margin-right: 16px;">Privacy Policy</a>
+                <a href="/legal/terms" style="color: #4A9FFF; text-decoration: none; margin-right: 16px;">Terms of Service</a>
+                <a href="/contact" style="color: #4A9FFF; text-decoration: none;">Contact</a>
+            </p>
+
+            <div class="footer-social">
+                <a href="https://twitter.com" class="social-link" aria-label="Twitter">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z" />
+                    </svg>
+                </a>
+                <a href="https://instagram.com" class="social-link" aria-label="Instagram">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                    </svg>
+                </a>
+                <a href="https://linkedin.com" class="social-link" aria-label="LinkedIn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                        <rect x="2" y="9" width="4" height="12" />
+                        <circle cx="4" cy="4" r="2" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </footer>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {

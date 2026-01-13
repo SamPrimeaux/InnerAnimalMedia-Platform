@@ -1,0 +1,111 @@
+<!-- Spline 3D Scene Component - Cloudflare CDN Optimized -->
+<div id="spline-scene-container" class="spline-scene-wrapper">
+  <div id="spline-scene-loading" class="spline-scene-loading">
+    <div class="spline-scene-spinner"></div>
+    <div class="spline-scene-loading-text">Loading 3D Scene...</div>
+  </div>
+  <canvas id="spline-scene-canvas" class="spline-scene-canvas"></canvas>
+</div>
+
+<script type="module">
+  // Cloudflare CDN Optimized Spline Scene Loader
+  // Uses @splinetool/runtime for direct WebGL rendering (no React needed)
+
+  async function loadSplineScene() {
+    const container = document.getElementById('spline-scene-container');
+    const canvas = document.getElementById('spline-scene-canvas');
+    const loading = document.getElementById('spline-scene-loading');
+
+    if (!container || !canvas) return;
+
+    try {
+      // Dynamically import Spline runtime from CDN
+      const { Application } = await import('https://cdn.jsdelivr.net/npm/@splinetool/runtime@1.9.98/build/runtime.js');
+
+      // Scene URL from extracted project
+      const sceneUrl = 'https://prod.spline.design/CNI9Bx5eUGw7Eom2/scene.splinecode';
+
+      // Initialize Spline application
+      const app = new Application(canvas);
+      await app.load(sceneUrl);
+
+      // Hide loading, show canvas
+      if (loading) loading.style.display = 'none';
+      canvas.style.opacity = '1';
+
+      // Store app instance for cleanup if needed
+      container.splineApp = app;
+
+    } catch (error) {
+      console.error('Error loading Spline scene:', error);
+      if (loading) {
+        loading.innerHTML = '<div class="spline-scene-error">Failed to load 3D scene</div>';
+      }
+    }
+  }
+
+  // Load when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadSplineScene);
+  } else {
+    loadSplineScene();
+  }
+
+  // Export for external use
+  window.loadSplineScene = loadSplineScene;
+</script>
+
+<style>
+  .spline-scene-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .spline-scene-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.5s ease-in;
+  }
+
+  .spline-scene-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    z-index: 1;
+  }
+
+  .spline-scene-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(74, 159, 255, 0.2);
+    border-top-color: #4A9FFF;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .spline-scene-loading-text {
+    color: rgba(249, 250, 251, 0.7);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .spline-scene-error {
+    color: #ef4444;
+    font-size: 14px;
+  }
+</style>

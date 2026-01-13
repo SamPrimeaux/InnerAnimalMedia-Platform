@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" class="dark" data-theme="inner-animal-dark">
+<html lang="en" class="dark">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Overview | InnerAnimalMedia OS</title>
+    <title>Dashboard Overview | InnerAnimal Media OS</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,1280 +41,321 @@
     <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Meaux Theme Library - All 46+ Themes -->
+    <!-- Dashboard Container CSS -->
+    <link rel="stylesheet" href="/shared/dashboard-container.css">
+
+    <!-- Theme System CSS (if available) -->
     <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
 
+    <!-- Custom Styles -->
     <style>
-        * {
+        body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
-            --secondary: #8b5cf6;
-            --accent: #ec4899;
-            --bg-primary: #0a0e1a;
-            --bg-secondary: #0f172a;
-            --bg-tertiary: #1e293b;
-            --surface: rgba(30, 41, 59, 0.7);
-            --surface-hover: rgba(51, 65, 85, 0.8);
-            --text-primary: #f1f5f9;
-            --text-secondary: #cbd5e1;
-            --text-muted: #94a3b8;
-            --border: rgba(148, 163, 184, 0.12);
-            --glass-bg: rgba(15, 23, 42, 0.6);
-            --glass-border: rgba(148, 163, 184, 0.12);
-            --shadow: rgba(0, 0, 0, 0.3);
-            --input-bg: rgba(30, 41, 59, 0.5);
-            --code-bg: #1e293b;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            overflow-x: hidden;
-            transition: background 0.3s ease, color 0.3s ease;
-        }
-
-        /* Glassmorphic Sidebar */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 280px;
-            height: 100vh;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px) saturate(180%);
-            border-right: 1px solid var(--border);
-            transform: translateX(-100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow-y: auto;
-            z-index: 1000;
-            scrollbar-width: thin;
-            scrollbar-color: var(--primary) transparent;
-        }
-
-        .sidebar::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .sidebar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .sidebar::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 3px;
-        }
-
-        .sidebar.open {
-            transform: translateX(0);
-        }
-
-        .sidebar.collapsed {
-            width: 80px;
-        }
-
-        /* Header */
-        header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 64px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px) saturate(180%);
-            border-bottom: 1px solid var(--border);
-            z-index: 999;
-            display: flex;
-            align-items: center;
-            padding: 0 1.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .header-content {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-            width: 100%;
-            max-width: 1920px;
-            margin: 0 auto;
-        }
-
-        .menu-toggle {
-            background: none;
-            border: none;
-            color: var(--text-primary);
-            cursor: pointer;
-            padding: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            border-radius: 8px;
-        }
-
-        .menu-toggle:hover {
-            background: var(--surface);
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .logo {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            object-fit: cover;
-            box-shadow: 0 2px 8px var(--shadow);
-        }
-
-        .brand-name {
-            font-size: 1.125rem;
-            font-weight: 600;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: -0.02em;
-        }
-
-        /* Search Bar */
-        .search-container {
-            flex: 1;
-            max-width: 600px;
-            position: relative;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 0.625rem 1rem 0.625rem 2.75rem;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-size: 0.9375rem;
-            transition: all 0.2s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-
-        .search-input::placeholder {
-            color: var(--text-muted);
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 0.875rem;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 18px;
-            height: 18px;
-            stroke: var(--text-muted);
-        }
-
-        /* CLI Agent */
-        .cli-toggle {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s ease;
-            font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
-        }
-
-        .cli-toggle:hover {
-            background: var(--surface-hover);
-            border-color: var(--primary);
-            transform: translateY(-1px);
-        }
-
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: 2px solid var(--border);
-            color: white;
-        }
-
-        .user-avatar:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px var(--shadow);
-        }
-
-        /* Sidebar Styles */
-        .sidebar-header {
-            padding: 1.25rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .sidebar-logo {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            object-fit: cover;
-        }
-
-        .sidebar-brand {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .sidebar-brand-title {
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .sidebar-brand-subtitle {
-            font-size: 0.625rem;
-            color: var(--text-muted);
-            font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
-            letter-spacing: 0.05em;
-        }
-
-        .sidebar.collapsed .sidebar-brand,
-        .sidebar.collapsed .sidebar-text {
-            display: none;
-        }
-
-        /* Project Switcher */
-        .project-switcher {
-            padding: 1rem;
-            border-bottom: 1px solid var(--border);
-            background: var(--surface);
-        }
-
-        .project-switcher-label {
-            font-size: 0.6875rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            margin-bottom: 0.5rem;
-            letter-spacing: 0.05em;
-        }
-
-        .project-select {
-            width: 100%;
-            padding: 0.625rem 0.75rem;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .project-select:hover {
-            border-color: var(--primary);
-        }
-
-        .project-select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-
-        .project-theme-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 3px;
-            margin-right: 0.5rem;
-            vertical-align: middle;
-        }
-
-        /* Navigation */
-        .nav-section {
-            padding: 1.25rem 1rem;
-        }
-
-        .nav-section-title {
-            font-size: 0.6875rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            margin-bottom: 0.625rem;
-            letter-spacing: 0.05em;
-            padding: 0 0.75rem;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.625rem 0.75rem;
-            margin: 0.125rem 0;
-            border-radius: 8px;
-            color: var(--text-secondary);
-            text-decoration: none;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 500;
-            position: relative;
-        }
-
-        .nav-item:hover {
-            background: var(--surface);
-            color: var(--text-primary);
-            transform: translateX(2px);
-        }
-
-        .nav-item.active {
-            background: var(--surface);
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        .nav-item.active::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 3px;
-            height: 20px;
-            background: var(--primary);
-            border-radius: 0 2px 2px 0;
-        }
-
-        .nav-icon {
-            width: 18px;
-            height: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        /* App Dock */
-        .app-dock-section {
-            padding: 1.25rem 1rem;
-            border-top: 1px solid var(--border);
-            margin-top: auto;
-        }
-
-        .app-dock-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0.75rem;
-            margin-top: 0.75rem;
-        }
-
-        .app-dock-item {
-            aspect-ratio: 1;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 0.375rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            padding: 0.5rem;
-            text-decoration: none;
-            position: relative;
-        }
-
-        .app-dock-item:hover {
-            background: var(--surface-hover);
-            border-color: var(--primary);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px var(--shadow);
-        }
-
-        .app-dock-item.connected {
-            border-color: #22c55e;
-            background: rgba(34, 197, 94, 0.05);
-        }
-
-        .connection-badge {
-            position: absolute;
-            top: 0.25rem;
-            right: 0.25rem;
-            width: 6px;
-            height: 6px;
-            background: #22c55e;
-            border-radius: 50%;
-            box-shadow: 0 0 0 2px var(--surface);
-        }
-
-        .app-dock-label {
-            font-size: 0.6875rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            text-align: center;
-            line-height: 1.2;
-        }
-
-        /* Main Content */
-        main {
-            margin-top: 64px;
-            margin-left: 0;
-            padding: 2rem;
-            min-height: calc(100vh - 64px);
-            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            background: var(--bg-secondary);
-        }
-
-        main.sidebar-open {
-            margin-left: 280px;
-        }
-
-        main.sidebar-collapsed {
-            margin-left: 80px;
-        }
-
-        .page-container {
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-
-        .page-header {
-            margin-bottom: 2rem;
-        }
-
-        .page-title {
-            font-size: 1.875rem;
-            font-weight: 700;
-            margin-bottom: 0.375rem;
-            color: var(--text-primary);
-        }
-
-        .page-subtitle {
-            color: var(--text-muted);
-            font-size: 0.9375rem;
-        }
-
-        /* Dashboard Grid */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.25rem;
-            margin-bottom: 2rem;
-        }
-
-        .dashboard-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            transition: all 0.2s ease;
-        }
-
-        .dashboard-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px var(--shadow);
-            border-color: var(--primary);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-        }
-
-        .card-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .card-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .card-icon svg {
-            width: 20px;
-            height: 20px;
-            stroke: white;
-            fill: none;
-            stroke-width: 2;
-        }
-
-        .card-value {
-            font-size: 1.875rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 0.375rem;
-        }
-
-        .card-label {
-            color: var(--text-muted);
-            font-size: 0.8125rem;
-        }
-
-        .card-trend {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 6px;
-            font-size: 0.6875rem;
-            font-weight: 600;
-            margin-top: 0.5rem;
-        }
-
-        .card-trend.up {
-            background: rgba(34, 197, 94, 0.1);
-            color: #22c55e;
-        }
-
-        /* Sidebar Overlay */
-        .sidebar-overlay {
-            position: fixed;
-            top: 64px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(2px);
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            z-index: 998;
-        }
-
-        .sidebar-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .brand-name {
-                display: none;
-            }
-
-            .search-container {
-                max-width: 200px;
-            }
-
-            .cli-toggle span {
-                display: none;
-            }
-
-            main.sidebar-open,
-            main.sidebar-collapsed {
-                margin-left: 0;
-            }
-
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (min-width: 1024px) {
-            .sidebar {
-                transform: translateX(0);
-            }
-
-            main {
-                margin-left: 280px;
-            }
-
-            .sidebar-overlay {
-                display: none;
-            }
-
-            .menu-toggle {
-                display: none;
-            }
-        }
-
-        /* Theme Application */
-        [data-theme] {
-            transition: all 0.3s ease;
+            background: var(--dashboard-bg, #050507);
+            color: var(--dashboard-text-primary, rgba(255, 255, 255, 0.95));
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
     </style>
+
 </head>
 
 <body>
-    <!-- Glassmorphic Sidebar -->
-    <nav class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar"
-                alt="InnerAnimalMedia" class="sidebar-logo">
-            <div class="sidebar-brand sidebar-text">
-                <div class="sidebar-brand-title">InnerAnimalMedia</div>
-                <div class="sidebar-brand-subtitle">MEDIA OS v5.1</div>
-            </div>
-            <button onclick="toggleSidebar()" class="menu-toggle" aria-label="Toggle sidebar">
-                <i data-lucide="panel-left-close" class="w-4 h-4"></i>
-            </button>
-        </div>
+    <!-- Dashboard Layout Container -->
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
 
-        <!-- Project Switcher with Theme Indicator -->
-        <div class="project-switcher">
-            <div class="project-switcher-label sidebar-text">Active Project</div>
-            <select id="projectSelector" class="project-select sidebar-text" onchange="switchProject(this.value)">
-                <option value="">Select Project...</option>
-            </select>
-        </div>
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            <!-- Dashboard Header -->
+            <header class="dashboard-header" id="dashboard-header-container"></header>
 
-        <!-- Navigation Sections -->
-        <div class="nav-section">
-            <div class="nav-section-title sidebar-text">Overview</div>
-            <a href="/dashboard" class="nav-item active" data-page="dashboard">
-                <span class="nav-icon"><i data-lucide="home" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">Dashboard</span>
-            </a>
-        </div>
+            <!-- Dashboard Content -->
+            <div class="dashboard-content custom-scrollbar">
+                <div class="dashboard-content-inner">
+                    <div class="page-container">
+                        <div class="page-header">
+                            <h1 class="page-title" id="pageTitle">Dashboard Overview</h1>
+                            <p class="page-subtitle" id="pageSubtitle">Welcome back, Sam. Your systems are running
+                                optimally.</p>
+                        </div>
 
-        <div class="nav-section">
-            <div class="nav-section-title sidebar-text">Work Management</div>
-            <a href="/dashboard/projects" class="nav-item" data-page="projects">
-                <span class="nav-icon"><i data-lucide="briefcase" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">Projects</span>
-            </a>
-            <a href="/dashboard/tasks" class="nav-item" data-page="tasks">
-                <span class="nav-icon"><i data-lucide="check-square" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">Tasks</span>
-            </a>
-            <a href="/dashboard/workflows" class="nav-item" data-page="workflows">
-                <span class="nav-icon"><i data-lucide="zap" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">Workflows</span>
-            </a>
-            <a href="/dashboard/clients" class="nav-item" data-page="clients">
-                <span class="nav-icon"><i data-lucide="users" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">Clients</span>
-            </a>
-        </div>
+                        <div class="dashboard-grid" id="dashboardContent">
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <div class="card-title">Active Projects</div>
+                                    <div class="card-icon">
+                                        <i data-lucide="briefcase" class="w-5 h-5"></i>
+                                    </div>
+                                </div>
+                                <div class="card-value" id="activeProjectsCount">0</div>
+                                <div class="card-label">Across all brands</div>
+                                <div class="card-trend up">↑ Loading...</div>
+                            </div>
 
-        <div class="nav-section">
-            <div class="nav-section-title sidebar-text">Developer Tools</div>
-            <a href="/dashboard/meauxmcp" class="nav-item" data-page="meauxmcp">
-                <span class="nav-icon"><i data-lucide="server" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">MeauxMCP</span>
-            </a>
-            <a href="/dashboard/meauxsql" class="nav-item" data-page="meauxsql">
-                <span class="nav-icon"><i data-lucide="database" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">MeauxSQL</span>
-            </a>
-            <a href="/dashboard/meauxcad" class="nav-item" data-page="meauxcad">
-                <span class="nav-icon"><i data-lucide="pen-tool" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">MeauxCAD</span>
-            </a>
-        </div>
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <div class="card-title">Client Projects</div>
+                                    <div class="card-icon">
+                                        <i data-lucide="users" class="w-5 h-5"></i>
+                                    </div>
+                                </div>
+                                <div class="card-value" id="clientProjectsCount">0</div>
+                                <div class="card-label">Active engagements</div>
+                                <div class="card-trend up">↑ Loading...</div>
+                            </div>
 
-        <div class="nav-section">
-            <div class="nav-section-title sidebar-text">Communication</div>
-            <a href="/dashboard/talk" class="nav-item" data-page="talk">
-                <span class="nav-icon"><i data-lucide="phone" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">Talk</span>
-            </a>
-            <a href="/dashboard/messages" class="nav-item" data-page="messages">
-                <span class="nav-icon"><i data-lucide="message-square" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">Messages</span>
-            </a>
-            <a href="/dashboard/video" class="nav-item" data-page="video">
-                <span class="nav-icon"><i data-lucide="video" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">Video Calls</span>
-            </a>
-        </div>
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <div class="card-title">Tasks Completed</div>
+                                    <div class="card-icon">
+                                        <i data-lucide="check-circle" class="w-5 h-5"></i>
+                                    </div>
+                                </div>
+                                <div class="card-value" id="tasksCompletedCount">0</div>
+                                <div class="card-label">This month</div>
+                                <div class="card-trend up">↑ Loading...</div>
+                            </div>
 
-        <div class="nav-section">
-            <div class="nav-section-title sidebar-text">Content & Media</div>
-            <a href="/dashboard/library" class="nav-item" data-page="library">
-                <span class="nav-icon"><i data-lucide="layout-grid" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">Library (CMS)</span>
-            </a>
-            <a href="/dashboard/gallery" class="nav-item" data-page="gallery">
-                <span class="nav-icon"><i data-lucide="image" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">Gallery</span>
-            </a>
-        </div>
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <div class="card-title">Database Queries</div>
+                                    <div class="card-icon">
+                                        <i data-lucide="database" class="w-5 h-5"></i>
+                                    </div>
+                                </div>
+                                <div class="card-value">1.2M</div>
+                                <div class="card-label">MeauxOS operations</div>
+                                <div class="card-trend up">↑ Optimal performance</div>
+                            </div>
 
-        <div class="nav-section">
-            <div class="nav-section-title sidebar-text">Insights</div>
-            <a href="/dashboard/analytics" class="nav-item" data-page="analytics">
-                <span class="nav-icon"><i data-lucide="bar-chart" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">Analytics</span>
-            </a>
-            <a href="/dashboard/calendar" class="nav-item" data-page="calendar">
-                <span class="nav-icon"><i data-lucide="calendar" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">Calendar</span>
-            </a>
-        </div>
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <div class="card-title">Worker Deployments</div>
+                                    <div class="card-icon">
+                                        <i data-lucide="rocket" class="w-5 h-5"></i>
+                                    </div>
+                                </div>
+                                <div class="card-value" id="workersCount">0</div>
+                                <div class="card-label">Active workers</div>
+                                <div class="card-trend up">↑ Loading...</div>
+                            </div>
 
-        <div class="nav-section">
-            <div class="nav-section-title sidebar-text">Configuration</div>
-            <a href="/dashboard/settings" class="nav-item" data-page="settings">
-                <span class="nav-icon"><i data-lucide="settings" class="w-4 h-4"></i></span>
-                <span class="sidebar-text">Settings</span>
-            </a>
-        </div>
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <div class="card-title">Analytics Traffic</div>
+                                    <div class="card-icon">
+                                        <i data-lucide="trending-up" class="w-5 h-5"></i>
+                                    </div>
+                                </div>
+                                <div class="card-value">47.2K</div>
+                                <div class="card-label">Monthly visitors</div>
+                                <div class="card-trend up">↑ 18% growth</div>
+                            </div>
 
-        <!-- App Dock -->
-        <div class="app-dock-section">
-            <div class="nav-section-title sidebar-text">Quick Connections</div>
-            <div class="app-dock-grid">
-                <div class="app-dock-item connected" title="Cursor (Connected)" style="position: relative;">
-                    <div class="connection-badge"></div>
-                    <div class="app-dock-icon">
-                        <i data-lucide="code" class="w-6 h-6" style="color: #6366f1;"></i>
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <div class="card-title">Integrations</div>
+                                    <div class="card-icon">
+                                        <i data-lucide="link" class="w-5 h-5"></i>
+                                    </div>
+                                </div>
+                                <div class="card-value" id="connected-integrations">0/0</div>
+                                <div class="card-label">Connected services</div>
+                                <div class="card-trend" id="integration-status-text">Loading...</div>
+                                <a href="/dashboard/settings" class="card-link">Manage Integrations →</a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="app-dock-label sidebar-text">Cursor</div>
-                </div>
-                <div class="app-dock-item" title="Anthropic API">
-                    <div class="app-dock-icon">
-                        <i data-lucide="sparkles" class="w-6 h-6" style="color: #8b5cf6;"></i>
-                    </div>
-                    <div class="app-dock-label sidebar-text">Anthropic</div>
-                </div>
-                <div class="app-dock-item" title="OpenAI">
-                    <div class="app-dock-icon">
-                        <i data-lucide="brain" class="w-6 h-6" style="color: #10b981;"></i>
-                    </div>
-                    <div class="app-dock-label sidebar-text">OpenAI</div>
-                </div>
-                <div class="app-dock-item" title="Gemini">
-                    <div class="app-dock-icon">
-                        <i data-lucide="zap" class="w-6 h-6" style="color: #3b82f6;"></i>
-                    </div>
-                    <div class="app-dock-label sidebar-text">Gemini</div>
-                </div>
-                <div class="app-dock-item" title="GitHub">
-                    <div class="app-dock-icon">
-                        <i data-lucide="github" class="w-6 h-6" style="color: #f97316;"></i>
-                    </div>
-                    <div class="app-dock-label sidebar-text">GitHub</div>
-                </div>
-                <div class="app-dock-item" title="Cloudflare">
-                    <div class="app-dock-icon">
-                        <i data-lucide="cloud" class="w-6 h-6" style="color: #06b6d4;"></i>
-                    </div>
-                    <div class="app-dock-label sidebar-text">Cloudflare</div>
-                </div>
-                <div class="app-dock-item" title="Stripe">
-                    <div class="app-dock-icon">
-                        <i data-lucide="credit-card" class="w-6 h-6" style="color: #a855f7;"></i>
-                    </div>
-                    <div class="app-dock-label sidebar-text">Stripe</div>
-                </div>
-                <div class="app-dock-item" title="Resend">
-                    <div class="app-dock-icon">
-                        <i data-lucide="mail" class="w-6 h-6" style="color: #ec4899;"></i>
-                    </div>
-                    <div class="app-dock-label sidebar-text">Resend</div>
                 </div>
             </div>
-        </div>
-    </nav>
+        </main>
+    </div>
 
-    <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <!-- Mobile Menu Button (will be injected by sidebar) -->
 
-    <!-- Header -->
-    <header>
-        <div class="header-content">
-            <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
-                <i data-lucide="menu" class="w-5 h-5"></i>
-            </button>
-
-            <div class="logo-container">
-                <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar"
-                    alt="InnerAnimalMedia" class="logo">
-                <span class="brand-name">InnerAnimalMedia</span>
-            </div>
-
-            <div class="search-container">
-                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <path d="m21 21-4.35-4.35"></path>
-                </svg>
-                <input type="text" class="search-input" placeholder="Search projects, tasks, or type a command..."
-                    id="searchInput">
-            </div>
-
-            <button class="cli-toggle" id="cliToggle">
-                <i data-lucide="terminal" class="w-4 h-4"></i>
-                <span>agent_sam</span>
-            </button>
-
-            <div class="user-avatar">SP</div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main id="mainContent">
-        <div class="page-container">
-            <div class="page-header">
-                <h1 class="page-title" id="pageTitle">Dashboard Overview</h1>
-                <p class="page-subtitle" id="pageSubtitle">Welcome back, Sam. Your systems are running optimally.</p>
-            </div>
-
-            <div class="dashboard-grid" id="dashboardContent">
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <div class="card-title">Active Projects</div>
-                        <div class="card-icon">
-                            <i data-lucide="briefcase" class="w-5 h-5"></i>
-                        </div>
-                    </div>
-                    <div class="card-value" id="activeProjectsCount">0</div>
-                    <div class="card-label">Across all brands</div>
-                    <div class="card-trend up">↑ Loading...</div>
-                </div>
-
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <div class="card-title">Client Projects</div>
-                        <div class="card-icon">
-                            <i data-lucide="users" class="w-5 h-5"></i>
-                        </div>
-                    </div>
-                    <div class="card-value" id="clientProjectsCount">0</div>
-                    <div class="card-label">Active engagements</div>
-                    <div class="card-trend up">↑ Loading...</div>
-                </div>
-
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <div class="card-title">Tasks Completed</div>
-                        <div class="card-icon">
-                            <i data-lucide="check-circle" class="w-5 h-5"></i>
-                        </div>
-                    </div>
-                    <div class="card-value" id="tasksCompletedCount">0</div>
-                    <div class="card-label">This month</div>
-                    <div class="card-trend up">↑ Loading...</div>
-                </div>
-
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <div class="card-title">Database Queries</div>
-                        <div class="card-icon">
-                            <i data-lucide="database" class="w-5 h-5"></i>
-                        </div>
-                    </div>
-                    <div class="card-value">1.2M</div>
-                    <div class="card-label">MeauxOS operations</div>
-                    <div class="card-trend up">↑ Optimal performance</div>
-                </div>
-
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <div class="card-title">Worker Deployments</div>
-                        <div class="card-icon">
-                            <i data-lucide="rocket" class="w-5 h-5"></i>
-                        </div>
-                    </div>
-                    <div class="card-value" id="workersCount">0</div>
-                    <div class="card-label">Active workers</div>
-                    <div class="card-trend up">↑ Loading...</div>
-                </div>
-
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <div class="card-title">Analytics Traffic</div>
-                        <div class="card-icon">
-                            <i data-lucide="trending-up" class="w-5 h-5"></i>
-                        </div>
-                    </div>
-                    <div class="card-value">47.2K</div>
-                    <div class="card-label">Monthly visitors</div>
-                    <div class="card-trend up">↑ 18% growth</div>
-                </div>
-
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <div class="card-title">Integrations</div>
-                        <div class="card-icon">
-                            <i data-lucide="link" class="w-5 h-5"></i>
-                        </div>
-                    </div>
-                    <div class="card-value" id="connected-integrations">0/0</div>
-                    <div class="card-label">Connected services</div>
-                    <div class="card-trend" id="integration-status-text">Loading...</div>
-                    <a href="/dashboard/settings" class="card-link">Manage Integrations →</a>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Shared Layout Script -->
+    <!-- Shared Layout Scripts -->
     <script src="/shared/layout.js"></script>
+    <script src="/shared/dashboard-layout.js"></script>
 
-    <!-- Dashboard Layout Loader -->
-    <script src="/shared/dashboard-layout-loader.js"></script>
-
+    <!-- Load Sidebar and Header -->
     <script>
-        // Project & Theme Management
-        const projectManager = {
-            currentProject: null,
-            projects: [],
-            themes: [],
-
-            async init() {
-                await this.loadProjects();
-                await this.loadThemes();
-                await this.loadCurrentProjectTheme();
-                this.setupEventListeners();
-            },
-
-            async loadProjects() {
-                try {
-                    const res = await API.get('projects');
-                    if (res.success && res.data) {
-                        this.projects = res.data || [];
-                        this.renderProjectSelector();
-                    }
-                } catch (error) {
-                    console.error('Failed to load projects:', error);
-                }
-            },
-
-            async loadThemes() {
-                try {
-                    const res = await API.get('themes');
-                    if (res.success && res.data) {
-                        this.themes = res.data || [];
-                    }
-                } catch (error) {
-                    console.error('Failed to load themes:', error);
-                }
-            },
-
-            async loadCurrentProjectTheme() {
-                try {
-                    const projectId = localStorage.getItem('currentProjectId');
-                    if (!projectId) return;
-
-                    // Get project-specific theme from API
-                    const res = await API.get(`preferences/theme?project_id=${projectId}`);
-                    if (res.success && res.theme_id) {
-                        this.applyTheme(res.theme_id);
-                    }
-                } catch (error) {
-                    console.error('Failed to load project theme:', error);
-                }
-            },
-
-            renderProjectSelector() {
-                const selector = document.getElementById('projectSelector');
-                if (!selector) return;
-
-                selector.innerHTML = '<option value="">Select Project...</option>';
-                this.projects.forEach(project => {
-                    const option = document.createElement('option');
-                    option.value = project.id;
-                    option.textContent = project.name;
-                    if (project.theme_id) {
-                        option.setAttribute('data-theme', project.theme_id);
-                    }
-                    selector.appendChild(option);
-                });
-
-                // Restore selected project
-                const currentProjectId = localStorage.getItem('currentProjectId');
-                if (currentProjectId) {
-                    selector.value = currentProjectId;
-                    this.currentProject = this.projects.find(p => p.id === currentProjectId);
-                }
-            },
-
-            async switchProject(projectId) {
-                if (!projectId) {
-                    localStorage.removeItem('currentProjectId');
-                    this.currentProject = null;
-                    // Apply default theme
-                    this.applyTheme('inner-animal-dark');
-                    return;
-                }
-
-                this.currentProject = this.projects.find(p => p.id === projectId);
-                if (!this.currentProject) return;
-
-                localStorage.setItem('currentProjectId', projectId);
-
-                // Get project-specific theme
-                try {
-                    const res = await API.get(`preferences/theme?project_id=${projectId}`);
-                    if (res.success && res.theme_id) {
-                        this.applyTheme(res.theme_id);
-                    } else {
-                        // Use default theme for project
-                        this.applyTheme('inner-animal-dark');
-                    }
-                } catch (error) {
-                    console.error('Failed to get project theme:', error);
-                    this.applyTheme('inner-animal-dark');
-                }
-
-                // Reload dashboard data for this project
-                loadDashboardData();
-            },
-
-            applyTheme(themeId) {
-                const html = document.documentElement;
-                html.setAttribute('data-theme', themeId);
-
-                // Save theme preference
-                try {
-                    API.post('preferences/theme', {
-                        theme_id: themeId,
-                        project_id: this.currentProject?.id || null
-                    }).catch(() => { }); // Silently fail if API not available
-                } catch (error) {
-                    console.error('Failed to save theme:', error);
-                }
-            },
-
-            setupEventListeners() {
-                // Theme changes from settings page will trigger this
-                window.addEventListener('theme-changed', (e) => {
-                    if (e.detail.theme_id) {
-                        this.applyTheme(e.detail.theme_id);
-                    }
-                });
-            }
-        };
-
-        // Sidebar Management
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const main = document.getElementById('mainContent');
-            const overlay = document.getElementById('sidebarOverlay');
-
-            if (sidebar.classList.contains('collapsed')) {
-                sidebar.classList.remove('collapsed');
-                main.classList.remove('sidebar-collapsed');
-                main.classList.add('sidebar-open');
-                localStorage.setItem('sidebarCollapsed', 'false');
-            } else if (sidebar.classList.contains('open')) {
-                sidebar.classList.add('collapsed');
-                main.classList.remove('sidebar-open');
-                main.classList.add('sidebar-collapsed');
-                localStorage.setItem('sidebarCollapsed', 'true');
-            } else {
-                sidebar.classList.add('open');
-                overlay.classList.add('active');
-                if (window.innerWidth >= 1024) {
-                    main.classList.add('sidebar-open');
-                }
-            }
-        }
-
-        // Menu Toggle
-        document.getElementById('menuToggle')?.addEventListener('click', () => {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            const main = document.getElementById('mainContent');
-
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('active');
-
-            if (window.innerWidth >= 1024) {
-                main.classList.toggle('sidebar-open');
-            }
-        });
-
-        document.getElementById('sidebarOverlay')?.addEventListener('click', () => {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            const main = document.getElementById('mainContent');
-
-            sidebar.classList.remove('open');
-            overlay.classList.remove('active');
-            if (window.innerWidth >= 1024) {
-                main.classList.remove('sidebar-open');
-            }
-        });
-
-        // Navigation
-        const navItems = document.querySelectorAll('.nav-item[data-page]');
-        const pageTitle = document.getElementById('pageTitle');
-        const pageSubtitle = document.getElementById('pageSubtitle');
-
-        const pageConfig = {
-            dashboard: { title: 'Dashboard Overview', subtitle: 'Welcome back, Sam. Your systems are running optimally.' },
-            projects: { title: 'Projects', subtitle: 'Manage your active projects across all brands' },
-            clients: { title: 'Clients', subtitle: 'Client relationships and project management' },
-            calendar: { title: 'Calendar', subtitle: 'Schedule and manage your time' },
-            workflows: { title: 'Workflows', subtitle: 'Automated processes and integrations' },
-            tasks: { title: 'Tasks', subtitle: 'Track and manage your work items' },
-            meauxmcp: { title: 'MeauxMCP', subtitle: 'Model Context Protocol server management' },
-            meauxsql: { title: 'MeauxSQL', subtitle: 'Database query interface and operations' },
-            meauxcad: { title: 'MeauxCAD', subtitle: 'Design and CAD tools integration' },
-            talk: { title: 'Talk', subtitle: 'Real-time communication and collaboration' },
-            messages: { title: 'Messages', subtitle: 'Message board and communications' },
-            video: { title: 'Video Calls', subtitle: 'Video and voice communication' },
-            library: { title: 'Library (CMS)', subtitle: 'Content management and media library' },
-            gallery: { title: 'Gallery', subtitle: 'Media gallery and assets' },
-            analytics: { title: 'Analytics', subtitle: 'Performance metrics and insights' },
-            settings: { title: 'Settings', subtitle: 'Configure your workspace and preferences' }
-        };
-
-        navItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                const page = item.getAttribute('data-page');
-
-                navItems.forEach(n => n.classList.remove('active'));
-                item.classList.add('active');
-
-                const config = pageConfig[page];
-                if (config) {
-                    pageTitle.textContent = config.title;
-                    pageSubtitle.textContent = config.subtitle;
-                }
-
-                if (window.innerWidth < 1024) {
-                    document.getElementById('sidebar').classList.remove('open');
-                    document.getElementById('sidebarOverlay').classList.remove('active');
-                }
-            });
-        });
-
-        // Load Dashboard Data
-        async function loadDashboardData() {
+        async function loadDashboardComponents() {
+            // Load sidebar
             try {
-                const [statsRes, projectsRes, workersRes] = await Promise.all([
-                    API.get('stats'),
-                    API.get('projects'),
-                    API.get('workers')
-                ]);
-
-                if (statsRes.success && statsRes.data) {
-                    const stats = statsRes.data;
-                    document.getElementById('activeProjectsCount').textContent = stats.projects?.total || 0;
-                    document.getElementById('workersCount').textContent = stats.workers?.total || 0;
-                }
-
-                if (projectsRes.success && projectsRes.data) {
-                    document.getElementById('clientProjectsCount').textContent = projectsRes.data.length || 0;
+                const sidebarRes = await fetch('/shared/sidebar.html');
+                if (sidebarRes.ok) {
+                    const sidebarHtml = await sidebarRes.text();
+                    const sidebarContainer = document.getElementById('sidebar-container');
+                    if (sidebarContainer) {
+                        sidebarContainer.innerHTML = sidebarHtml;
+                        // Reinitialize icons after sidebar loads
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
+                    }
                 }
             } catch (error) {
-                console.error('Failed to load dashboard data:', error);
+                console.error('Error loading sidebar:', error);
+            }
+
+            // Load header
+            try {
+                const headerRes = await fetch('/shared/header.html');
+                if (headerRes.ok) {
+                    const headerHtml = await headerRes.text();
+                    const headerContainer = document.getElementById('dashboard-header-container');
+                    if (headerContainer) {
+                        headerContainer.innerHTML = headerHtml;
+                        // Update page title
+                        const pageTitle = document.getElementById('page-title');
+                        if (pageTitle) {
+                            pageTitle.textContent = 'Dashboard Overview';
+                        }
+                        // Reinitialize icons
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading header:', error);
             }
         }
 
-        // CLI Toggle
-        document.getElementById('cliToggle')?.addEventListener('click', () => {
-            // Open Agent Sam terminal (if implemented)
-            if (typeof agentSam !== 'undefined' && agentSam.toggle) {
-                agentSam.toggle();
-            } else {
-                window.location.href = '/dashboard/meauxmcp';
-            }
-        });
-
-        // Search Functionality
-        document.getElementById('searchInput')?.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                const query = e.target.value.trim();
-                if (query.startsWith('/')) {
-                    // Command mode - could open CLI
-                    console.log('Command:', query);
-                } else if (query) {
-                    // Search mode
-                    console.log('Searching for:', query);
-                }
-            }
-        });
-
-        // Keyboard Shortcuts
-        document.addEventListener('keydown', (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                document.getElementById('searchInput')?.focus();
-            }
-            if (e.key === 'Escape') {
-                document.getElementById('sidebar').classList.remove('open');
-                document.getElementById('sidebarOverlay').classList.remove('active');
-            }
-        });
-
-        // Initialize
-        window.addEventListener('DOMContentLoaded', async () => {
-            lucide.createIcons();
-
-            // Initialize sidebar state
-            if (window.innerWidth >= 1024) {
-                document.getElementById('sidebar').classList.add('open');
-                document.getElementById('mainContent').classList.add('sidebar-open');
-            }
-
-            // Restore collapsed state
-            if (localStorage.getItem('sidebarCollapsed') === 'true') {
-                document.getElementById('sidebar').classList.add('collapsed');
-                document.getElementById('mainContent').classList.add('sidebar-collapsed');
-                document.getElementById('mainContent').classList.remove('sidebar-open');
-            }
-
-            // Initialize project manager
-            await projectManager.init();
-
-            // Load dashboard data
-            await loadDashboardData();
-
-            // Set active page based on URL
-            const currentPath = window.location.pathname;
-            const currentPage = currentPath.split('/').pop() || 'dashboard';
-            const activeItem = document.querySelector(`[data-page="${currentPage}"]`);
-            if (activeItem) {
-                navItems.forEach(n => n.classList.remove('active'));
-                activeItem.classList.add('active');
-
-                const config = pageConfig[currentPage];
-                if (config) {
-                    pageTitle.textContent = config.title;
-                    pageSubtitle.textContent = config.subtitle;
-                }
-            }
-        });
-
-        // Expose globally
-        window.switchProject = (projectId) => projectManager.switchProject(projectId);
-        window.toggleSidebar = toggleSidebar;
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadDashboardComponents);
+        } else {
+            loadDashboardComponents();
+        }
     </script>
+
+    <!-- Page-specific scripts -->
+    <script>
+        // Handle OAuth parameters (clean URL)
+        (function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const state = urlParams.get('state');
+            let needsCleanup = false;
+
+            if (code) {
+                urlParams.delete('code');
+                needsCleanup = true;
+            }
+
+            if (state) {
+                urlParams.delete('state');
+                needsCleanup = true;
+            }
+
+            if (needsCleanup) {
+                const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+                window.history.replaceState({}, document.title, newUrl);
+            }
+        })();
+
+        // Dashboard Data Loading
+        async function loadDashboardData() {
+            try {
+                const API_BASE = window.location.origin;
+
+                // Fetch stats
+                const statsRes = await fetch(`${API_BASE}/api/stats`);
+
+                if (!statsRes.ok) {
+                    throw new Error(`Stats API returned ${statsRes.status}`);
+                }
+
+                const stats = await statsRes.json();
+
+                if (!stats.success || !stats.data) {
+                    console.error('Stats API error:', stats);
+                    throw new Error('Invalid stats response');
+                }
+
+                const data = stats.data;
+
+                // Helper to update card value and trend
+                function updateCard(cardId, value, trendText = null, trendClass = 'up') {
+                    const cardEl = document.getElementById(cardId);
+                    if (!cardEl) return;
+
+                    cardEl.textContent = value;
+
+                    // Find trend element (next sibling of next sibling - card-label)
+                    let trendEl = cardEl.nextElementSibling; // card-label
+                    if (trendEl) {
+                        trendEl = trendEl.nextElementSibling; // card-trend
+                        if (trendEl && trendEl.classList.contains('card-trend')) {
+                            if (trendText !== null) {
+                                trendEl.textContent = trendText;
+                                trendEl.className = `card-trend ${trendClass}`;
+                            }
+                        }
+                    }
+                }
+
+                // Update Active Projects (from active_projects or deployments)
+                const activeProjects = data.active_projects ?? data.deployments ?? data.projects ?? 0;
+                updateCard('activeProjectsCount', activeProjects, activeProjects > 0 ? '↑ Active' : '— No projects', activeProjects > 0 ? 'up' : '');
+
+                // Update Client Projects (from active_clients or clients)
+                const clientProjects = data.active_clients ?? data.clients ?? 0;
+                updateCard('clientProjectsCount', clientProjects, clientProjects > 0 ? '↑ Active' : '— No clients', clientProjects > 0 ? 'up' : '');
+
+                // Update Tasks Completed (placeholder for now - no tasks table yet)
+                updateCard('tasksCompletedCount', 0, '— No tasks system', '');
+
+                // Update Workers (from workers.total or workers number)
+                const workers = typeof data.workers === 'object' ? (data.workers?.total ?? 0) : (data.workers ?? 0);
+                updateCard('workersCount', workers, workers > 0 ? '↑ Active' : '— No workers', workers > 0 ? 'up' : '');
+
+                // Update integrations count
+                const integrationsEl = document.getElementById('connected-integrations');
+                const integrationsStatusEl = document.getElementById('integration-status-text');
+                if (integrationsEl) {
+                    integrationsEl.textContent = '0/0';
+                    if (integrationsStatusEl) {
+                        integrationsStatusEl.textContent = 'No integrations connected';
+                    }
+                }
+
+                // Reinitialize icons after updates
+                if (typeof lucide !== 'undefined') {
+                    setTimeout(() => lucide.createIcons(), 100);
+                }
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                // Update error states
+                document.querySelectorAll('.card-trend').forEach(el => {
+                    if (el.textContent.includes('Loading')) {
+                        el.textContent = '— Error loading';
+                        el.className = 'card-trend';
+                    }
+                });
+            }
+        }
+
+        // Load dashboard data after components load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                // Wait for sidebar/header to load, then load data
+                setTimeout(loadDashboardData, 1000);
+                // Auto-refresh every 30 seconds
+                setInterval(loadDashboardData, 30000);
+            });
+        } else {
+            // Already loaded, wait a bit then load data
+            setTimeout(loadDashboardData, 1000);
+            // Auto-refresh every 30 seconds
+            setInterval(loadDashboardData, 30000);
+        }
+    </script>
+
 </body>
 
 </html>

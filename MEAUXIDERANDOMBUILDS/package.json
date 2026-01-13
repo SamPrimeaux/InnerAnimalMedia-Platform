@@ -1,0 +1,28 @@
+{
+  "name": "iaccess-platform",
+  "version": "1.0.0",
+  "description": "Intelligence Platform for Cloud Infrastructure - Multi-tenant deployment and workflow management",
+  "main": "src/worker.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "pages:deploy": "wrangler pages deploy . --project-name=iaccess-platform",
+    "db:migrate": "wrangler d1 execute meauxos --file=src/schema.sql",
+    "db:query": "wrangler d1 execute meauxos --command",
+    "db:local": "wrangler d1 execute meauxos --local --file=src/schema.sql"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "d1",
+    "multi-tenant",
+    "deployments",
+    "workflows"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

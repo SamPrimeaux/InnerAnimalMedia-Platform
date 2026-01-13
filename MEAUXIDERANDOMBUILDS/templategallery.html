@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template Gallery - Premium HTML Templates | iautodidact.org</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0A0E27;
+            --bg-secondary: #141B2D;
+            --bg-elevated: #1E2742;
+            --accent: #4AECDC;
+            --accent-hover: #3DD4C4;
+            --text: #FFFFFF;
+            --text-secondary: #94A3B8;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        .app-container { display: flex; min-height: 100vh; }
+        
+        /* Flexfit Sidenav */
+        .sidenav {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            padding: 24px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+        @media (max-width: 768px) {
+            .sidenav {
+                transform: translateX(-100%);
+            }
+            .sidenav.open {
+                transform: translateX(0);
+            }
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 32px;
+            color: var(--text);
+            text-decoration: none;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), #3B82F6);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: var(--bg);
+        }
+        .nav-section { margin-bottom: 32px; }
+        .nav-section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+            font-size: 0.9375rem;
+        }
+        .nav-item:hover {
+            background: var(--bg-elevated);
+            color: var(--text);
+        }
+        .nav-item.active {
+            background: rgba(74, 236, 220, 0.1);
+            color: var(--accent);
+        }
+        .nav-icon { font-size: 1.25rem; }
+        
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            padding: 0;
+        }
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+            }
+        }
+        
+        .topbar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        .mobile-menu-btn {
+            display: none;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+        }
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #10B981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .page-header {
+            padding: 64px 32px 32px;
+            text-align: center;
+        }
+        .page-title {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+        .page-subtitle {
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .gallery-section {
+            padding: 32px;
+        }
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .template-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .template-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(74, 236, 220, 0.2);
+        }
+        .template-thumbnail {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, rgba(74, 236, 220, 0.1), rgba(59, 130, 246, 0.1));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .template-thumbnail::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, transparent, rgba(10, 14, 39, 0.8));
+        }
+        .template-info {
+            padding: 20px;
+        }
+        .template-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .template-desc {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+        .template-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .template-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .template-badge {
+            padding: 4px 12px;
+            background: rgba(74, 236, 220, 0.1);
+            color: var(--accent);
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .template-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            border: none;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg);
+        }
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-elevated);
+        }
+        
+        /* Lightbox Modal */
+        .lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10000;
+            padding: 40px;
+            overflow-y: auto;
+        }
+        .lightbox.active {
+            display: flex;
+            flex-direction: column;
+        }
+        .lightbox-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .lightbox-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .lightbox-close {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .lightbox-content {
+            flex: 1;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 32px;
+            overflow-y: auto;
+        }
+        .lightbox-preview {
+            width: 100%;
+            min-height: 600px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <nav class="sidenav" id="sidenav">
+            <a href="/" class="logo">
+                <div class="logo-icon">M</div>
+                <span>MeauxAccess</span>
+            </a>
+            <button class="mobile-menu-btn" onclick="toggleSidenav()">?</button>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Core Modules</div>
+                <a href="/dashboard" class="nav-item"><span class="nav-icon">??</span><span>Dashboard</span></a>
+                <a href="/meauxwork" class="nav-item"><span class="nav-icon">??</span><span>MeauxWork</span></a>
+                <a href="/meauxstats" class="nav-item"><span class="nav-icon">??</span><span>MeauxStats</span></a>
+                <a href="/meauxteam" class="nav-item"><span class="nav-icon">??</span><span>MeauxTeam</span></a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Content & Media</div>
+                <a href="/meauxdoc" class="nav-item"><span class="nav-icon">??</span><span>MeauxDOC</span></a>
+                <a href="/meauxphoto" class="nav-item"><span class="nav-icon">??</span><span>MeauxPHOTO</span></a>
+                <a href="/meauxmemories" class="nav-item"><span class="nav-icon">???</span><span>MeauxMemories</span></a>
+                <a href="/meauxmedia" class="nav-item"><span class="nav-icon">??</span><span>MeauxMedia</span></a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Infrastructure</div>
+                <a href="/meauxcloud" class="nav-item"><span class="nav-icon">??</span><span>MeauxCloud</span></a>
+                <a href="/meauxcad" class="nav-item"><span class="nav-icon">???</span><span>MeauxCAD</span></a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Learning</div>
+                <a href="/meauxlearn" class="nav-item"><span class="nav-icon">??</span><span>MeauxLearn</span></a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Settings</div>
+                <a href="/settings" class="nav-item"><span class="nav-icon">??</span><span>Settings</span></a>
+                <a href="/billing" class="nav-item"><span class="nav-icon">??</span><span>Billing</span></a>
+            </div>
+        </nav>
+        
+        <main class="main-content">
+            <div class="topbar">
+                <button class="mobile-menu-btn" onclick="toggleSidenav()">?</button>
+                <div class="topbar-right">
+                    <div class="status-badge">
+                        <span class="status-dot"></span>
+                        <span>System Online</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="page-header">
+                <h1 class="page-title">Template Gallery</h1>
+                <p class="page-subtitle">Premium HTML templates ready to deploy. Subscribe for monthly management and updates.</p>
+            </div>
+            
+            <section class="gallery-section">
+                <div class="gallery-grid" id="galleryGrid">
+                    <!-- Templates populated by JavaScript -->
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Lightbox Modal -->
+    <div class="lightbox" id="lightbox">
+        <div class="lightbox-header">
+            <h2 class="lightbox-title" id="lightboxTitle">Template Preview</h2>
+            <button class="lightbox-close" onclick="closeLightbox()">�</button>
+        </div>
+        <div class="lightbox-content">
+            <iframe class="lightbox-preview" id="lightboxPreview" src=""></iframe>
+        </div>
+    </div>
+    
+    <script>
+        function toggleSidenav() {
+            document.getElementById('sidenav').classList.toggle('open');
+        }
+        
+        function openLightbox(template) {
+            document.getElementById('lightboxTitle').textContent = template.title;
+            document.getElementById('lightboxPreview').src = template.previewUrl || template.htmlUrl;
+            document.getElementById('lightbox').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+            document.getElementById('lightboxPreview').src = '';
+            document.body.style.overflow = '';
+        }
+        
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeLightbox();
+        });
+        
+        // Close on outside click
+        document.getElementById('lightbox').addEventListener('click', function(e) {
+            if (e.target === this) closeLightbox();
+        });
+        
+        // Load templates
+        function loadTemplates() {
+            const grid = document.getElementById('galleryGrid');
+            const templates = [
+                {
+                    id: 1,
+                    title: 'Modern Dashboard',
+                    desc: 'Fortune 500 style dashboard with analytics and widgets',
+                    price: '$49',
+                    badge: 'Popular',
+                    thumbnail: '??',
+                    htmlUrl: '/dashboard'
+                },
+                {
+                    id: 2,
+                    title: 'Landing Page Pro',
+                    desc: 'High-converting landing page with hero section and CTAs',
+                    price: '$39',
+                    badge: 'New',
+                    thumbnail: '??',
+                    htmlUrl: '/'
+                },
+                {
+                    id: 3,
+                    title: 'E-Commerce Store',
+                    desc: 'Full-featured online store with cart and checkout',
+                    price: '$79',
+                    badge: 'Premium',
+                    thumbnail: '??',
+                    htmlUrl: '#'
+                },
+                {
+                    id: 4,
+                    title: 'Portfolio Showcase',
+                    desc: 'Creative portfolio for designers and developers',
+                    price: '$29',
+                    badge: '',
+                    thumbnail: '??',
+                    htmlUrl: '#'
+                },
+                {
+                    id: 5,
+                    title: 'Admin Panel',
+                    desc: 'Complete admin dashboard with user management',
+                    price: '$59',
+                    badge: 'Featured',
+                    thumbnail: '?',
+                    htmlUrl: '/dashboard/admin'
+                },
+                {
+                    id: 6,
+                    title: 'Blog Platform',
+                    desc: 'Modern blog with categories and search',
+                    price: '$34',
+                    badge: '',
+                    thumbnail: '??',
+                    htmlUrl: '#'
+                },
+            ];
+            
+            grid.innerHTML = templates.map(function(t) {
+                return '<div class="template-card" onclick="openLightbox(' + JSON.stringify(t).replace(/"/g, '&quot;') + ')">' +
+                    '<div class="template-thumbnail">' + t.thumbnail + '</div>' +
+                    '<div class="template-info">' +
+                    '<div class="template-title">' + t.title + '</div>' +
+                    '<div class="template-desc">' + t.desc + '</div>' +
+                    '<div class="template-meta">' +
+                    '<div class="template-price">' + t.price + '</div>' +
+                    (t.badge ? '<span class="template-badge">' + t.badge + '</span>' : '') +
+                    '</div>' +
+                    '<div class="template-actions">' +
+                    '<button class="btn btn-primary" onclick="event.stopPropagation(); alert(\'Purchase template\')">Buy Now</button>' +
+                    '<button class="btn btn-secondary" onclick="event.stopPropagation(); alert(\'Subscribe for monthly management\')">Subscribe</button>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>';
+            }).join('');
+        }
+        
+        loadTemplates();
+    </script>
+</body>
+</html>

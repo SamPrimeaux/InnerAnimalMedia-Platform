@@ -1,0 +1,182 @@
+QUICK URL REFERENCE - InnerAnimalMedia.com
+Copy-paste these URLs into your browser to test
+
+═══════════════════════════════════════════════════════════════
+PUBLIC PAGES (Root Level)
+═══════════════════════════════════════════════════════════════
+
+https://inneranimalmedia.com/
+https://inneranimalmedia.com/index.html
+https://inneranimalmedia.com/about
+https://inneranimalmedia.com/contact
+https://inneranimalmedia.com/pricing
+https://inneranimalmedia.com/services
+https://inneranimalmedia.com/features
+https://inneranimalmedia.com/tools
+https://inneranimalmedia.com/login
+
+═══════════════════════════════════════════════════════════════
+DASHBOARD PAGES (Main Features)
+═══════════════════════════════════════════════════════════════
+
+https://inneranimalmedia.com/dashboard
+https://inneranimalmedia.com/dashboard/index.html
+https://inneranimalmedia.com/dashboard/projects
+https://inneranimalmedia.com/dashboard/workflows
+https://inneranimalmedia.com/dashboard/deployments
+https://inneranimalmedia.com/dashboard/workers
+https://inneranimalmedia.com/dashboard/tenants
+https://inneranimalmedia.com/dashboard/clients
+https://inneranimalmedia.com/dashboard/team
+https://inneranimalmedia.com/dashboard/settings
+
+═══════════════════════════════════════════════════════════════
+MEAUX TOOLS SUITE
+═══════════════════════════════════════════════════════════════
+
+https://inneranimalmedia.com/dashboard/meauxmcp
+https://inneranimalmedia.com/dashboard/meauxsql
+https://inneranimalmedia.com/dashboard/meauxcad
+https://inneranimalmedia.com/dashboard/meauxide
+https://inneranimalmedia.com/dashboard/meauxwork
+
+═══════════════════════════════════════════════════════════════
+MEDIA & CONTENT
+═══════════════════════════════════════════════════════════════
+
+https://inneranimalmedia.com/dashboard/gallery
+https://inneranimalmedia.com/dashboard/library
+https://inneranimalmedia.com/dashboard/templates
+https://inneranimalmedia.com/dashboard/video
+
+═══════════════════════════════════════════════════════════════
+COMMUNICATION & TASKS
+═══════════════════════════════════════════════════════════════
+
+https://inneranimalmedia.com/dashboard/messages
+https://inneranimalmedia.com/dashboard/tasks
+https://inneranimalmedia.com/dashboard/calendar
+https://inneranimalmedia.com/dashboard/support
+
+═══════════════════════════════════════════════════════════════
+ADVANCED FEATURES
+═══════════════════════════════════════════════════════════════
+
+https://inneranimalmedia.com/dashboard/analytics
+https://inneranimalmedia.com/dashboard/ai-services
+https://inneranimalmedia.com/dashboard/prompts
+https://inneranimalmedia.com/dashboard/databases
+https://inneranimalmedia.com/dashboard/cloudflare
+https://inneranimalmedia.com/dashboard/api-gateway
+https://inneranimalmedia.com/dashboard/brand
+
+═══════════════════════════════════════════════════════════════
+LEGAL PAGES
+═══════════════════════════════════════════════════════════════
+
+https://inneranimalmedia.com/legal/terms
+https://inneranimalmedia.com/legal/privacy
+
+═══════════════════════════════════════════════════════════════
+CORE API ENDPOINTS (Test with curl or Postman)
+═══════════════════════════════════════════════════════════════
+
+https://inneranimalmedia.com/api
+https://inneranimalmedia.com/api/stats
+https://inneranimalmedia.com/api/tenants
+https://inneranimalmedia.com/api/workflows
+https://inneranimalmedia.com/api/deployments
+https://inneranimalmedia.com/api/workers
+https://inneranimalmedia.com/api/tools
+https://inneranimalmedia.com/api/themes
+
+═══════════════════════════════════════════════════════════════
+OAUTH ENDPOINTS
+═══════════════════════════════════════════════════════════════
+
+https://inneranimalmedia.com/api/oauth/google/authorize
+https://inneranimalmedia.com/api/oauth/google/callback
+https://inneranimalmedia.com/api/oauth/github/authorize
+https://inneranimalmedia.com/api/oauth/github/callback
+
+═══════════════════════════════════════════════════════════════
+OTHER API ENDPOINTS (Most require POST or have parameters)
+═══════════════════════════════════════════════════════════════
+
+https://inneranimalmedia.com/api/calendar
+https://inneranimalmedia.com/api/agent/execute
+https://inneranimalmedia.com/api/images
+https://inneranimalmedia.com/api/projects
+https://inneranimalmedia.com/api/tasks
+https://inneranimalmedia.com/api/messages
+https://inneranimalmedia.com/api/threads
+https://inneranimalmedia.com/api/onboarding
+https://inneranimalmedia.com/api/activation
+https://inneranimalmedia.com/api/analytics/track
+https://inneranimalmedia.com/api/support/tickets
+https://inneranimalmedia.com/api/help
+https://inneranimalmedia.com/api/feedback
+https://inneranimalmedia.com/api/cost-tracking
+https://inneranimalmedia.com/api/knowledge
+https://inneranimalmedia.com/api/pipelines
+https://inneranimalmedia.com/api/rag
+https://inneranimalmedia.com/api/cad
+https://inneranimalmedia.com/api/ai-services
+https://inneranimalmedia.com/api/analytics
+https://inneranimalmedia.com/api/gateway
+https://inneranimalmedia.com/api/brand
+https://inneranimalmedia.com/api/databases
+https://inneranimalmedia.com/api/library
+https://inneranimalmedia.com/api/drive
+https://inneranimalmedia.com/api/meauxwork
+https://inneranimalmedia.com/api/team
+
+═══════════════════════════════════════════════════════════════
+QUICK TEST COMMANDS (Terminal)
+═══════════════════════════════════════════════════════════════
+
+# Test homepage (should return 200)
+curl -I https://inneranimalmedia.com/
+
+# Test dashboard (should return 200)
+curl -I https://inneranimalmedia.com/dashboard
+
+# Test API stats (should return JSON)
+curl https://inneranimalmedia.com/api/stats
+
+# Test API tenants (should return JSON)
+curl https://inneranimalmedia.com/api/tenants
+
+# Check HTTP status code only
+curl -s -o /dev/null -w "%{http_code}" https://inneranimalmedia.com/dashboard
+
+═══════════════════════════════════════════════════════════════
+PRIORITY TESTING (Most Important URLs)
+═══════════════════════════════════════════════════════════════
+
+✅ MUST TEST:
+1. https://inneranimalmedia.com/ (Homepage)
+2. https://inneranimalmedia.com/dashboard (Main dashboard - login required)
+3. https://inneranimalmedia.com/dashboard/settings (Settings page)
+4. https://inneranimalmedia.com/api/stats (Core API)
+5. https://inneranimalmedia.com/api/tenants (Tenant API)
+6. https://inneranimalmedia.com/dashboard/projects (Projects page)
+7. https://inneranimalmedia.com/dashboard/meauxmcp (MCP tool)
+8. https://inneranimalmedia.com/dashboard/library (Library page)
+9. https://inneranimalmedia.com/api/oauth/google/authorize (OAuth login)
+
+🔍 CHECK FOR:
+- ✅ Page loads (no 404)
+- ✅ No console errors (F12 DevTools)
+- ✅ Styles load (CSS)
+- ✅ Data loads (API calls work)
+- ✅ Navigation works
+- ✅ Mobile responsive
+- ✅ OAuth login works (protected pages)
+
+═══════════════════════════════════════════════════════════════
+Total URLs: ~150+
+Pages: ~40
+API Endpoints: ~100+
+Testing Time: 2-3 hours
+═══════════════════════════════════════════════════════════════

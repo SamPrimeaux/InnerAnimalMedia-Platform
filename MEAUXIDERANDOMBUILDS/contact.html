@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-MTH9P66B');</script>
+  <!-- End Google Tag Manager -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us | InnerAnimal Media OS</title>
+  <meta name="description"
+    content="Get in touch with InnerAnimal Media. We'd love to hear from you.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Monaco', 'monospace'],
+          },
+          colors: {
+            brand: {
+              orange: '#ff6b00',
+              red: '#dc2626',
+              dark: '#050507',
+              panel: '#0a0a0f',
+              surface: '#171717',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Unified Header System -->
+  <script src="/shared/header.js"></script>
+
+  <!-- Onboarding Wizard -->
+  <script src="/shared/onboarding-wizard.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(180deg, #0A0E1A 0%, #0F1419 100%);
+      color: #F9FAFB;
+      line-height: 1.6;
+      overflow-x: hidden;
+      padding-top: 80px;
+    }
+
+    /* Unified header will be injected by header.js - no need for inline nav styles */
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      border-color: rgba(255, 107, 0, 0.3);
+    }
+
+    .btn-primary {
+      background: #ff6b00;
+      color: white;
+      padding: 12px 32px;
+      border-radius: 24px;
+      font-weight: 600;
+      font-size: 15px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px 0 rgba(255, 107, 0, 0.25);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #ff8533;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px 0 rgba(255, 107, 0, 0.35);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #202124;
+      padding: 12px 32px;
+      border-radius: 24px;
+      font-weight: 500;
+      font-size: 15px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      background: #f8f9fa;
+    }
+
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #ff6b00 0%, #dc2626 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 12px;
+      font-size: 15px;
+      transition: all 0.2s;
+      background: white;
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #ff6b00;
+      box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .notification {
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .notification.success {
+      background: #10b981;
+      color: white;
+    }
+
+    .notification.error {
+      background: #ef4444;
+      color: white;
+    }
+  </style>
+
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+    <link rel="stylesheet" href="/shared/footer.css">
+</head>
+
+<body class="bg-white text-gray-900">
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MTH9P66B"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+  <!-- Unified Header will be injected here by HeaderSystem (Light Theme for Contact page) -->
+  <header role="banner"></header>
+
+  <!-- Hero Section -->
+  <section class="relative min-h-[50vh] flex items-center justify-center overflow-hidden pt-20">
+    <div class="absolute inset-0 grid-bg opacity-30"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-white to-white"></div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-20 text-center">
+      <h1 class="text-5xl md:text-6xl font-bold mb-6">
+        Get In <span class="gradient-text">Touch</span>
+      </h1>
+      <p class="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+        Have a question or want to work together? We'd love to hear from you.
+      </p>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section class="relative py-20 px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        
+        <!-- Contact Form -->
+        <div class="glass-card p-8 lg:p-12">
+          <h2 class="text-3xl font-bold mb-8 text-gray-900">Send us a message</h2>
+          
+          <form id="contact-form" class="space-y-6">
+            <div>
+              <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Name</label>
+              <input type="text" id="name" name="name" required
+                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 transition-all"
+                placeholder="Your name">
+            </div>
+
+            <div>
+              <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+              <input type="email" id="email" name="email" required
+                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 transition-all"
+                placeholder="your@email.com">
+            </div>
+
+            <div>
+              <label for="subject" class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+              <input type="text" id="subject" name="subject" required
+                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 transition-all"
+                placeholder="What's this about?">
+            </div>
+
+            <div>
+              <label for="message" class="block text-sm font-medium text-gray-700 mb-2">Message</label>
+              <textarea id="message" name="message" rows="6" required
+                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 transition-all resize-none"
+                placeholder="Tell us more about your project or question..."></textarea>
+            </div>
+
+            <button type="submit" id="submit-btn" class="btn-primary w-full justify-center">
+              <span id="submit-text">Send Message</span>
+              <i data-lucide="send" class="w-5 h-5" id="submit-icon"></i>
+            </button>
+          </form>
+        </div>
+
+        <!-- Contact Info -->
+        <div class="space-y-8">
+          <div class="glass-card p-8">
+            <h2 class="text-3xl font-bold mb-6 text-gray-900">Contact Information</h2>
+            <div class="space-y-6">
+              <div class="flex items-start gap-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-orange/20 to-brand-red/20 flex items-center justify-center shrink-0">
+                  <i data-lucide="mail" class="w-6 h-6 text-brand-orange"></i>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-gray-900 mb-1">Email</h3>
+                  <a href="mailto:hello@inneranimalmedia.com" class="text-gray-600 hover:text-brand-orange transition-colors">
+                    hello@inneranimalmedia.com
+                  </a>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center shrink-0">
+                  <i data-lucide="globe" class="w-6 h-6 text-blue-600"></i>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-gray-900 mb-1">Website</h3>
+                  <a href="https://inneranimalmedia.com" class="text-gray-600 hover:text-brand-orange transition-colors">
+                    inneranimalmedia.com
+                  </a>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500/20 to-teal-500/20 flex items-center justify-center shrink-0">
+                  <i data-lucide="clock" class="w-6 h-6 text-green-600"></i>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-gray-900 mb-1">Response Time</h3>
+                  <p class="text-gray-600">We typically respond within 24 hours</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-card p-8">
+            <h3 class="text-xl font-bold mb-4 text-gray-900">What we can help with</h3>
+            <ul class="space-y-3 text-gray-600">
+              <li class="flex items-center gap-2">
+                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 shrink-0"></i>
+                <span>Platform integrations and custom solutions</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 shrink-0"></i>
+                <span>Technical support and troubleshooting</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 shrink-0"></i>
+                <span>Partnership opportunities</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 shrink-0"></i>
+                <span>Feature requests and feedback</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 shrink-0"></i>
+                <span>General inquiries</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-gray-300 py-12 px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div>
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center text-white font-bold">
+              IA
+            </div>
+            <span class="text-xl font-bold text-white">InnerAnimal</span>
+          </div>
+          <p class="text-sm text-gray-400">
+            The complete operating system for modern media teams.
+          </p>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-4">Product</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="/features.html" class="hover:text-white transition-colors">Features</a></li>
+            <li><a href="/tools.html" class="hover:text-white transition-colors">Tools</a></li>
+            <li><a href="/workflows.html" class="hover:text-white transition-colors">Workflows</a></li>
+            <li><a href="/pricing.html" class="hover:text-white transition-colors">Pricing</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-4">Company</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="/about.html" class="hover:text-white transition-colors">About</a></li>
+            <li><a href="/work.html" class="hover:text-white transition-colors">Work</a></li>
+            <li><a href="/contact.html" class="hover:text-white transition-colors">Contact</a></li>
+            <li><a href="/terms.html" class="hover:text-white transition-colors">Terms</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-4">Resources</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="/dashboard/index.html" class="hover:text-white transition-colors">Dashboard</a></li>
+            <li><a href="/dashboard/meauxmcp.html" class="hover:text-white transition-colors">MeauxMCP</a></li>
+            <li><a href="/dashboard/meauxsql.html" class="hover:text-white transition-colors">InnerData</a></li>
+            <li><a href="/dashboard/library.html" class="hover:text-white transition-colors">Library</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-gray-800 pt-8 text-center text-sm text-gray-400">
+        <p>&copy; 2026 InnerAnimal Media. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Initialize icons
+    lucide.createIcons();
+
+    // Mobile menu toggle
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const mobileMenuClose = document.getElementById('mobile-menu-close');
+
+    mobileMenuBtn?.addEventListener('click', () => {
+      mobileMenu.classList.remove('translate-x-full');
+    });
+
+    mobileMenuClose?.addEventListener('click', () => {
+      mobileMenu.classList.add('translate-x-full');
+    });
+
+    // Open onboarding wizard
+    function openOnboardingWizard() {
+      if (typeof OnboardingWizard === 'undefined') {
+        const script = document.createElement('script');
+        script.src = '/shared/onboarding-wizard.js';
+        script.onload = () => {
+          OnboardingWizard.init();
+          OnboardingWizard.show();
+        };
+        document.head.appendChild(script);
+      } else {
+        OnboardingWizard.init();
+        OnboardingWizard.show();
+      }
+    }
+
+    // HeaderSystem handles header rendering and scroll effects automatically
+    window.openOnboardingWizard = function() {
+      if (typeof HeaderSystem !== 'undefined') {
+        HeaderSystem.openOnboarding();
+      } else if (typeof OnboardingWizard !== 'undefined') {
+        OnboardingWizard.init();
+        OnboardingWizard.show();
+      }
+    };
+
+    // Contact form submission
+    const contactForm = document.getElementById('contact-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const submitText = document.getElementById('submit-text');
+    const submitIcon = document.getElementById('submit-icon');
+
+    function showNotification(message, type = 'success') {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+
+      setTimeout(() => {
+        notification.style.animation = 'slideIn 0.3s ease-out reverse';
+        setTimeout(() => notification.remove(), 300);
+      }, 5000);
+    }
+
+    contactForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(contactForm);
+      const data = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        subject: formData.get('subject'),
+        message: formData.get('message')
+      };
+
+      // Disable button
+      submitBtn.disabled = true;
+      submitText.textContent = 'Sending...';
+      submitIcon.setAttribute('data-lucide', 'loader');
+      lucide.createIcons();
+
+      try {
+        // Send email via Resend API
+        const response = await fetch('/api/resend/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: `InnerAnimal Media Contact <noreply@inneranimalmedia.com>`,
+            to: 'hello@inneranimalmedia.com',
+            reply_to: data.email,
+            subject: `Contact Form: ${data.subject}`,
+            html: `
+              <h2>New Contact Form Submission</h2>
+              <p><strong>Name:</strong> ${data.name}</p>
+              <p><strong>Email:</strong> ${data.email}</p>
+              <p><strong>Subject:</strong> ${data.subject}</p>
+              <hr>
+              <p><strong>Message:</strong></p>
+              <p>${data.message.replace(/\n/g, '<br>')}</p>
+            `,
+            text: `
+New Contact Form Submission
+
+Name: ${data.name}
+Email: ${data.email}
+Subject: ${data.subject}
+
+Message:
+${data.message}
+            `
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showNotification('Message sent successfully! We\'ll get back to you soon.', 'success');
+          contactForm.reset();
+        } else {
+          throw new Error(result.error || 'Failed to send message');
+        }
+      } catch (error) {
+        console.error('Contact form error:', error);
+        showNotification('Failed to send message. Please try again or email us directly.', 'error');
+      } finally {
+        // Re-enable button
+        submitBtn.disabled = false;
+        submitText.textContent = 'Send Message';
+        submitIcon.setAttribute('data-lucide', 'send');
+        lucide.createIcons();
+      }
+    });
+    });
+  </script>
+
+    
+
+
+    <div id="footer-container-global"></div>
+    <script src="/shared/footer.js"></script>
+</body>
+
+</html>

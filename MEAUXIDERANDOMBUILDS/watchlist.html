@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeauxMarkets - Watchlist</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0e27;
+      color: #ffffff;
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+    .header {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f1629;
+      border-bottom: 1px solid #1a2332;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: #3b82f6;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+    .section {
+      padding: 20px 16px;
+    }
+    .stock-item {
+      background: #1a2332;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid #243447;
+    }
+    .stock-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .stock-right {
+      text-align: right;
+    }
+    .stock-price {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .stock-change {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .positive { color: #10b981; }
+    .negative { color: #ef4444; }
+    .nav-bottom {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #0f1629;
+      border-top: 1px solid #1a2332;
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 0;
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: #64748b;
+      text-decoration: none;
+      font-size: 12px;
+    }
+    .nav-item.active {
+      color: #3b82f6;
+    }
+    .nav-item svg {
+      width: 24px;
+      height: 24px;
+    }
+    .icon { width: 20px; height: 20px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">M</div>
+      <span>MeauxAccess</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 20px;">Your Watchlist</h1>
+    <div id="watchlist"></div>
+  </div>
+
+  <nav class="nav-bottom">
+    <a href="/markets" class="nav-item">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M3 3v18h18" stroke-width="2" stroke-linecap="round"/>
+        <path d="M7 12l4-4 4 4 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Markets</span>
+    </a>
+    <a href="/markets/wallet" class="nav-item">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke-width="2"/>
+        <line x1="1" y1="10" x2="23" y2="10" stroke-width="2"/>
+      </svg>
+      <span>Wallet</span>
+    </a>
+    <a href="/markets/paper" class="nav-item">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2L2 7l10 5 10-5-10-5z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2 17l10 5 10-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2 12l10 5 10-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Paper: Trade</span>
+    </a>
+    <a href="/markets/journal" class="nav-item">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Journal</span>
+    </a>
+    <a href="/markets/tutor" class="nav-item">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Tutor AI</span>
+    </a>
+  </nav>
+
+  <script>
+    async function loadWatchlist() {
+      try {
+        const res = await fetch('/api/markets/watchlist');
+        const data = await res.json();
+        if (data.ok && data.symbols) {
+          const container = document.getElementById('watchlist');
+          container.innerHTML = '';
+          
+          for (const symbol of data.symbols) {
+            const quoteRes = await fetch(`/api/markets/quote?symbol=${symbol}`);
+            const quoteData = await quoteRes.json();
+            const quote = quoteData.quote || { price: 0, changePct: 0, change: 0 };
+            
+            const item = document.createElement('div');
+            item.className = 'stock-item';
+            item.innerHTML = `
+              <div class="stock-left">
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <polyline points="20 6 9 17 4 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div>
+                  <div style="font-weight: 600;">${symbol}</div>
+                </div>
+              </div>
+              <div class="stock-right">
+                <div class="stock-price">${quote.price.toFixed(2)}</div>
+                <div class="stock-change ${quote.changePct >= 0 ? 'positive' : 'negative'}">
+                  ${quote.changePct >= 0 ? '+' : ''}${quote.changePct.toFixed(2)}%
+                </div>
+              </div>
+            `;
+            container.appendChild(item);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load watchlist:', err);
+      }
+    }
+    loadWatchlist();
+  </script>
+</body>
+</html>

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- Google Tag Manager -->
+  <script>(function (w, d, s, l, i) {
+      w[l] = w[l] || []; w[l].push({
+        'gtm.start':
+          new Date().getTime(), event: 'gtm.js'
+      }); var f = d.getElementsByTagName(s)[0],
+        j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+          'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', 'GTM-MTH9P66B');</script>
+  <!-- End Google Tag Manager -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Our Work | InnerAnimal Media OS</title>
+  <meta name="description"
+    content="Explore our portfolio of innovative media projects, tools, and platforms built with cutting-edge technology.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Monaco', 'monospace'],
+          },
+          colors: {
+            brand: {
+              orange: '#ff6b00',
+              red: '#dc2626',
+              dark: '#050507',
+              panel: '#0a0a0f',
+              surface: '#171717',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Onboarding Wizard -->
+  <script src="/shared/onboarding-wizard.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(180deg, #0A0E1A 0%, #0F1419 100%);
+      color: #F9FAFB;
+      line-height: 1.6;
+      overflow-x: hidden;
+      padding-top: 80px;
+    }
+
+    /* Dark Glassmorphic Header Styles (matching services.html) */
+    header.nav {
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    header.nav.scrolled {
+      height: 68px;
+      background: rgba(10, 14, 26, 0.95) !important;
+      backdrop-filter: blur(50px) saturate(200%) !important;
+      -webkit-backdrop-filter: blur(50px) saturate(200%) !important;
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    header.nav a[href]:hover {
+      color: #4A9FFF !important;
+      background: rgba(74, 159, 255, 0.1) !important;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      border-color: rgba(255, 107, 0, 0.3);
+    }
+
+    .btn-primary {
+      background: #ff6b00;
+      color: white;
+      padding: 12px 32px;
+      border-radius: 24px;
+      font-weight: 600;
+      font-size: 15px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px 0 rgba(255, 107, 0, 0.25);
+    }
+
+    .btn-primary:hover {
+      background: #ff8533;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px 0 rgba(255, 107, 0, 0.35);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #202124;
+      padding: 12px 32px;
+      border-radius: 24px;
+      font-weight: 500;
+      font-size: 15px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      background: #f8f9fa;
+    }
+
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #ff6b00 0%, #dc2626 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+  </style>
+
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+    <link rel="stylesheet" href="/shared/footer.css">
+</head>
+
+<body class="bg-white text-gray-900">
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MTH9P66B" height="0" width="0"
+      style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+  <!-- Unified Header will be injected here by HeaderSystem (Light Theme for Work page) -->
+  <header role="banner"></header>
+
+  <!-- Mobile Menu (can reuse sidenav from index.html if needed) -->
+
+  <!-- Hero Section -->
+  <section class="relative min-h-[60vh] flex items-center justify-center overflow-hidden pt-20">
+    <div class="absolute inset-0 grid-bg opacity-30"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-white to-white"></div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-20 text-center">
+      <h1 class="text-5xl md:text-6xl font-bold mb-6">
+        Our <span class="gradient-text">Work</span>
+      </h1>
+      <p class="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+        Innovative projects and platforms that push the boundaries of modern media technology.
+      </p>
+    </div>
+  </section>
+
+  <!-- Work Portfolio -->
+  <section class="relative py-20 px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <!-- Projects Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
+
+        <!-- Project 1: MeauxOS -->
+        <div class="glass-card p-8 group cursor-pointer">
+          <div
+            class="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold mb-6 group-hover:scale-110 transition-transform">
+            MO
+          </div>
+          <h3 class="text-2xl font-bold mb-3 text-gray-900">MeauxOS</h3>
+          <p class="text-gray-600 mb-4">
+            Complete operating system for modern media teams. Infrastructure management, workflows, and tools all in one
+            platform.
+          </p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <span class="px-3 py-1 bg-orange-50 text-orange-700 text-xs font-medium rounded-full">Infrastructure</span>
+            <span class="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">Cloudflare</span>
+            <span class="px-3 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-full">D1 Database</span>
+          </div>
+          <a href="/dashboard/index.html"
+            class="text-brand-orange font-medium hover:underline inline-flex items-center gap-2">
+            Explore Platform <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </a>
+        </div>
+
+        <!-- Project 2: InnerAnimal Media OS -->
+        <div class="glass-card p-8 group cursor-pointer">
+          <div
+            class="w-14 h-14 rounded-xl bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center text-white font-bold mb-6 group-hover:scale-110 transition-transform">
+            IA
+          </div>
+          <h3 class="text-2xl font-bold mb-3 text-gray-900">InnerAnimal Media OS</h3>
+          <p class="text-gray-600 mb-4">
+            Executive platform for media teams. Dashboard, projects, workflows, and automation tools built for scale.
+          </p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <span class="px-3 py-1 bg-orange-50 text-orange-700 text-xs font-medium rounded-full">Media Platform</span>
+            <span class="px-3 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">Multi-tenant</span>
+            <span class="px-3 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-full">Real-time</span>
+          </div>
+          <a href="/dashboard/index.html"
+            class="text-brand-orange font-medium hover:underline inline-flex items-center gap-2">
+            View Dashboard <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </a>
+        </div>
+
+        <!-- Project 3: MeauxMCP -->
+        <div class="glass-card p-8 group cursor-pointer">
+          <div
+            class="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center text-white font-bold mb-6 group-hover:scale-110 transition-transform">
+            MC
+          </div>
+          <h3 class="text-2xl font-bold mb-3 text-gray-900">MeauxMCP</h3>
+          <p class="text-gray-600 mb-4">
+            Multi-Cloud Protocol for seamless integration across services. Agent-based execution and resource
+            management.
+          </p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <span class="px-3 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">MCP Protocol</span>
+            <span class="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">Agents</span>
+            <span class="px-3 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-full">API</span>
+          </div>
+          <a href="/dashboard/meauxmcp.html"
+            class="text-brand-orange font-medium hover:underline inline-flex items-center gap-2">
+            Try MCP Tool <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </a>
+        </div>
+
+        <!-- Project 4: InnerData -->
+        <div class="glass-card p-8 group cursor-pointer">
+          <div
+            class="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold mb-6 group-hover:scale-110 transition-transform">
+            ID
+          </div>
+          <h3 class="text-2xl font-bold mb-3 text-gray-900">InnerData</h3>
+          <p class="text-gray-600 mb-4">
+            Advanced SQL query editor with Supabase Edge Function integration. Execute queries across multiple
+            databases.
+          </p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <span class="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">SQL Editor</span>
+            <span class="px-3 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-full">Supabase</span>
+            <span class="px-3 py-1 bg-cyan-50 text-cyan-700 text-xs font-medium rounded-full">D1 Database</span>
+          </div>
+          <a href="/dashboard/meauxsql.html"
+            class="text-brand-orange font-medium hover:underline inline-flex items-center gap-2">
+            Query Database <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </a>
+        </div>
+
+        <!-- Project 5: iAutodidact -->
+        <div class="glass-card p-8 group cursor-pointer">
+          <div
+            class="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold mb-6 group-hover:scale-110 transition-transform">
+            iA
+          </div>
+          <h3 class="text-2xl font-bold mb-3 text-gray-900">iAutodidact</h3>
+          <p class="text-gray-600 mb-4">
+            Self-directed learning platform. Educational tools, courses, and personalized learning paths.
+          </p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <span class="px-3 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-full">Education</span>
+            <span class="px-3 py-1 bg-pink-50 text-pink-700 text-xs font-medium rounded-full">Learning</span>
+            <span class="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">Courses</span>
+          </div>
+          <a href="https://iautodidact.org" target="_blank"
+            class="text-brand-orange font-medium hover:underline inline-flex items-center gap-2">
+            Visit Site <i data-lucide="external-link" class="w-4 h-4"></i>
+          </a>
+        </div>
+
+        <!-- Project 6: Southern Pets -->
+        <div class="glass-card p-8 group cursor-pointer">
+          <div
+            class="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center text-white font-bold mb-6 group-hover:scale-110 transition-transform">
+            SP
+          </div>
+          <h3 class="text-2xl font-bold mb-3 text-gray-900">Southern Pets</h3>
+          <p class="text-gray-600 mb-4">
+            Animal rescue platform with adoption management, volunteer coordination, and donation processing.
+          </p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <span class="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-full">Non-profit</span>
+            <span class="px-3 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">Rescue</span>
+            <span class="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">Adoption</span>
+          </div>
+          <a href="https://southernpetsanimalrescue.com" target="_blank"
+            class="text-brand-orange font-medium hover:underline inline-flex items-center gap-2">
+            Visit Site <i data-lucide="external-link" class="w-4 h-4"></i>
+          </a>
+        </div>
+
+      </div>
+
+      <!-- Stats Section -->
+      <div class="glass-card p-12 text-center">
+        <h2 class="text-3xl font-bold mb-8">By The Numbers</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div>
+            <div class="text-4xl font-bold text-brand-orange mb-2">10+</div>
+            <div class="text-gray-600">Active Projects</div>
+          </div>
+          <div>
+            <div class="text-4xl font-bold text-brand-orange mb-2">100+</div>
+            <div class="text-gray-600">Teams Using</div>
+          </div>
+          <div>
+            <div class="text-4xl font-bold text-brand-orange mb-2">99.9%</div>
+            <div class="text-gray-600">Uptime SLA</div>
+          </div>
+          <div>
+            <div class="text-4xl font-bold text-brand-orange mb-2">24/7</div>
+            <div class="text-gray-600">Support</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="relative py-20 px-6 lg:px-8 bg-gradient-to-b from-white to-gray-50">
+    <div class="max-w-4xl mx-auto text-center">
+      <h2 class="text-4xl md:text-5xl font-bold mb-6">
+        Ready to Build Something <span class="gradient-text">Amazing?</span>
+      </h2>
+      <p class="text-xl text-gray-600 mb-8">
+        Let's work together to create innovative solutions that push boundaries.
+      </p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="/contact.html" class="btn-primary text-base px-8 py-4">
+          Get In Touch
+          <i data-lucide="arrow-right" class="w-5 h-5"></i>
+        </a>
+        <a href="/dashboard/index.html" class="btn-secondary text-base px-8 py-4">
+          Try Platform
+          <i data-lucide="play" class="w-5 h-5"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-gray-300 py-12 px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div>
+          <div class="flex items-center gap-3 mb-4">
+            <div
+              class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center text-white font-bold">
+              IA
+            </div>
+            <span class="text-xl font-bold text-white">InnerAnimal</span>
+          </div>
+          <p class="text-sm text-gray-400">
+            The complete operating system for modern media teams.
+          </p>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-4">Product</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="/features.html" class="hover:text-white transition-colors">Features</a></li>
+            <li><a href="/tools.html" class="hover:text-white transition-colors">Tools</a></li>
+            <li><a href="/workflows.html" class="hover:text-white transition-colors">Workflows</a></li>
+            <li><a href="/pricing.html" class="hover:text-white transition-colors">Pricing</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-4">Company</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="/about.html" class="hover:text-white transition-colors">About</a></li>
+            <li><a href="/work.html" class="hover:text-white transition-colors">Work</a></li>
+            <li><a href="/contact.html" class="hover:text-white transition-colors">Contact</a></li>
+            <li><a href="/terms.html" class="hover:text-white transition-colors">Terms</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-4">Resources</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="/dashboard/index.html" class="hover:text-white transition-colors">Dashboard</a></li>
+            <li><a href="/dashboard/meauxmcp.html" class="hover:text-white transition-colors">MeauxMCP</a></li>
+            <li><a href="/dashboard/meauxsql.html" class="hover:text-white transition-colors">InnerData</a></li>
+            <li><a href="/dashboard/library.html" class="hover:text-white transition-colors">Library</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-gray-800 pt-8 text-center text-sm text-gray-400">
+        <p>&copy; 2026 InnerAnimal Media. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Unified Header System (Light Theme for Work page) -->
+  <script src="/shared/header.js"></script>
+
+  <!-- Onboarding Wizard -->
+  <script src="/shared/onboarding-wizard.js"></script>
+
+  <script>
+    // HeaderSystem handles header rendering and onboarding automatically
+    window.openOnboardingWizard = function () {
+      if (typeof HeaderSystem !== 'undefined') {
+        HeaderSystem.openOnboarding();
+      } else if (typeof OnboardingWizard !== 'undefined') {
+        OnboardingWizard.init();
+        OnboardingWizard.show();
+      }
+    };
+
+    // Initialize icons
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  </script>
+
+    
+
+
+    <div id="footer-container-global"></div>
+    <script src="/shared/footer.js"></script>
+</body>
+
+</html>

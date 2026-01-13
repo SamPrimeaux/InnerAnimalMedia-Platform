@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation | Inner Animal Media</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <script src="/shared/header.js"></script>
+    <link rel="stylesheet" href="/shared/footer.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(180deg, #0A0E1A 0%, #0F1419 100%);
+            color: #F9FAFB;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding-top: 80px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 40px;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 24px;
+            letter-spacing: -1.5px;
+        }
+
+        h2 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-top: 48px;
+            margin-bottom: 16px;
+        }
+
+        h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 32px;
+            margin-bottom: 12px;
+        }
+
+        p {
+            font-size: 18px;
+            color: rgba(249, 250, 251, 0.7);
+            margin-bottom: 16px;
+            line-height: 1.7;
+        }
+
+        a {
+            color: #4A9FFF;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .doc-card {
+            background: rgba(17, 24, 39, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .doc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 32px;
+        }
+
+        .doc-link {
+            background: rgba(17, 24, 39, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            display: block;
+            text-decoration: none;
+        }
+
+        .doc-link:hover {
+            border-color: #4A9FFF;
+            transform: translateY(-4px);
+        }
+
+        ul {
+            margin-left: 24px;
+            color: rgba(249, 250, 251, 0.7);
+            line-height: 2;
+        }
+    </style>
+</head>
+
+<body>
+    <header role="banner"></header>
+    <div class="container">
+        <h1>Documentation</h1>
+        <p>Complete guides and tutorials for using Inner Animal Media platform.</p>
+
+        <div class="doc-card">
+            <h2>Quick Start</h2>
+            <p>Get started with Inner Animal Media in minutes.</p>
+            <ul>
+                <li>Create your account</li>
+                <li>Connect your first integration</li>
+                <li>Set up your first workflow</li>
+                <li>Deploy your first project</li>
+            </ul>
+        </div>
+
+        <div class="doc-card">
+            <h2>Guides</h2>
+            <div class="doc-grid">
+                <a href="/api" class="doc-link">
+                    <h3>API Reference</h3>
+                    <p>Complete API documentation with examples</p>
+                </a>
+                <a href="/dashboard" class="doc-link">
+                    <h3>Dashboard Guide</h3>
+                    <p>Navigate and use the dashboard effectively</p>
+                </a>
+                <a href="/tools" class="doc-link">
+                    <h3>Tools Documentation</h3>
+                    <p>Learn about available tools and services</p>
+                </a>
+                <a href="/workflows" class="doc-link">
+                    <h3>Workflows</h3>
+                    <p>Automate your workflows and processes</p>
+                </a>
+            </div>
+        </div>
+
+        <div class="doc-card">
+            <h2>Tutorials</h2>
+            <ul>
+                <li>Building your first API integration</li>
+                <li>Setting up OAuth connections</li>
+                <li>Creating custom workflows</li>
+                <li>Deploying to Cloudflare Pages</li>
+                <li>Managing multi-tenant applications</li>
+            </ul>
+        </div>
+
+        <div class="doc-card">
+            <h2>Support</h2>
+            <p>Need help? Check out our <a href="/support">support page</a> or <a href="/contact">contact us</a>.</p>
+        </div>
+    </div>
+    <div id="footer-container-global"></div>
+    <script src="/shared/footer.js"></script>
+</body>
+
+</html>

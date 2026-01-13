@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision Board - AutoMeaux</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #060911;
+            --surface: rgba(20, 28, 46, 0.95);
+            --surface-elevated: rgba(30, 40, 64, 0.95);
+            --surface-hover: rgba(40, 50, 80, 0.6);
+            --accent-teal: #3dd9d0;
+            --accent-mint: #7de3cb;
+            --text-primary: #e8eef7;
+            --text-secondary: #a0aec0;
+            --text-tertiary: #6b7280;
+            --border: rgba(255, 255, 255, 0.1);
+            --border-hover: rgba(61, 217, 208, 0.3);
+            --success: #34d399;
+            --warning: #fbbf24;
+            --error: #ef4444;
+            --info: #60a5fa;
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+        }
+
+        .header-content {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 1.125rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-teal) 0%, var(--accent-mint) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+
+        .main-wrapper {
+            margin-top: 60px;
+            padding: 2rem;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.938rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            color: var(--accent-teal);
+            border-bottom-color: var(--accent-teal);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .vision-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .vision-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .vision-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .vision-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .vision-card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .vision-card-icon {
+            width: 24px;
+            height: 24px;
+            stroke: var(--accent-teal);
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .vision-card-content {
+            font-size: 0.938rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            min-height: 80px;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background: var(--surface-elevated);
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .vision-card-content.editable {
+            cursor: text;
+        }
+
+        .vision-card-content.editable:hover {
+            border-color: var(--border-hover);
+            background: var(--surface-hover);
+        }
+
+        .vision-card-content.editable:focus {
+            outline: none;
+            border-color: var(--accent-teal);
+            background: var(--surface-hover);
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-teal) 0%, var(--accent-mint) 100%);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(61, 217, 208, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--surface-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--border-hover);
+        }
+
+        .btn-icon {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .task-list, .plan-list, .reminder-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .task-item, .plan-item, .reminder-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .task-item:hover, .plan-item:hover, .reminder-item:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+        }
+
+        .task-item.completed {
+            opacity: 0.6;
+        }
+
+        .task-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .task-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-top: 2px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .task-checkbox:hover {
+            border-color: var(--accent-teal);
+        }
+
+        .task-checkbox.checked {
+            background: linear-gradient(135deg, var(--accent-teal) 0%, var(--accent-mint) 100%);
+            border-color: var(--accent-teal);
+        }
+
+        .task-checkbox.checked::after {
+            content: '✓';
+            color: var(--bg-primary);
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .task-content {
+            flex: 1;
+        }
+
+        .task-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .task-item.completed .task-title {
+            text-decoration: line-through;
+            color: var(--text-tertiary);
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 0.75rem;
+            font-size: 0.813rem;
+            color: var(--text-tertiary);
+            flex-wrap: wrap;
+        }
+
+        .task-priority {
+            padding: 0.25rem 0.625rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .task-priority.high {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--error);
+        }
+
+        .task-priority.medium {
+            background: rgba(251, 191, 36, 0.2);
+            color: var(--warning);
+        }
+
+        .task-priority.low {
+            background: rgba(96, 165, 250, 0.2);
+            color: var(--info);
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .task-action-btn {
+            width: 32px;
+            height: 32px;
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .task-action-btn:hover {
+            border-color: var(--border-hover);
+            background: var(--surface-hover);
+        }
+
+        .task-action-btn svg {
+            width: 16px;
+            height: 16px;
+            stroke: var(--text-secondary);
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .plan-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .plan-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .plan-description {
+            font-size: 0.938rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .plan-progress {
+            height: 6px;
+            background: var(--surface-elevated);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+
+        .plan-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-teal) 0%, var(--accent-mint) 100%);
+            transition: width 0.3s ease;
+        }
+
+        .plan-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.813rem;
+            color: var(--text-tertiary);
+        }
+
+        .reminder-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .reminder-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .reminder-time {
+            font-size: 0.813rem;
+            color: var(--text-tertiary);
+        }
+
+        .reminder-item.upcoming {
+            border-left: 3px solid var(--warning);
+        }
+
+        .reminder-item.overdue {
+            border-left: 3px solid var(--error);
+        }
+
+        .add-item-form {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--accent-teal);
+            box-shadow: 0 0 0 3px rgba(61, 217, 208, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 0.75rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-tertiary);
+        }
+
+        .empty-state-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+            opacity: 0.3;
+        }
+
+        .empty-state-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .main-wrapper {
+                padding: 1rem;
+            }
+
+            .vision-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="index.html" class="logo">AutoMeaux</a>
+            <div style="color: var(--text-secondary); font-size: 0.875rem;">Vision Board</div>
+        </div>
+    </header>
+
+    <div class="main-wrapper">
+        <div class="page-header">
+            <h1 class="page-title">Vision & Mission Board</h1>
+            <p class="page-subtitle">Align your goals, plans, tasks, and reminders</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="vision">Vision & Mission</button>
+            <button class="tab" data-tab="plans">Plans</button>
+            <button class="tab" data-tab="tasks">Tasks</button>
+            <button class="tab" data-tab="reminders">Reminders</button>
+        </div>
+
+        <!-- Vision & Mission Tab -->
+        <div class="tab-content active" id="vision-tab">
+            <div class="vision-grid">
+                <div class="vision-card">
+                    <div class="vision-card-header">
+                        <div class="vision-card-title">
+                            <svg class="vision-card-icon" viewBox="0 0 24 24">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            </svg>
+                            Vision (3-5 Years)
+                        </div>
+                    </div>
+                    <div class="vision-card-content editable" contenteditable="true" data-key="vision">
+                        Define your long-term vision: What outcome do you want to create? Who is it for? What does success look like in 3-5 years?
+                    </div>
+                </div>
+
+                <div class="vision-card">
+                    <div class="vision-card-header">
+                        <div class="vision-card-title">
+                            <svg class="vision-card-icon" viewBox="0 0 24 24">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                <path d="M2 17l10 5 10-5"/>
+                            </svg>
+                            Mission (12-18 Months)
+                        </div>
+                    </div>
+                    <div class="vision-card-content editable" contenteditable="true" data-key="mission">
+                        Define your mission: What will you do to move toward the vision? What are the key activities and outcomes for the next 12-18 months?
+                    </div>
+                </div>
+
+                <div class="vision-card">
+                    <div class="vision-card-header">
+                        <div class="vision-card-title">
+                            <svg class="vision-card-icon" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M12 1v6m0 6v6M5.6 5.6l4.2 4.2m4.4 4.4l4.2 4.2M1 12h6m6 0h6M5.6 18.4l4.2-4.2m4.4-4.4l4.2-4.2"/>
+                            </svg>
+                            North Star Metric
+                        </div>
+                    </div>
+                    <div class="vision-card-content editable" contenteditable="true" data-key="northStar">
+                        What single metric best indicates you're moving toward your vision?
+                    </div>
+                </div>
+
+                <div class="vision-card">
+                    <div class="vision-card-header">
+                        <div class="vision-card-title">
+                            <svg class="vision-card-icon" viewBox="0 0 24 24">
+                                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                                <rect x="14" y="14" width="7" height="7" rx="1"/>
+                            </svg>
+                            Strategic Pillars
+                        </div>
+                    </div>
+                    <div class="vision-card-content editable" contenteditable="true" data-key="pillars">
+                        List your 3-4 core strategic pillars (e.g., Reliability & Security, Speed & Automation, Developer Experience, Customer Outcomes)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Plans Tab -->
+        <div class="tab-content" id="plans-tab">
+            <div class="add-item-form">
+                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Create New Plan</h3>
+                <div class="form-group">
+                    <label class="form-label">Plan Title</label>
+                    <input type="text" class="form-input" id="planTitle" placeholder="e.g., Q1 2025 Product Launch">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="planDescription" placeholder="Describe your plan..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Target Date</label>
+                    <input type="date" class="form-input" id="planDate">
+                </div>
+                <div class="form-row">
+                    <div></div>
+                    <button class="btn btn-primary" onclick="addPlan()">
+                        <svg class="btn-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Add Plan
+                    </button>
+                </div>
+            </div>
+
+            <div class="plan-list" id="planList">
+                <!-- Plans will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Tasks Tab -->
+        <div class="tab-content" id="tasks-tab">
+            <div class="add-item-form">
+                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Create New Task</h3>
+                <div class="form-group">
+                    <label class="form-label">Task Title</label>
+                    <input type="text" class="form-input" id="taskTitle" placeholder="e.g., Review deployment pipeline">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Priority</label>
+                    <select class="form-select" id="taskPriority">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Due Date (optional)</label>
+                    <input type="date" class="form-input" id="taskDate">
+                </div>
+                <div class="form-row">
+                    <div></div>
+                    <button class="btn btn-primary" onclick="addTask()">
+                        <svg class="btn-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Add Task
+                    </button>
+                </div>
+            </div>
+
+            <div class="task-list" id="taskList">
+                <!-- Tasks will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Reminders Tab -->
+        <div class="tab-content" id="reminders-tab">
+            <div class="add-item-form">
+                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Create New Reminder</h3>
+                <div class="form-group">
+                    <label class="form-label">Reminder Title</label>
+                    <input type="text" class="form-input" id="reminderTitle" placeholder="e.g., Review quarterly goals">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date & Time</label>
+                    <input type="datetime-local" class="form-input" id="reminderDateTime">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes (optional)</label>
+                    <textarea class="form-textarea" id="reminderNotes" placeholder="Additional notes..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div></div>
+                    <button class="btn btn-primary" onclick="addReminder()">
+                        <svg class="btn-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Add Reminder
+                    </button>
+                </div>
+            </div>
+
+            <div class="reminder-list" id="reminderList">
+                <!-- Reminders will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data storage
+        let visionData = JSON.parse(localStorage.getItem('visionData') || '{}');
+        let plans = JSON.parse(localStorage.getItem('plans') || '[]');
+        let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+        let reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                const tabId = tab.dataset.tab + '-tab';
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Save vision data on edit
+        document.querySelectorAll('.vision-card-content.editable').forEach(el => {
+            el.addEventListener('blur', () => {
+                const key = el.dataset.key;
+                visionData[key] = el.textContent.trim();
+                localStorage.setItem('visionData', JSON.stringify(visionData));
+            });
+        });
+
+        // Load vision data
+        Object.keys(visionData).forEach(key => {
+            const el = document.querySelector(`[data-key="${key}"]`);
+            if (el && visionData[key]) {
+                el.textContent = visionData[key];
+            }
+        });
+
+        // Plans
+        function addPlan() {
+            const title = document.getElementById('planTitle').value.trim();
+            const description = document.getElementById('planDescription').value.trim();
+            const date = document.getElementById('planDate').value;
+
+            if (!title) return;
+
+            const plan = {
+                id: Date.now(),
+                title,
+                description,
+                date,
+                progress: 0,
+                createdAt: new Date().toISOString()
+            };
+
+            plans.push(plan);
+            localStorage.setItem('plans', JSON.stringify(plans));
+            renderPlans();
+
+            document.getElementById('planTitle').value = '';
+            document.getElementById('planDescription').value = '';
+            document.getElementById('planDate').value = '';
+        }
+
+        function renderPlans() {
+            const container = document.getElementById('planList');
+            if (plans.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        </div>
+                        <h3>No plans yet</h3>
+                        <p>Create your first plan to get started</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = plans.map(plan => {
+                const dateStr = plan.date ? new Date(plan.date).toLocaleDateString() : 'No date set';
+                return `
+                    <div class="plan-item">
+                        <div class="plan-header">
+                            <div class="plan-title">${escapeHtml(plan.title)}</div>
+                            <div class="task-actions">
+                                <button class="task-action-btn" onclick="deletePlan(${plan.id})" title="Delete">
+                                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="plan-description">${escapeHtml(plan.description || 'No description')}</div>
+                        <div class="plan-progress">
+                            <div class="plan-progress-bar" style="width: ${plan.progress}%"></div>
+                        </div>
+                        <div class="plan-meta">
+                            <span>Target: ${dateStr}</span>
+                            <span>Progress: ${plan.progress}%</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function deletePlan(id) {
+            plans = plans.filter(p => p.id !== id);
+            localStorage.setItem('plans', JSON.stringify(plans));
+            renderPlans();
+        }
+
+        // Tasks
+        function addTask() {
+            const title = document.getElementById('taskTitle').value.trim();
+            const priority = document.getElementById('taskPriority').value;
+            const date = document.getElementById('taskDate').value;
+
+            if (!title) return;
+
+            const task = {
+                id: Date.now(),
+                title,
+                priority,
+                date,
+                completed: false,
+                createdAt: new Date().toISOString()
+            };
+
+            tasks.push(task);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            renderTasks();
+
+            document.getElementById('taskTitle').value = '';
+            document.getElementById('taskPriority').value = 'medium';
+            document.getElementById('taskDate').value = '';
+        }
+
+        function renderTasks() {
+            const container = document.getElementById('taskList');
+            const incompleteTasks = tasks.filter(t => !t.completed);
+            const completedTasks = tasks.filter(t => t.completed);
+
+            if (tasks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        </div>
+                        <h3>No tasks yet</h3>
+                        <p>Create your first task to get started</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+
+            if (incompleteTasks.length > 0) {
+                html += incompleteTasks.map(task => renderTaskItem(task)).join('');
+            }
+
+            if (completedTasks.length > 0) {
+                html += completedTasks.map(task => renderTaskItem(task)).join('');
+            }
+
+            container.innerHTML = html;
+        }
+
+        function renderTaskItem(task) {
+            const dateStr = task.date ? new Date(task.date).toLocaleDateString() : '';
+            return `
+                <div class="task-item ${task.completed ? 'completed' : ''}">
+                    <div class="task-header">
+                        <div class="task-checkbox ${task.completed ? 'checked' : ''}" onclick="toggleTask(${task.id})"></div>
+                        <div class="task-content">
+                            <div class="task-title">${escapeHtml(task.title)}</div>
+                            <div class="task-meta">
+                                <span class="task-priority ${task.priority}">${task.priority}</span>
+                                ${dateStr ? `<span>Due: ${dateStr}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="task-actions">
+                            <button class="task-action-btn" onclick="deleteTask(${task.id})" title="Delete">
+                                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+                renderTasks();
+            }
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            renderTasks();
+        }
+
+        // Reminders
+        function addReminder() {
+            const title = document.getElementById('reminderTitle').value.trim();
+            const dateTime = document.getElementById('reminderDateTime').value;
+            const notes = document.getElementById('reminderNotes').value.trim();
+
+            if (!title || !dateTime) return;
+
+            const reminder = {
+                id: Date.now(),
+                title,
+                dateTime,
+                notes,
+                createdAt: new Date().toISOString()
+            };
+
+            reminders.push(reminder);
+            localStorage.setItem('reminders', JSON.stringify(reminders));
+            renderReminders();
+
+            document.getElementById('reminderTitle').value = '';
+            document.getElementById('reminderDateTime').value = '';
+            document.getElementById('reminderNotes').value = '';
+        }
+
+        function renderReminders() {
+            const container = document.getElementById('reminderList');
+            if (reminders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <h3>No reminders yet</h3>
+                        <p>Create your first reminder to stay on track</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const now = new Date();
+            container.innerHTML = reminders
+                .sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime))
+                .map(reminder => {
+                    const reminderDate = new Date(reminder.dateTime);
+                    const isOverdue = reminderDate < now && reminderDate.toDateString() !== now.toDateString();
+                    const isUpcoming = reminderDate > now && reminderDate - now < 24 * 60 * 60 * 1000;
+                    
+                    let statusClass = '';
+                    if (isOverdue) statusClass = 'overdue';
+                    else if (isUpcoming) statusClass = 'upcoming';
+
+                    return `
+                        <div class="reminder-item ${statusClass}">
+                            <div>
+                                <div class="reminder-header">
+                                    <div class="reminder-title">${escapeHtml(reminder.title)}</div>
+                                    <div class="task-actions">
+                                        <button class="task-action-btn" onclick="deleteReminder(${reminder.id})" title="Delete">
+                                            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="reminder-time">${reminderDate.toLocaleString()}</div>
+                                ${reminder.notes ? `<div style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);">${escapeHtml(reminder.notes)}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+        }
+
+        function deleteReminder(id) {
+            reminders = reminders.filter(r => r.id !== id);
+            localStorage.setItem('reminders', JSON.stringify(reminders));
+            renderReminders();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initial render
+        renderPlans();
+        renderTasks();
+        renderReminders();
+
+        // Check for overdue reminders periodically
+        setInterval(() => {
+            renderReminders();
+        }, 60000); // Check every minute
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+

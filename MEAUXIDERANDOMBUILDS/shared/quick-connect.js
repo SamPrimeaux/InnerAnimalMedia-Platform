@@ -2,7 +2,10 @@
 // Allows users to select unlimited applications and external services for quick access
 
 const quickConnect = {
-    apiBase: window.location.origin || 'https://inneranimalmedia-dev.meauxbility.workers.dev',
+    // Use current origin (inneranimalmedia.com or www.inneranimalmedia.com)
+    // Worker is routed to inneranimalmedia.com/* and www.inneranimalmedia.com/*
+    apiBase: window.location.origin,
+    fallbackApiBase: 'https://inneranimalmedia-dev.meauxbility.workers.dev',
     userId: null, // Will be set from session/auth
     preferences: {
         connections: [] // Array of connection IDs: ['tool-meauxide', 'tool-meauxmcp', 'external-claude', ...]
@@ -56,10 +59,13 @@ const quickConnect = {
 
     async loadPreferences() {
         try {
-            // Try to load from API
+            // Try to load from API (use current origin first, fallback to workers.dev)
+            const prefsUrl = `${this.apiBase}/api/users/${this.userId}/preferences`;
+            const connectionsUrl = `${this.apiBase}/api/users/${this.userId}/connections`;
+            
             const [prefsRes, connectionsRes] = await Promise.all([
-                fetch(`${this.apiBase}/api/users/${this.userId}/preferences`),
-                fetch(`${this.apiBase}/api/users/${this.userId}/connections`)
+                fetch(prefsUrl).catch(() => fetch(`${this.fallbackApiBase}/api/users/${this.userId}/preferences`)),
+                fetch(connectionsUrl).catch(() => fetch(`${this.fallbackApiBase}/api/users/${this.userId}/connections`))
             ]);
 
             if (prefsRes.ok) {
@@ -607,8 +613,8 @@ const quickConnect = {
     },
 
     openClaudeLightbox(connection) {
-        // Create Claude lightbox
-        this.showNotification('Claude integration - Chat interface coming soon!', 'info');
+        // Open Claude chat interface
+        window.location.href = '/dashboard/claude';
     },
 
     openOpenAILightbox(connection) {

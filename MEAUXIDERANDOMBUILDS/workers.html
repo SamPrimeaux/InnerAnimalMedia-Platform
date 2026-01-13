@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iAccess - Workers</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* iAccess Brand Colors - Sophisticated Tech */
+      --ia-primary: #0066FF;
+      --ia-primary-dark: #0052CC;
+      --ia-primary-light: #3385FF;
+      --ia-accent: #00E5A0;
+      --ia-accent-dark: #00B380;
+      --ia-warning: #FFB020;
+      --ia-error: #FF3B57;
+      --ia-success: #00E5A0;
+      
+      /* Neural Network Theme */
+      --bg-primary: #0A0E1A;
+      --bg-secondary: #111827;
+      --bg-elevated: #1A2332;
+      --bg-card: #141B2B;
+      --bg-hover: #1E2A3F;
+      
+      /* Text & Borders */
+      --text-primary: #F9FAFB;
+      --text-secondary: #9CA3AF;
+      --text-muted: #6B7280;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(0, 102, 255, 0.4);
+      
+      /* Shadows & Glows */
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+      --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+      --glow-primary: 0 0 20px rgba(0, 102, 255, 0.4);
+      --glow-accent: 0 0 20px rgba(0, 229, 160, 0.4);
+      
+      /* Spacing */
+      --space-xs: 0.5rem;
+      --space-sm: 0.75rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2rem;
+      --space-2xl: 3rem;
+      
+      /* Layout */
+      --sidebar-width: 280px;
+      --header-height: 72px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Animated Neural Network Background */
+    #neural-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.15;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .app-container {
+      display: flex;
+      height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ============================================
+       SIDEBAR WITH CUSTOM ICONS
+       ============================================ */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sidebar::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 1px;
+      height: 100%;
+      background: linear-gradient(180deg, var(--ia-primary) 0%, transparent 50%, var(--ia-accent) 100%);
+      opacity: 0.3;
+    }
+
+    .sidebar-header {
+      padding: var(--space-xl);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .brand:hover {
+      transform: translateX(4px);
+    }
+
+    /* Custom iAccess Logo SVG */
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      position: relative;
+      animation: logoGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes logoGlow {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(0, 102, 255, 0.6)); }
+      50% { filter: drop-shadow(0 0 16px rgba(0, 229, 160, 0.8)); }
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-name {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--ia-primary) 0%, var(--ia-accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .brand-tagline {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* Navigation */
+    .sidebar-nav {
+      flex: 1;
+      padding: var(--space-lg);
+      overflow-y: auto;
+    }
+
+    .nav-section {
+      margin-bottom: var(--space-xl);
+    }
+
+    .nav-section-title {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      padding: 0 var(--space-md);
+      margin-bottom: var(--space-sm);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-section-title::before {
+      content: '';
+      width: 3px;
+      height: 12px;
+      background: linear-gradient(180deg, var(--ia-primary), var(--ia-accent));
+      border-radius: 2px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      padding: 0.875rem var(--space-md);
+      border-radius: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-bottom: 4px;
+      position: relative;
+      overflow: hidden;
+      font-weight: 500;
+      font-size: 0.9375rem;
+    }
+
+    .nav-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 3px;
+      height: 100%;
+      background: linear-gradient(180deg, var(--ia-primary), var(--ia-accent));
+      transform: scaleY(0);
+      transition: transform 0.3s ease;
+    }
+
+    .nav-item:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      padding-left: calc(var(--space-md) + 8px);
+    }
+
+    .nav-item.active {
+      background: linear-gradient(90deg, rgba(0, 102, 255, 0.15) 0%, transparent 100%);
+      color: var(--ia-primary);
+      font-weight: 600;
+      border-left: 3px solid var(--ia-primary);
+      box-shadow: var(--glow-primary);
+    }
+
+    .nav-item.active::before {
+      transform: scaleY(1);
+    }
+
+    /* Custom Navigation Icons */
+    .nav-icon {
+      width: 24px;
+      height: 24px;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .nav-icon svg {
+      width: 100%;
+      height: 100%;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .nav-badge {
+      margin-left: auto;
+      background: var(--ia-primary);
+      color: white;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      box-shadow: var(--glow-primary);
+    }
+
+    /* Sidebar Footer */
+    .sidebar-footer {
+      padding: var(--space-lg);
+      border-top: 1px solid var(--border);
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-md);
+      background: var(--bg-elevated);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .user-profile:hover {
+      background: var(--bg-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--ia-primary), var(--ia-accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+      box-shadow: var(--glow-primary);
+    }
+
+    .user-info {
+      flex: 1;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 0.9375rem;
+      color: var(--text-primary);
+    }
+
+    .user-role {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* ============================================
+       MAIN CONTENT AREA
+       ============================================ */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Top Header */
+    .top-header {
+      height: var(--header-height);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0 var(--space-xl);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .top-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--ia-primary) 50%, transparent);
+      opacity: 0.3;
+    }
+
+    /* Search Bar */
+    .search-container {
+      flex: 1;
+      max-width: 560px;
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.875rem 1rem 0.875rem 3rem;
+      color: var(--text-primary);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--ia-primary);
+      background: var(--bg-card);
+      box-shadow: 0 0 0 4px rgba(0, 102, 255, 0.1), var(--glow-primary);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Header Actions */
+    .header-actions {
+      display: flex;
+      gap: var(--space-md);
+      align-items: center;
+    }
+
+    .header-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      color: var(--text-secondary);
+    }
+
+    .header-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--ia-primary);
+      color: var(--ia-primary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .header-btn.active {
+      background: var(--ia-primary);
+      border-color: var(--ia-primary);
+      color: white;
+      box-shadow: var(--glow-primary);
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: var(--ia-error);
+      color: white;
+      font-size: 0.625rem;
+      font-weight: 700;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--bg-secondary);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    /* Page Content */
+    .page-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-xl);
+      background: var(--bg-primary);
+    }
+
+    .content-wrapper {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    /* Page Header */
+    .page-header {
+      margin-bottom: var(--space-xl);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .page-header-left h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: var(--space-xs);
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .page-header-left p {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .page-header-right {
+      display: flex;
+      gap: var(--space-md);
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 0.875rem 1.5rem;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.9375rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'Inter', sans-serif;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--ia-primary), var(--ia-primary-dark));
+      color: white;
+      box-shadow: var(--glow-primary);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 102, 255, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+      border-color: var(--ia-primary);
+      transform: translateY(-2px);
+    }
+
+    /* ============================================
+       STATS GRID
+       ============================================ */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: var(--space-lg);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--ia-primary), var(--ia-accent));
+      transform: scaleX(0);
+      transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--ia-primary);
+    }
+
+    .stat-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .stat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: var(--space-md);
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .stat-icon.primary {
+      background: linear-gradient(135deg, rgba(0, 102, 255, 0.2), rgba(0, 102, 255, 0.05));
+      color: var(--ia-primary);
+      box-shadow: 0 0 20px rgba(0, 102, 255, 0.3);
+    }
+
+    .stat-icon.accent {
+      background: linear-gradient(135deg, rgba(0, 229, 160, 0.2), rgba(0, 229, 160, 0.05));
+      color: var(--ia-accent);
+      box-shadow: 0 0 20px rgba(0, 229, 160, 0.3);
+    }
+
+    .stat-icon.warning {
+      background: linear-gradient(135deg, rgba(255, 176, 32, 0.2), rgba(255, 176, 32, 0.05));
+      color: var(--ia-warning);
+      box-shadow: 0 0 20px rgba(255, 176, 32, 0.3);
+    }
+
+    .stat-change {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+
+    .stat-change.positive {
+      background: rgba(0, 229, 160, 0.1);
+      color: var(--ia-accent);
+    }
+
+    .stat-change.negative {
+      background: rgba(255, 59, 87, 0.1);
+      color: var(--ia-error);
+    }
+
+    .stat-body {
+      margin-bottom: var(--space-sm);
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 4px;
+    }
+
+    .stat-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: var(--space-sm);
+      border-top: 1px solid var(--border);
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    /* ============================================
+       CHARTS SECTION
+       ============================================ */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: var(--space-lg);
+      transition: all 0.3s ease;
+    }
+
+    .chart-card.large {
+      grid-column: span 8;
+    }
+
+    .chart-card.small {
+      grid-column: span 4;
+    }
+
+    .chart-card:hover {
+      border-color: var(--ia-primary);
+      box-shadow: var(--shadow-md);
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-lg);
+    }
+
+    .chart-title {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .chart-subtitle {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .chart-filters {
+      display: flex;
+      gap: var(--space-sm);
+    }
+
+    .filter-btn {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .filter-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .filter-btn.active {
+      background: var(--ia-primary);
+      color: white;
+      border-color: var(--ia-primary);
+      box-shadow: var(--glow-primary);
+    }
+
+    .chart-body {
+      position: relative;
+      height: 320px;
+    }
+
+    /* ============================================
+       DATA TABLE
+       ============================================ */
+    .data-table-section {
+      margin-bottom: var(--space-xl);
+    }
+
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .table-header {
+      padding: var(--space-lg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .table-title {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .table-actions {
+      display: flex;
+      gap: var(--space-sm);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table thead {
+      background: var(--bg-elevated);
+    }
+
+    .data-table th {
+      padding: 1rem var(--space-lg);
+      text-align: left;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .data-table td {
+      padding: 1rem var(--space-lg);
+      border-top: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 0.9375rem;
+    }
+
+    .data-table tbody tr {
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .data-table tbody tr:hover {
+      background: var(--bg-elevated);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+    }
+
+    .status-badge.success {
+      background: rgba(0, 229, 160, 0.1);
+      color: var(--ia-accent);
+    }
+
+    .status-badge.warning {
+      background: rgba(255, 176, 32, 0.1);
+      color: var(--ia-warning);
+    }
+
+    .status-badge.error {
+      background: rgba(255, 59, 87, 0.1);
+      color: var(--ia-error);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 2s infinite;
+    }
+
+    /* ============================================
+       ANIMATIONS
+       ============================================ */
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .stat-card, .chart-card, .table-card {
+      animation: slideIn 0.6s ease-out backwards;
+    }
+
+    .stat-card:nth-child(1) { animation-delay: 0.1s; }
+    .stat-card:nth-child(2) { animation-delay: 0.2s; }
+    .stat-card:nth-child(3) { animation-delay: 0.3s; }
+    .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+    /* ============================================
+       SCROLLBAR
+       ============================================ */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg-hover);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--ia-primary);
+    }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 1200px) {
+      .chart-card.large {
+        grid-column: span 12;
+      }
+      .chart-card.small {
+        grid-column: span 6;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      .chart-card.small {
+        grid-column: span 12;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Animated Neural Network Background -->
+  <canvas id="neural-bg"></canvas>
+
+  <div class="app-container">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-logo">
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Custom iAccess Logo -->
+              <circle cx="20" cy="20" r="18" stroke="url(#gradient1)" stroke-width="2"/>
+              <path d="M20 8 L20 32 M12 20 L28 20" stroke="url(#gradient1)" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="20" cy="20" r="4" fill="url(#gradient1)"/>
+              <circle cx="14" cy="14" r="2" fill="var(--ia-primary)" opacity="0.6"/>
+              <circle cx="26" cy="14" r="2" fill="var(--ia-accent)" opacity="0.6"/>
+              <circle cx="14" cy="26" r="2" fill="var(--ia-accent)" opacity="0.6"/>
+              <circle cx="26" cy="26" r="2" fill="var(--ia-primary)" opacity="0.6"/>
+              <defs>
+                <linearGradient id="gradient1" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0%" stop-color="#0066FF"/>
+                  <stop offset="100%" stop-color="#00E5A0"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <div class="brand-name">iAccess</div>
+            <div class="brand-tagline">Intelligence Platform</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Core</div>
+          <div class="nav-item">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+            </div>
+            <span>Dashboard</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+            </div>
+            <span>Analytics</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v6m0 6v6m0 0"/>
+                <circle cx="12" cy="12" r="10"/>
+              </svg>
+            </div>
+            <span>AI Gateway</span>
+            <span class="nav-badge">Pro</span>
+          </div>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Services</div>
+          <div class="nav-item">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M3 9h18M9 21V9"/>
+              </svg>
+            </div>
+            <span>Browser Rendering</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                <polyline points="7.5 4.21 12 6.81 16.5 4.21"/>
+                <polyline points="7.5 19.79 7.5 14.6 3 12"/>
+                <polyline points="21 12 16.5 14.6 16.5 19.79"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+            </div>
+            <span>Vectorize</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <span>Workflows</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+            </div>
+            <span>Email Routing</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+            </div>
+            <span>Queues</span>
+          </div>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Storage</div>
+          <div class="nav-item">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+              </svg>
+            </div>
+            <span>D1 Databases</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+              </svg>
+            </div>
+            <span>R2 Storage</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <rect x="2" y="7" width="20" height="14" rx="2"/>
+                <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
+              </svg>
+            </div>
+            <span>KV Namespaces</span>
+          </div>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Settings</div>
+          <div class="nav-item">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v6m0 6v6"/>
+                <path d="M17 6a5 5 0 010 12"/>
+                <path d="M7 6a5 5 0 000 12"/>
+              </svg>
+            </div>
+            <span>Integrations</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+              </svg>
+            </div>
+            <span>Settings</span>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile">
+          <div class="user-avatar">SP</div>
+          <div class="user-info">
+            <div class="user-name">Sam Primeaux</div>
+            <div class="user-role">Enterprise Admin</div>
+          </div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <!-- Top Header -->
+      <header class="top-header">
+        <div class="search-container">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input type="text" class="search-input" placeholder="Search projects, services, logs...">
+        </div>
+        <div class="header-actions">
+          <button class="header-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 01-3.46 0"/>
+            </svg>
+            <span class="notification-badge">7</span>
+          </button>
+          <button class="header-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+          </button>
+          <button class="header-btn active">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v6m0 6v6"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+        <div class="content-wrapper">
+          <!-- Page Header -->
+          <div class="page-header">
+            <div class="page-header-left">
+              <h1>Workers</h1><p>Manage and deploy Cloudflare Workers</p>
+            </div>
+            <div class="page-header-right">
+              <button class="btn btn-secondary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Export Report
+              </button>
+              <button class="btn btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                New Service
+              </button>
+            </div>
+          </div>
+
+          
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon primary">⚡</div>
+            <div class="stat-change positive">+12</div>
+          </div>
+          <div class="stat-body">
+            <div class="stat-value" id="workers-count">69</div>
+            <div class="stat-label">Total Workers</div>
+          </div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">All Workers</div>
+          <button class="btn btn-primary">Deploy Worker</button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr><th>Name</th><th>Status</th><th>Requests</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="workersTable">Loading...</tbody>
+        </table>
+      </div>
+      <script>
+        async function loadWorkers() {
+          try {
+            const res = await fetch('https://iaccess-api.meauxbility.workers.dev/api/workers');
+            const data = await res.json();
+            if (data.success) {
+              document.getElementById('workers-count').textContent = data.count || data.data.length;
+              const tbody = document.getElementById('workersTable');
+              tbody.innerHTML = data.data.map(w => `
+                <tr>
+                  <td style="font-weight: 600;">${w.id || w.name}</td>
+                  <td><span class="status-badge success"><span class="status-dot"></span>Active</span></td>
+                  <td>${Math.floor(Math.random() * 2000000).toLocaleString()}</td>
+                  <td><button class="filter-btn">View</button></td>
+                </tr>
+              `).join('');
+            }
+          } catch(e) { console.error(e); }
+        }
+        document.addEventListener('DOMContentLoaded', loadWorkers);
+      </script>
+    <!-- Data Table -->
+          <div class="data-table-section">
+            <div class="table-card">
+              <div class="table-header">
+                <div class="table-title">Active Services</div>
+                <div class="table-actions">
+                  <button class="filter-btn">All Services</button>
+                  <button class="filter-btn">Workers</button>
+                  <button class="filter-btn">Storage</button>
+                  <button class="filter-btn">AI</button>
+                </div>
+              </div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Service</th>
+                    <th>Type</th>
+                    <th>Requests</th>
+                    <th>Latency</th>
+                    <th>Status</th>
+                    <th>Cost</th>
+                  </tr>
+                </thead>
+                <tbody id="servicesTable">
+                  <!-- Populated by JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ============================================
+    // NEURAL NETWORK BACKGROUND
+    // ============================================
+    const canvas = document.getElementById('neural-bg');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    class Node {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.vx = (Math.random() - 0.5) * 0.5;
+        this.vy = (Math.random() - 0.5) * 0.5;
+        this.radius = Math.random() * 2 + 1;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 102, 255, 0.5)';
+        ctx.fill();
+      }
+    }
+
+    const nodes = Array.from({ length: 50 }, () => new Node());
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      nodes.forEach(node => {
+        node.update();
+        node.draw();
+
+        nodes.forEach(other => {
+          const dx = node.x - other.x;
+          const dy = node.y - other.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 150) {
+            ctx.beginPath();
+            ctx.moveTo(node.x, node.y);
+            ctx.lineTo(other.x, other.y);
+            ctx.strokeStyle = `rgba(0, 102, 255, ${0.2 * (1 - distance / 150)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        });
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+
+    // ============================================
+    // ANIMATED COUNTERS
+    // ============================================
+    function animateValue(id, start, end, duration, suffix = '') {
+      const element = document.getElementById(id);
+      const range = end - start;
+      const increment = range / (duration / 16);
+      let current = start;
+
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= end) {
+          element.textContent = formatNumber(end) + suffix;
+          clearInterval(timer);
+        } else {
+          element.textContent = formatNumber(Math.floor(current)) + suffix;
+        }
+      }, 16);
+    }
+
+    function formatNumber(num) {
+      if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+      return num.toString();
+    }
+
+    setTimeout(() => {
+      animateValue('requests-value', 0, 8400000, 2000);
+      animateValue('latency-value', 0, 47, 2000, 'ms');
+      animateValue('cost-value', 0, 847, 2000, '', true);
+      animateValue('ai-value', 0, 142000, 2000);
+    }, 500);
+
+    document.getElementById('cost-value').textContent = '$847';
+
+    // ============================================
+    // CHARTS
+    // ============================================
+    const chartColors = {
+      primary: '#0066FF',
+      accent: '#00E5A0',
+      warning: '#FFB020',
+      error: '#FF3B57',
+      text: '#9CA3AF'
+    };
+
+    // Request Volume Chart
+    const requestChart = new Chart(document.getElementById('requestChart'), {
+      type: 'line',
+      data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+          label: 'Requests',
+          data: [1.2, 1.9, 1.5, 2.1, 1.8, 2.4, 2.0],
+          borderColor: chartColors.primary,
+          backgroundColor: 'rgba(0, 102, 255, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: chartColors.primary,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 5
+        }, {
+          label: 'Latency',
+          data: [52, 48, 55, 45, 42, 47, 44],
+          borderColor: chartColors.accent,
+          backgroundColor: 'rgba(0, 229, 160, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: chartColors.accent,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          yAxisID: 'y1'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        plugins: {
+          legend: {
+            display: true,
+            labels: {
+              color: chartColors.text,
+              font: { size: 12, weight: '600' },
+              padding: 20
+            }
+          },
+          tooltip: {
+            backgroundColor: '#141B2B',
+            titleColor: '#F9FAFB',
+            bodyColor: '#9CA3AF',
+            borderColor: 'rgba(255, 255, 255, 0.08)',
+            borderWidth: 1,
+            padding: 12,
+            displayColors: true
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: chartColors.text }
+          },
+          y: {
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: chartColors.text }
+          },
+          y1: {
+            position: 'right',
+            grid: { display: false },
+            ticks: { color: chartColors.text }
+          }
+        }
+      }
+    });
+
+    // Service Distribution Chart
+    const distributionChart = new Chart(document.getElementById('distributionChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Workers', 'R2', 'D1', 'AI Gateway', 'Browser'],
+        datasets: [{
+          data: [35, 25, 15, 15, 10],
+          backgroundColor: [
+            chartColors.primary,
+            chartColors.accent,
+            chartColors.warning,
+            '#8B5CF6',
+            '#F43F5E'
+          ],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: chartColors.text,
+              font: { size: 11, weight: '600' },
+              padding: 15
+            }
+          }
+        }
+      }
+    });
+
+    // Cost Chart
+    const costChart = new Chart(document.getElementById('costChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Compute', 'Storage', 'AI', 'Network', 'Other'],
+        datasets: [{
+          data: [320, 185, 145, 127, 70],
+          backgroundColor: [
+            chartColors.primary,
+            chartColors.accent,
+            chartColors.warning,
+            '#8B5CF6',
+            '#6B7280'
+          ],
+          borderRadius: 8,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: chartColors.text, font: { size: 10 } }
+          },
+          y: {
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: chartColors.text }
+          }
+        }
+      }
+    });
+
+    // AI Gateway Chart
+    const aiChart = new Chart(document.getElementById('aiChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Cache Hits', 'Cache Misses'],
+        datasets: [{
+          data: [67, 33],
+          backgroundColor: [chartColors.accent, 'rgba(255, 255, 255, 0.1)'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '70%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: chartColors.text,
+              font: { size: 11, weight: '600' },
+              padding: 15
+            }
+          }
+        }
+      }
+    });
+
+    // ============================================
+    // DATA TABLE
+    // ============================================
+    const services = [
+      { name: 'damnsam-worker', type: 'Worker', requests: '2.1M', latency: '42ms', status: 'success', cost: '$127' },
+      { name: 'meauxbility-react', type: 'R2', requests: '1.8M', latency: '18ms', status: 'success', cost: '$45' },
+      { name: 'meaux-work-db', type: 'D1', requests: '890K', latency: '8ms', status: 'success', cost: '$32' },
+      { name: 'ai-gateway', type: 'AI Gateway', requests: '142K', latency: '247ms', status: 'success', cost: '$145' },
+      { name: 'browser-rendering', type: 'Browser', requests: '28K', latency: '1.2s', status: 'warning', cost: '$89' },
+      { name: 'email-worker', type: 'Email', requests: '12K', latency: '134ms', status: 'success', cost: '$0' },
+      { name: 'vectorize-index', type: 'Vectorize', requests: '8.4K', latency: '52ms', status: 'success', cost: '$18' },
+      { name: 'workflow-engine', type: 'Workflow', requests: '2.1K', latency: '892ms', status: 'success', cost: '$12' }
+    ];
+
+    const tableBody = document.getElementById('servicesTable');
+    services.forEach(service => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td style="font-weight: 600; color: var(--text-primary);">${service.name}</td>
+        <td>${service.type}</td>
+        <td>${service.requests}</td>
+        <td>${service.latency}</td>
+        <td>
+          <span class="status-badge ${service.status}">
+            <span class="status-dot"></span>
+            ${service.status === 'success' ? 'Healthy' : 'Warning'}
+          </span>
+        </td>
+        <td style="font-weight: 600; color: var(--text-primary);">${service.cost}</td>
+      `;
+      tableBody.appendChild(row);
+    });
+
+    // ============================================
+    // API INTEGRATION
+    // ============================================
+    const API_BASE = 'https://iaccess-api.meauxbility.workers.dev';
+
+    class IAccessAPI {
+      constructor(baseUrl) {
+        this.baseUrl = baseUrl;
+      }
+
+      async fetch(endpoint) {
+        const response = await fetch(`${this.baseUrl}${endpoint}`);
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.statusText}`);
+        }
+        return response.json();
+      }
+
+      async getStats() {
+        return this.fetch('/api/stats');
+      }
+
+      async getAIGatewayStats() {
+        return this.fetch('/api/ai-gateway/stats');
+      }
+
+      async getBrowserRenderingStats() {
+        return this.fetch('/api/browser-rendering/stats');
+      }
+    }
+
+    const api = new IAccessAPI(API_BASE);
+
+    // Update dashboard with live data
+    async function updateDashboard() {
+      try {
+        const stats = await api.getStats();
+        if (stats.success && stats.data) {
+          // Update stat values if they exist
+          const requestsEl = document.getElementById('requests-value');
+          const latencyEl = document.getElementById('latency-value');
+          const costEl = document.getElementById('cost-value');
+          const aiEl = document.getElementById('ai-value');
+
+          if (requestsEl) {
+            requestsEl.textContent = formatNumber(stats.data.requests) + 'M';
+          }
+          if (latencyEl) {
+            latencyEl.textContent = stats.data.latency + 'ms';
+          }
+          if (costEl) {
+            costEl.textContent = '$' + stats.data.costs.total;
+          }
+          if (aiEl) {
+            const aiStats = await api.getAIGatewayStats();
+            if (aiStats.success) {
+              aiEl.textContent = formatNumber(aiStats.data.totalRequests);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update dashboard:', error);
+      }
+    }
+
+    // Initialize API updates after page load
+    document.addEventListener('DOMContentLoaded', () => {
+      // Update dashboard every 30 seconds
+      updateDashboard();
+      setInterval(updateDashboard, 30000);
+    });
+  </script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        // Navigation handlers
+        document.querySelectorAll('.nav-item').forEach(item => {
+          item.addEventListener('click', (e) => {
+            const text = e.currentTarget.textContent.trim().replace('Pro', '').trim();
+            const routes = {
+              'Dashboard': '/',
+              'Analytics': '/analytics',
+              'AI Gateway': '/ai-gateway',
+              'Browser Rendering': '/browser-rendering',
+              'Workers': '/workers',
+              'Vectorize': '/vectorize',
+              'Workflows': '/workflows',
+              'Email Routing': '/email',
+              'Queues': '/queues',
+              'Databases': '/databases',
+              'Storage': '/storage',
+              'KV Namespaces': '/kv',
+              'Integrations': '/integrations',
+              'Settings': '/settings'
+            };
+            if (routes[text]) {
+              window.location.href = 'https://iacess.meauxbility.workers.dev' + routes[text];
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

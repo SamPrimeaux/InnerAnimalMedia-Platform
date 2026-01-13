@@ -4,12 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MeauxMCP | MCP Protocol Manager</title>
+    <title>MeauxMCP | InnerAnimal Media OS</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -33,55 +37,45 @@
             }
         }
     </script>
+
+    <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="/shared/themes/base.css">
-    <link rel="stylesheet" href="/shared/themes/inneranimal-media.css">
-    <link rel="stylesheet" href="/shared/sidebar.css">
+
+    <!-- Dashboard Container CSS -->
+    <link rel="stylesheet" href="/shared/dashboard-container.css">
+
+    <!-- Theme System CSS (if available) -->
     <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+
+    <!-- Custom Styles -->
     <style>
         body {
-            background-color: #050507;
-            color: #f4f4f5;
+            margin: 0;
+            padding: 0;
             overflow: hidden;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #ff6b00;
-        }
-
-        .mcp-log-line {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.875rem;
-            line-height: 1.6;
-        }
-
-        .mcp-log-line:hover {
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--dashboard-bg, #050507);
+            color: var(--dashboard-text-primary, rgba(255, 255, 255, 0.95));
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
     </style>
+    
 </head>
 
-<body class="flex h-screen">
-    <!-- Sidebar will be loaded by dashboard-layout-loader.js -->
-    <div id="sidebar-container"></div>
+<body>
+    <!-- Dashboard Layout Container -->
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
 
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-dark min-w-0">
-        <!-- Header -->
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            <!-- Dashboard Header -->
+            <header class="dashboard-header" id="dashboard-header-container"></header>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-content custom-scrollbar">
+                <div class="dashboard-content-inner">
+                    <!-- Header -->
         <header class="h-16 border-b border-white/10 bg-brand-panel/95 backdrop-blur-md flex items-center justify-between px-6 shrink-0">
             <div class="flex items-center gap-4 min-w-0">
                 <h2 class="text-lg font-bold text-white flex items-center gap-2 shrink-0">
@@ -187,424 +181,72 @@
                 </div>
             </div>
         </div>
-    </main>
+                </div>
+            </div>
+        </main>
+    </div>
 
+    <!-- Mobile Menu Button (will be injected by sidebar) -->
+
+    <!-- Shared Layout Scripts -->
+    <script src="/shared/layout.js"></script>
+    <script src="/shared/dashboard-layout.js"></script>
+
+    <!-- Load Sidebar and Header -->
     <script>
-        const API_BASE = window.location.origin;
-        const mcp = {
-            logs: [],
-            tools: [],
-            connections: [],
-            currentPanel: 'tools',
-            filteredTools: [],
-
-            async init() {
-                await this.loadStatus();
-                await this.loadTools();
-                await this.loadResources();
-                this.addLog('System', 'MeauxMCP Protocol v2.0 initialized', 'success');
-            },
-
-            async loadStatus() {
-                try {
-                    const response = await fetch(`${API_BASE}/api/mcp/status`);
-                    const data = await response.json();
-
-                    if (data.success && data.data) {
-                        const status = data.data;
-                        const statusEl = document.getElementById('connection-status');
-                        if (statusEl) {
-                            statusEl.textContent = `Connected • Protocol ${status.protocol_version || '2.0'}`;
+        async function loadDashboardComponents() {
+            // Load sidebar
+            try {
+                const sidebarRes = await fetch('/shared/sidebar.html');
+                if (sidebarRes.ok) {
+                    const sidebarHtml = await sidebarRes.text();
+                    const sidebarContainer = document.getElementById('sidebar-container');
+                    if (sidebarContainer) {
+                        sidebarContainer.innerHTML = sidebarHtml;
+                        // Reinitialize icons after sidebar loads
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
                         }
-
-                        this.connections = [
-                            {
-                                name: 'D1 Database',
-                                type: 'database',
-                                status: status.connections.database === 'connected' ? 'connected' : 'disconnected',
-                                endpoint: 'inneranimalmedia-business',
-                                description: 'Main D1 database connection'
-                            },
-                            {
-                                name: 'R2 Storage',
-                                type: 'storage',
-                                status: status.connections.storage === 'connected' ? 'connected' : 'disconnected',
-                                endpoint: 'inneranimalmedia-assets',
-                                description: 'Cloudflare R2 object storage'
-                            },
-                            {
-                                name: 'Cloudflare API',
-                                type: 'api',
-                                status: status.connections.cloudflare_api === 'configured' ? 'connected' : 'disconnected',
-                                endpoint: 'api.cloudflare.com',
-                                description: 'Cloudflare API integration'
-                            }
-                        ];
-
-                        this.renderConnections();
-                        this.addLog('System', `MeauxMCP ready. Protocol ${status.protocol_version || '2.0'}`, 'success');
-                        this.addLog('System', `Database: ${status.connections.database}, Storage: ${status.connections.storage}`, 'info');
-                    } else {
-                        throw new Error('Invalid status response');
                     }
-                } catch (error) {
-                    console.error('Error loading MCP status:', error);
-                    const statusEl = document.getElementById('connection-status');
-                    if (statusEl) {
-                        statusEl.textContent = 'Connection failed';
-                    }
-                    this.addLog('System', 'Failed to load status. Using offline mode.', 'warning');
                 }
-            },
-
-            async refreshStatus() {
-                this.addLog('System', 'Refreshing status...', 'info');
-                await this.loadStatus();
-            },
-
-            async loadTools() {
-                try {
-                    const response = await fetch(`${API_BASE}/api/mcp/tools/list`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    const data = await response.json();
-
-                    if (data.success && data.data && data.data.tools) {
-                        this.tools = data.data.tools.map(tool => ({
-                            name: tool.name,
-                            description: tool.description || 'No description',
-                            category: this.getToolCategory(tool),
-                            inputSchema: tool.inputSchema
-                        }));
-                        this.filteredTools = [...this.tools];
-                        this.renderTools();
-                        this.addLog('MCP', `Loaded ${this.tools.length} available tools`, 'success');
-                    } else {
-                        throw new Error('Invalid tools response');
-                    }
-                } catch (error) {
-                    console.error('Error loading MCP tools:', error);
-                    this.addLog('MCP', 'Failed to load tools. Using fallback list.', 'warning');
-                    this.useBuiltInTools();
-                }
-            },
-
-            getToolCategory(tool) {
-                if (tool.inputSchema && tool.inputSchema.properties) {
-                    if (tool.inputSchema.properties.query) return 'database';
-                    if (tool.name.includes('deploy') || tool.name.includes('worker')) return 'deployment';
-                    return 'execution';
-                }
-                return 'meta';
-            },
-
-            useBuiltInTools() {
-                this.tools = [
-                    { name: 'query-database', description: 'Query D1 database using SQL', category: 'database' },
-                    { name: 'list-deployments', description: 'List Cloudflare Pages deployments', category: 'deployment' },
-                    { name: 'list-workers', description: 'List Cloudflare Workers', category: 'deployment' },
-                    { name: 'sync-cloudflare', description: 'Sync deployments and workers from Cloudflare API', category: 'deployment' }
-                ];
-                this.filteredTools = [...this.tools];
-                this.renderTools();
-            },
-
-            filterTools(query) {
-                if (!query.trim()) {
-                    this.filteredTools = [...this.tools];
-                } else {
-                    const lowerQuery = query.toLowerCase();
-                    this.filteredTools = this.tools.filter(tool =>
-                        tool.name.toLowerCase().includes(lowerQuery) ||
-                        tool.description.toLowerCase().includes(lowerQuery)
-                    );
-                }
-                this.renderTools();
-            },
-
-            async loadResources() {
-                try {
-                    const response = await fetch(`${API_BASE}/api/mcp/resources`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    const data = await response.json();
-
-                    if (data.success && data.data) {
-                        // Resources are available but we'll just log them for now
-                        this.addLog('MCP', `Found ${data.data.length} resources`, 'info');
-                    }
-                } catch (error) {
-                    console.error('Error loading resources:', error);
-                }
-            },
-
-            showPanel(panel) {
-                this.currentPanel = panel;
-                
-                // Update tabs
-                document.getElementById('tab-tools').classList.toggle('bg-brand-orange/20', panel === 'tools');
-                document.getElementById('tab-tools').classList.toggle('border-brand-orange', panel === 'tools');
-                document.getElementById('tab-tools').classList.toggle('text-white', panel === 'tools');
-                document.getElementById('tab-tools').classList.toggle('text-zinc-400', panel !== 'tools');
-                
-                document.getElementById('tab-connections').classList.toggle('bg-brand-orange/20', panel === 'connections');
-                document.getElementById('tab-connections').classList.toggle('border-brand-orange', panel === 'connections');
-                document.getElementById('tab-connections').classList.toggle('text-white', panel === 'connections');
-                document.getElementById('tab-connections').classList.toggle('text-zinc-400', panel !== 'connections');
-
-                // Show/hide panels
-                document.getElementById('panel-tools').classList.toggle('hidden', panel !== 'tools');
-                document.getElementById('panel-connections').classList.toggle('hidden', panel !== 'connections');
-                
-                lucide.createIcons();
-            },
-
-            renderConnections() {
-                const container = document.getElementById('connections-list');
-                if (!container) return;
-
-                if (this.connections.length === 0) {
-                    container.innerHTML = '<div class="text-center text-zinc-500 text-xs py-8">No connections</div>';
-                    return;
-                }
-
-                container.innerHTML = this.connections.map(conn => `
-                    <div class="p-3 rounded-lg border ${conn.status === 'connected' ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/10 bg-white/5'} transition-all">
-                        <div class="flex items-start justify-between mb-2">
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <i data-lucide="${conn.type === 'database' ? 'database' : conn.type === 'storage' ? 'hard-drive' : 'cloud'}" class="w-4 h-4 ${conn.status === 'connected' ? 'text-emerald-400' : 'text-zinc-600'} shrink-0"></i>
-                                    <span class="text-sm font-medium text-white truncate">${conn.name}</span>
-                                </div>
-                                <p class="text-xs text-zinc-500 truncate">${conn.description || conn.endpoint}</p>
-                            </div>
-                            <span class="w-2 h-2 rounded-full ${conn.status === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-700'} shrink-0 mt-1"></span>
-                        </div>
-                        <div class="text-[10px] text-zinc-600 font-mono truncate">${conn.endpoint}</div>
-                    </div>
-                `).join('');
-                lucide.createIcons();
-            },
-
-            renderTools() {
-                const container = document.getElementById('tools-list');
-                if (!container) return;
-
-                if (this.filteredTools.length === 0) {
-                    container.innerHTML = '<div class="text-center text-zinc-500 text-xs py-8">No tools found</div>';
-                    return;
-                }
-
-                container.innerHTML = this.filteredTools.map(tool => `
-                    <div class="p-3 rounded-lg border border-white/10 hover:border-brand-orange/50 hover:bg-white/5 transition-all cursor-pointer group"
-                        onclick="mcp.useTool('${tool.name}')"
-                        title="Click to execute: ${tool.name}">
-                        <div class="font-mono text-xs font-bold text-white mb-1 group-hover:text-brand-orange transition-colors truncate">${tool.name}</div>
-                        <div class="text-[10px] text-zinc-500 line-clamp-2">${tool.description}</div>
-                        <div class="text-[10px] text-zinc-700 mt-1 uppercase">${tool.category}</div>
-                    </div>
-                `).join('');
-                lucide.createIcons();
-            },
-
-            addLog(source, message, type = 'info') {
-                const timestamp = new Date().toLocaleTimeString();
-                const log = { source, message, type, timestamp };
-                this.logs.push(log);
-
-                const container = document.getElementById('console-output');
-                if (!container) return;
-
-                const showTimestamps = document.getElementById('show-timestamps')?.checked ?? true;
-                const timestampStr = showTimestamps ? `<span class="text-zinc-600">[${timestamp}]</span>` : '';
-
-                const colorMap = {
-                    info: 'text-zinc-300',
-                    success: 'text-emerald-400',
-                    error: 'text-red-400',
-                    warning: 'text-yellow-400'
-                };
-
-                const line = document.createElement('div');
-                line.className = `mcp-log-line flex gap-3 py-1 px-2 rounded ${colorMap[type] || colorMap.info}`;
-                line.innerHTML = `
-                    <span class="w-20 shrink-0 text-right font-bold text-zinc-500 text-xs">${source}</span>
-                    <span class="text-zinc-600 shrink-0">|</span>
-                    ${timestampStr}
-                    <span class="flex-1 break-words">${this.escapeHtml(message)}</span>
-                `;
-
-                container.appendChild(line);
-                const logCountEl = document.getElementById('log-count');
-                if (logCountEl) {
-                    logCountEl.textContent = `${this.logs.length} message${this.logs.length !== 1 ? 's' : ''}`;
-                }
-
-                if (document.getElementById('auto-scroll')?.checked) {
-                    container.scrollTop = container.scrollHeight;
-                }
-
-                lucide.createIcons();
-            },
-
-            escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            },
-
-            async sendCommand(e) {
-                e.preventDefault();
-                const input = document.getElementById('mcp-command');
-                const command = input.value.trim();
-                if (!command) return;
-
-                this.addLog('User', command, 'info');
-                input.value = '';
-                input.disabled = true;
-
-                try {
-                    const parts = command.split(/\s+/);
-                    const cmd = parts[0].toLowerCase();
-                    const args = parts.slice(1);
-
-                    // Handle built-in commands
-                    if (cmd === 'clear' || cmd === 'cls') {
-                        this.clearLogs();
-                        input.disabled = false;
-                        input.focus();
-                        return;
-                    }
-
-                    if (cmd === 'help' || cmd === '?') {
-                        this.addLog('MCP', 'Available commands:', 'info');
-                        this.addLog('MCP', '  list-tools - List all available tools', 'info');
-                        this.addLog('MCP', '  query-database <sql> - Execute SQL query', 'info');
-                        this.addLog('MCP', '  list-deployments - List Cloudflare deployments', 'info');
-                        this.addLog('MCP', '  list-workers - List Cloudflare Workers', 'info');
-                        this.addLog('MCP', '  sync-cloudflare - Sync from Cloudflare API', 'info');
-                        this.addLog('MCP', '  clear - Clear console', 'info');
-                        this.addLog('MCP', '  help - Show this help', 'info');
-                        input.disabled = false;
-                        input.focus();
-                        return;
-                    }
-
-                    // Execute MCP tool
-                    let toolName = cmd;
-                    let toolArgs = {};
-
-                    if (cmd === 'call-tool' && args.length > 0) {
-                        toolName = args[0];
-                        const remainingArgs = args.slice(1);
-                        if (remainingArgs.length > 0) {
-                            toolArgs = { query: remainingArgs.join(' ') };
-                        }
-                    } else if (cmd === 'query-database' && args.length > 0) {
-                        toolName = 'query-database';
-                        toolArgs = { query: args.join(' '), database: 'inneranimalmedia-business' };
-                    } else if (cmd === 'list-tools' || cmd === 'tools') {
-                        this.addLog('MCP', `Found ${this.tools.length} available tools`, 'success');
-                        this.tools.forEach(tool => {
-                            this.addLog('Tool', `${tool.name}: ${tool.description}`, 'info');
-                        });
-                        input.disabled = false;
-                        input.focus();
-                        return;
-                    } else {
-                        // Try direct tool call
-                        toolArgs = args.length > 0 ? { query: args.join(' ') } : {};
-                    }
-
-                    const response = await fetch(`${API_BASE}/api/mcp/tools/call`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            tool: toolName,
-                            arguments: toolArgs
-                        })
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success && result.data) {
-                        if (result.data.data && Array.isArray(result.data.data)) {
-                            this.addLog('MCP', `Tool '${toolName}' executed: ${result.data.data.length} result(s)`, 'success');
-                            if (result.data.data.length > 0) {
-                                const preview = JSON.stringify(result.data.data.slice(0, 5), null, 2);
-                                const lines = preview.split('\n');
-                                lines.slice(0, 10).forEach(line => {
-                                    this.addLog('Result', line, 'info');
-                                });
-                                if (result.data.data.length > 5) {
-                                    this.addLog('Result', `... and ${result.data.data.length - 5} more`, 'info');
-                                }
-                            } else {
-                                this.addLog('Result', 'No data returned', 'info');
-                            }
-                        } else if (result.data.message) {
-                            this.addLog('MCP', result.data.message, 'success');
-                        } else {
-                            const resultStr = JSON.stringify(result.data).substring(0, 500);
-                            this.addLog('MCP', resultStr, 'success');
-                        }
-                    } else {
-                        this.addLog('MCP', `Error: ${result.error || 'Tool execution failed'}`, 'error');
-                    }
-                } catch (error) {
-                    console.error('MCP command error:', error);
-                    this.addLog('MCP', `Error: ${error.message}`, 'error');
-                } finally {
-                    input.disabled = false;
-                    input.focus();
-                }
-            },
-
-            async useTool(toolName) {
-                const input = document.getElementById('mcp-command');
-                input.value = toolName.includes(' ') ? `call-tool ${toolName}` : toolName;
-                this.addLog('System', `Selected tool: ${toolName}`, 'info');
-                input.focus();
-                // Don't auto-execute - let user review and press Enter
-            },
-
-            clearLogs() {
-                this.logs = [];
-                const container = document.getElementById('console-output');
-                if (container) container.innerHTML = '';
-                const logCountEl = document.getElementById('log-count');
-                if (logCountEl) logCountEl.textContent = '0 messages';
-                this.addLog('System', 'Console cleared', 'info');
-            },
-
-            exportLogs() {
-                const logText = this.logs.map(log => `[${log.timestamp}] ${log.source}: ${log.message}`).join('\n');
-                const blob = new Blob([logText], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `mcp-logs-${Date.now()}.txt`;
-                a.click();
-                URL.revokeObjectURL(url);
-                this.addLog('System', 'Logs exported', 'success');
+            } catch (error) {
+                console.error('Error loading sidebar:', error);
             }
-        };
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Load dashboard layout
-            if (typeof DashboardLayout !== 'undefined') {
-                await DashboardLayout.loadSidebar();
-                await DashboardLayout.loadHeader();
+            // Load header
+            try {
+                const headerRes = await fetch('/shared/header.html');
+                if (headerRes.ok) {
+                    const headerHtml = await headerRes.text();
+                    const headerContainer = document.getElementById('dashboard-header-container');
+                    if (headerContainer) {
+                        headerContainer.innerHTML = headerHtml;
+                        // Update page title
+                        const pageTitle = document.getElementById('page-title');
+                        if (pageTitle) {
+                            pageTitle.textContent = 'MeauxMCP';
+                        }
+                        // Reinitialize icons
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading header:', error);
             }
-            
-            // Initialize MCP
-            await mcp.init();
-            lucide.createIcons();
-        });
+        }
+
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadDashboardComponents);
+        } else {
+            loadDashboardComponents();
+        }
     </script>
-    <script src="/shared/dashboard-layout-loader.js"></script>
+
+    <!-- Page-specific scripts -->
+    
 </body>
 
 </html>

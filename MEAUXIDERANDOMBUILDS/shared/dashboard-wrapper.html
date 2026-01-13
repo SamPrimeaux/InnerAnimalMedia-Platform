@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- App Icons & Favicons -->
+    <link rel="icon" type="image/png" sizes="16x16" href="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/public?w=16&h=16&fit=cover&format=png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/public?w=32&h=32&fit=cover&format=png">
+    <link rel="icon" type="image/png" sizes="180x180" href="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/public?w=180&h=180&fit=cover&format=png">
+    <link rel="apple-touch-icon" sizes="180x180" href="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/public?w=180&h=180&fit=cover&format=png">
+    <link rel="icon" type="image/png" sizes="192x192" href="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/public?w=192&h=192&fit=cover&format=png">
+    <link rel="icon" type="image/png" sizes="512x512" href="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/public?w=512&h=512&fit=cover&format=png">
+    <meta name="theme-color" content="#050507">
+    <meta name="msapplication-TileImage" content="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/public?w=192&h=192&fit=cover&format=png">
+    <meta name="msapplication-TileColor" content="#050507">
+    
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:image" content="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/public?w=1200&h=630&fit=cover&format=webp&quality=95">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/png">
+    <meta name="twitter:image" content="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/public?w=1200&h=630&fit=cover&format=webp&quality=95">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <title>{{PAGE_TITLE}} | InnerAnimal Media OS</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#ff6b00',
+                            red: '#dc2626',
+                            dark: '#050507',
+                            panel: '#0a0a0f',
+                            surface: '#171717'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Dashboard Container CSS -->
+    <link rel="stylesheet" href="/shared/dashboard-container.css">
+
+    <!-- Theme System CSS (if available) -->
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+
+    <!-- Custom Styles -->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: var(--dashboard-bg, #050507);
+            color: var(--dashboard-text-primary, rgba(255, 255, 255, 0.95));
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+    </style>
+    {{CUSTOM_STYLES}}
+</head>
+
+<body>
+    <!-- Dashboard Layout Container -->
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
+
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            <!-- Dashboard Header -->
+            <header class="dashboard-header" id="dashboard-header-container"></header>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-content custom-scrollbar">
+                <div class="dashboard-content-inner">
+                    {{PAGE_CONTENT}}
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Menu Button (will be injected by sidebar) -->
+
+    <!-- Shared Layout Scripts -->
+    <script src="/shared/layout.js"></script>
+    <script src="/shared/dashboard-layout.js"></script>
+
+    <!-- Load Sidebar and Header -->
+    <script>
+        async function loadDashboardComponents() {
+            // Load sidebar
+            try {
+                const sidebarRes = await fetch('/shared/sidebar.html');
+                if (sidebarRes.ok) {
+                    const sidebarHtml = await sidebarRes.text();
+                    const sidebarContainer = document.getElementById('sidebar-container');
+                    if (sidebarContainer) {
+                        sidebarContainer.innerHTML = sidebarHtml;
+                        // Reinitialize icons after sidebar loads
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading sidebar:', error);
+            }
+
+            // Load header
+            try {
+                const headerRes = await fetch('/shared/header.html');
+                if (headerRes.ok) {
+                    const headerHtml = await headerRes.text();
+                    const headerContainer = document.getElementById('dashboard-header-container');
+                    if (headerContainer) {
+                        headerContainer.innerHTML = headerHtml;
+                        // Update page title
+                        const pageTitle = document.getElementById('page-title');
+                        if (pageTitle) {
+                            pageTitle.textContent = '{{PAGE_TITLE}}';
+                        }
+                        // Reinitialize icons
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading header:', error);
+            }
+        }
+
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadDashboardComponents);
+        } else {
+            loadDashboardComponents();
+        }
+    </script>
+
+    <!-- Page-specific scripts -->
+    {{PAGE_SCRIPTS}}
+</body>
+
+</html>

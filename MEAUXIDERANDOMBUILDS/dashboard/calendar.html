@@ -1,531 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendar | InnerAnimalMedia</title>
+    <title>Calendar | InnerAnimal Media OS</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#ff6b00',
+                            red: '#dc2626',
+                            dark: '#050507',
+                            panel: '#0a0a0f',
+                            surface: '#171717'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-    <link rel="stylesheet" href="/shared/project-switcher.css">
-    <link rel="stylesheet" href="/shared/ide-agent.css">
+
+    <!-- Dashboard Container CSS -->
+    <link rel="stylesheet" href="/shared/dashboard-container.css">
+
+    <!-- Theme System CSS (if available) -->
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+
+    <!-- Custom Styles -->
     <style>
-        * {
+        body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --brand-primary: #8B5CF6;
-            --brand-secondary: #06B6D4;
-            --brand-dark: #1E293B;
-            --brand-darker: #0F172A;
-
-            --text-primary: #0F172A;
-            --text-secondary: #475569;
-            --text-tertiary: #94A3B8;
-
-            --bg-primary: #F8FAFC;
-            --bg-secondary: #FFFFFF;
-            --bg-tertiary: #F1F5F9;
-
-            --border-light: #E2E8F0;
-            --border-medium: #CBD5E1;
-
-            --success: #10B981;
-            --warning: #F59E0B;
-            --danger: #EF4444;
-            --info: #3B82F6;
-
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.5;
-        }
-
-        .dashboard-layout {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar - Same as dashboard/index.html */
-        .sidebar {
-            width: 260px;
-            min-width: 200px;
-            max-width: 400px;
-            background: var(--brand-darker);
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-            z-index: 100;
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
-            resize: horizontal;
-            overflow-x: hidden;
-            transition: transform 0.3s ease;
-        }
-
-        .sidebar::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .sidebar::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .sidebar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 2px;
-        }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-                width: 280px;
-                background: rgba(15, 23, 42, 0.95);
-                backdrop-filter: blur(20px);
-                -webkit-backdrop-filter: blur(20px);
-                border-right: 1px solid rgba(255, 255, 255, 0.1);
-            }
-
-            .mobile-menu-toggle {
-                display: flex;
-            }
-
-            .main-content {
-                margin-left: 0 !important;
-            }
-        }
-
-        .brand-header {
-            padding: 24px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .brand-logo-container {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
-        }
-
-        .brand-logo {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
             overflow: hidden;
-        }
-
-        .brand-name {
-            color: white;
-            font-size: 15px;
-            font-weight: 600;
-            letter-spacing: -0.01em;
-        }
-
-        .brand-plan {
-            display: inline-block;
-            padding: 4px 10px;
-            background: rgba(139, 92, 246, 0.15);
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            border-radius: 6px;
-            color: var(--brand-secondary);
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .nav-section {
-            padding: 16px 0;
-        }
-
-        .nav-label {
-            padding: 8px 20px;
-            color: #64748B;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            padding: 10px 20px;
-            color: #94A3B8;
-            text-decoration: none;
-            transition: all 0.15s;
-            cursor: pointer;
-            position: relative;
-            border-left: 3px solid transparent;
-        }
-
-        .nav-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            color: white;
-        }
-
-        .nav-item.active {
-            background: rgba(139, 92, 246, 0.1);
-            color: white;
-            border-left-color: var(--brand-primary);
-        }
-
-        .nav-icon {
-            width: 20px;
-            height: 20px;
-            margin-right: 12px;
-            flex-shrink: 0;
-        }
-
-        .nav-text {
-            flex: 1;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .main-content {
-            flex: 1;
-            margin-left: 260px;
-            transition: margin-left 0.3s ease;
-        }
-
-        .top-bar {
-            background: white;
-            border-bottom: 1px solid var(--border-light);
-            padding: 16px 32px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 50;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .top-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .action-btn {
-            width: 40px;
-            height: 40px;
-            border: 1.5px solid var(--border-light);
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .action-btn:hover {
-            border-color: var(--border-medium);
-            background: var(--bg-tertiary);
-        }
-
-        .content-area {
-            padding: 32px;
-            max-width: 1600px;
-        }
-
-        .page-header {
-            margin-bottom: 32px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .page-title {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 8px;
-            letter-spacing: -0.02em;
-        }
-
-        .page-subtitle {
-            font-size: 15px;
-            color: var(--text-secondary);
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-        }
-
-        .btn-primary {
-            background: var(--brand-primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #7C3AED;
-            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-        }
-
-        .calendar-container {
-            background: white;
-            border: 1.5px solid var(--border-light);
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: var(--shadow-sm);
-        }
-
-        /* FullCalendar Customization */
-        .fc {
-            font-family: 'Inter', sans-serif;
-        }
-
-        .fc-header-toolbar {
-            margin-bottom: 24px;
-        }
-
-        .fc-button {
-            background: var(--bg-tertiary) !important;
-            border: 1px solid var(--border-light) !important;
-            color: var(--text-primary) !important;
-            padding: 8px 16px !important;
-            border-radius: 8px !important;
-            font-weight: 500 !important;
-        }
-
-        .fc-button:hover {
-            background: var(--bg-primary) !important;
-            border-color: var(--border-medium) !important;
-        }
-
-        .fc-button-primary:not(:disabled):active,
-        .fc-button-primary:not(:disabled).fc-button-active {
-            background: var(--brand-primary) !important;
-            border-color: var(--brand-primary) !important;
-            color: white !important;
-        }
-
-        .fc-event {
-            border-radius: 4px !important;
-            padding: 4px 8px !important;
-            cursor: pointer;
-        }
-
-        .fc-event:hover {
-            opacity: 0.9;
-        }
-
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(8px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 16px;
-            max-width: 600px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: var(--shadow-xl);
-        }
-
-        .modal-header {
-            padding: 24px;
-            border-bottom: 1px solid var(--border-light);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .modal-close {
-            width: 36px;
-            height: 36px;
-            border: none;
-            background: var(--bg-tertiary);
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .modal-close:hover {
-            background: var(--border-light);
-        }
-
-        .modal-body {
-            padding: 24px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 8px;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1.5px solid var(--border-light);
-            border-radius: 8px;
-            font-size: 14px;
-            background: var(--bg-primary);
-            transition: all 0.2s;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--brand-primary);
-            background: white;
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-        }
-
-        .form-textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            margin-top: 24px;
-        }
-
-        .btn-secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1.5px solid var(--border-light);
-        }
-
-        .btn-secondary:hover {
-            border-color: var(--border-medium);
-            background: var(--bg-primary);
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #DC2626;
+            background: var(--dashboard-bg, #050507);
+            color: var(--dashboard-text-primary, rgba(255, 255, 255, 0.95));
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
     </style>
-    <link rel="stylesheet" href="/shared/themes/base.css">
-    <link rel="stylesheet" href="/shared/themes/inneranimal-media.css">
-    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+    
 </head>
 
 <body>
+    <!-- Dashboard Layout Container -->
     <div class="dashboard-layout">
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="brand-header">
-                <div class="brand-logo-container">
-                    <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar"
-                        alt="InnerAnimalMedia Logo" class="brand-logo"
-                        style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover;" />
-                    <div class="brand-name">InnerAnimalMedia</div>
-                </div>
-                <span class="brand-plan">Enterprise</span>
-            </div>
+        <div id="sidebar-container"></div>
 
-            <nav class="nav-section">
-                <a href="/dashboard/" class="nav-item">
-                    <i data-lucide="home" class="nav-icon"></i>
-                    <span class="nav-text">Home</span>
-                </a>
-                <a href="/dashboard/analytics" class="nav-item">
-                    <i data-lucide="bar-chart-2" class="nav-icon"></i>
-                    <span class="nav-text">Analytics</span>
-                </a>
-            </nav>
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            <!-- Dashboard Header -->
+            <header class="dashboard-header" id="dashboard-header-container"></header>
 
-            <nav class="nav-section">
-                <div class="nav-label">Content</div>
-                <a href="/dashboard/projects" class="nav-item">
-                    <i data-lucide="briefcase" class="nav-icon"></i>
-                    <span class="nav-text">Projects</span>
-                </a>
-                <a href="/dashboard/calendar" class="nav-item active">
-                    <i data-lucide="calendar" class="nav-icon"></i>
-                    <span class="nav-text">Calendar</span>
-                </a>
-                <a href="/dashboard/tasks" class="nav-item">
-                    <i data-lucide="check-square" class="nav-icon"></i>
-                    <span class="nav-text">Tasks</span>
-                </a>
-            </nav>
-
-            <nav class="nav-section">
-                <div class="nav-label">Engine</div>
-                <a href="/dashboard/meauxide" class="nav-item">
-                    <i data-lucide="code" class="nav-icon"></i>
-                    <span class="nav-text">MeauxIDE</span>
-                </a>
-            </nav>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <header class="top-bar">
+            <!-- Dashboard Content -->
+            <div class="dashboard-content custom-scrollbar">
+                <div class="dashboard-content-inner">
+                    <header class="top-bar">
                 <div></div>
                 <div class="top-actions">
                     <button class="action-btn" id="syncBtn" aria-label="Sync">
@@ -550,298 +100,72 @@
                     <div id="calendar"></div>
                 </div>
             </div>
+                </div>
+            </div>
         </main>
     </div>
 
-    <!-- Event Modal -->
-    <div class="modal" id="eventModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title" id="modalTitle">New Event</h3>
-                <button class="modal-close" id="modalClose">
-                    <i data-lucide="x"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="eventForm">
-                    <input type="hidden" id="eventId">
-                    <div class="form-group">
-                        <label class="form-label">Title *</label>
-                        <input type="text" class="form-input" id="eventTitle" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Description</label>
-                        <textarea class="form-input form-textarea" id="eventDescription"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Start Time *</label>
-                        <input type="datetime-local" class="form-input" id="eventStart" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">End Time *</label>
-                        <input type="datetime-local" class="form-input" id="eventEnd" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Location</label>
-                        <input type="text" class="form-input" id="eventLocation">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Event Type</label>
-                        <select class="form-input" id="eventType">
-                            <option value="meeting">Meeting</option>
-                            <option value="task">Task</option>
-                            <option value="reminder">Reminder</option>
-                            <option value="deadline">Deadline</option>
-                        </select>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
-                        <button type="button" class="btn btn-danger" id="deleteBtn"
-                            style="display: none;">Delete</button>
-                        <button type="submit" class="btn btn-primary">Save Event</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    <!-- Mobile Menu Button (will be injected by sidebar) -->
 
-    <script src="/shared/project-switcher.js"></script>
-    <script src="/shared/ide-agent.js"></script>
+    <!-- Shared Layout Scripts -->
+    <script src="/shared/layout.js"></script>
+    <script src="/shared/dashboard-layout.js"></script>
+
+    <!-- Load Sidebar and Header -->
     <script>
-        const API_BASE = 'https://iaccess-api.meauxbility.workers.dev';
-        window.DASHBOARD_API_BASE = API_BASE;
-
-        // Initialize Lucide icons
-        lucide.createIcons();
-
-        let calendar;
-        let currentUserId = 'user-sam'; // TODO: Get from auth
-
-        // Initialize Calendar
-        document.addEventListener('DOMContentLoaded', () => {
-            const calendarEl = document.getElementById('calendar');
-            calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                },
-                events: async function (fetchInfo, successCallback, failureCallback) {
-                    try {
-                        const start = Math.floor(fetchInfo.start.getTime() / 1000);
-                        const end = Math.floor(fetchInfo.end.getTime() / 1000);
-                        const response = await fetch(`${API_BASE}/api/calendar?start=${start}&end=${end}&user_id=${currentUserId}`);
-                        const data = await response.json();
-                        if (data.success) {
-                            const events = data.data.map(event => ({
-                                id: event.id,
-                                title: event.title,
-                                start: new Date(event.start_time * 1000).toISOString(),
-                                end: new Date(event.end_time * 1000).toISOString(),
-                                backgroundColor: getEventColor(event.event_type),
-                                borderColor: getEventColor(event.event_type),
-                                extendedProps: event
-                            }));
-                            successCallback(events);
-                        } else {
-                            failureCallback(new Error(data.error || 'Failed to load events'));
+        async function loadDashboardComponents() {
+            // Load sidebar
+            try {
+                const sidebarRes = await fetch('/shared/sidebar.html');
+                if (sidebarRes.ok) {
+                    const sidebarHtml = await sidebarRes.text();
+                    const sidebarContainer = document.getElementById('sidebar-container');
+                    if (sidebarContainer) {
+                        sidebarContainer.innerHTML = sidebarHtml;
+                        // Reinitialize icons after sidebar loads
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
                         }
-                    } catch (error) {
-                        console.error('Error loading events:', error);
-                        failureCallback(error);
                     }
-                },
-                eventClick: function (info) {
-                    openEventModal(info.event);
-                },
-                dateClick: function (info) {
-                    openNewEventModal(info.dateStr);
-                }
-            });
-            calendar.render();
-
-            // Event handlers
-            document.getElementById('newEventBtn')?.addEventListener('click', () => {
-                openNewEventModal();
-            });
-
-            document.getElementById('eventForm')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await saveEvent();
-            });
-
-            document.getElementById('cancelBtn')?.addEventListener('click', () => {
-                closeModal();
-            });
-
-            document.getElementById('modalClose')?.addEventListener('click', () => {
-                closeModal();
-            });
-
-            document.getElementById('deleteBtn')?.addEventListener('click', async () => {
-                if (confirm('Are you sure you want to delete this event?')) {
-                    await deleteEvent();
-                }
-            });
-
-            // Sync button
-            document.getElementById('syncBtn')?.addEventListener('click', () => {
-                calendar.refetchEvents();
-            });
-        });
-
-        function getEventColor(type) {
-            const colors = {
-                meeting: '#3B82F6',
-                task: '#10B981',
-                reminder: '#F59E0B',
-                deadline: '#EF4444'
-            };
-            return colors[type] || '#8B5CF6';
-        }
-
-        function openNewEventModal(dateStr = null) {
-            const modal = document.getElementById('eventModal');
-            const form = document.getElementById('eventForm');
-            const modalTitle = document.getElementById('modalTitle');
-            const deleteBtn = document.getElementById('deleteBtn');
-
-            modalTitle.textContent = 'New Event';
-            deleteBtn.style.display = 'none';
-            form.reset();
-            document.getElementById('eventId').value = '';
-
-            if (dateStr) {
-                const date = new Date(dateStr);
-                document.getElementById('eventStart').value = formatDateTimeLocal(date);
-                const endDate = new Date(date.getTime() + 60 * 60 * 1000); // +1 hour
-                document.getElementById('eventEnd').value = formatDateTimeLocal(endDate);
-            }
-
-            modal.classList.add('active');
-        }
-
-        function openEventModal(event) {
-            const modal = document.getElementById('eventModal');
-            const form = document.getElementById('eventForm');
-            const modalTitle = document.getElementById('modalTitle');
-            const deleteBtn = document.getElementById('deleteBtn');
-            const props = event.extendedProps;
-
-            modalTitle.textContent = 'Edit Event';
-            deleteBtn.style.display = 'block';
-
-            document.getElementById('eventId').value = event.id;
-            document.getElementById('eventTitle').value = event.title;
-            document.getElementById('eventDescription').value = props.description || '';
-            document.getElementById('eventStart').value = formatDateTimeLocal(event.start);
-            document.getElementById('eventEnd').value = formatDateTimeLocal(event.end);
-            document.getElementById('eventLocation').value = props.location || '';
-            document.getElementById('eventType').value = props.event_type || 'meeting';
-
-            modal.classList.add('active');
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('eventModal');
-            modal.classList.remove('active');
-        }
-
-        function formatDateTimeLocal(date) {
-            const d = new Date(date);
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            const hours = String(d.getHours()).padStart(2, '0');
-            const minutes = String(d.getMinutes()).padStart(2, '0');
-            return `${year}-${month}-${day}T${hours}:${minutes}`;
-        }
-
-        async function saveEvent() {
-            const form = document.getElementById('eventForm');
-            const eventId = document.getElementById('eventId').value;
-            const title = document.getElementById('eventTitle').value;
-            const description = document.getElementById('eventDescription').value;
-            const start = new Date(document.getElementById('eventStart').value);
-            const end = new Date(document.getElementById('eventEnd').value);
-            const location = document.getElementById('eventLocation').value;
-            const eventType = document.getElementById('eventType').value;
-
-            const startTime = Math.floor(start.getTime() / 1000);
-            const endTime = Math.floor(end.getTime() / 1000);
-
-            try {
-                let response;
-                if (eventId) {
-                    // Update
-                    response = await fetch(`${API_BASE}/api/calendar/${eventId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            title,
-                            description,
-                            start_time: startTime,
-                            end_time: endTime,
-                            location,
-                            event_type: eventType
-                        })
-                    });
-                } else {
-                    // Create
-                    response = await fetch(`${API_BASE}/api/calendar`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            user_id: currentUserId,
-                            title,
-                            description,
-                            start_time: startTime,
-                            end_time: endTime,
-                            location,
-                            event_type: eventType,
-                            reminder_minutes: 15
-                        })
-                    });
-                }
-
-                const data = await response.json();
-                if (data.success) {
-                    calendar.refetchEvents();
-                    closeModal();
-                } else {
-                    alert('Error: ' + (data.error || 'Failed to save event'));
                 }
             } catch (error) {
-                console.error('Error saving event:', error);
-                alert('Error saving event. Check console for details.');
+                console.error('Error loading sidebar:', error);
+            }
+
+            // Load header
+            try {
+                const headerRes = await fetch('/shared/header.html');
+                if (headerRes.ok) {
+                    const headerHtml = await headerRes.text();
+                    const headerContainer = document.getElementById('dashboard-header-container');
+                    if (headerContainer) {
+                        headerContainer.innerHTML = headerHtml;
+                        // Update page title
+                        const pageTitle = document.getElementById('page-title');
+                        if (pageTitle) {
+                            pageTitle.textContent = 'Calendar';
+                        }
+                        // Reinitialize icons
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading header:', error);
             }
         }
 
-        async function deleteEvent() {
-            const eventId = document.getElementById('eventId').value;
-            if (!eventId) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/api/calendar/${eventId}`, {
-                    method: 'DELETE'
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    calendar.refetchEvents();
-                    closeModal();
-                } else {
-                    alert('Error: ' + (data.error || 'Failed to delete event'));
-                }
-            } catch (error) {
-                console.error('Error deleting event:', error);
-                alert('Error deleting event. Check console for details.');
-            }
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadDashboardComponents);
+        } else {
+            loadDashboardComponents();
         }
     </script>
-    <script src="/shared/layout-loader.js"></script>
-    <script src="/shared/onboarding-wizard.js"></script>
+
+    <!-- Page-specific scripts -->
+    
 </body>
 
 </html>

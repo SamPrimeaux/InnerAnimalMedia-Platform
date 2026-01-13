@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing | InnerAnimal Media OS</title>
+  <meta name="description" content="Simple, transparent pricing for teams of all sizes.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #ffffff; color: #202124; }
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0, 0, 0, 0.08); }
+    .btn-primary { background: #ff6b00; color: white; padding: 12px 32px; border-radius: 24px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; }
+    .btn-primary:hover { background: #ff8533; transform: translateY(-1px); }
+  </style>
+
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+    <link rel="stylesheet" href="/shared/footer.css">
+</head>
+
+<body>
+  <nav class="py-4">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="flex items-center justify-between">
+        <a href="/" class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white font-bold">IA</div>
+          <span class="text-xl font-bold">InnerAnimal</span>
+        </a>
+        <div class="hidden md:flex items-center gap-8">
+          <a href="/features.html" class="text-sm font-medium text-gray-700 hover:text-gray-900">Features</a>
+          <a href="/tools.html" class="text-sm font-medium text-gray-700 hover:text-gray-900">Tools</a>
+          <a href="/workflows.html" class="text-sm font-medium text-gray-700 hover:text-gray-900">Workflows</a>
+          <a href="/pricing.html" class="text-sm font-medium text-gray-900">Pricing</a>
+          <a href="/dashboard/index.html" class="btn-primary text-sm">Get Started</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <section class="pt-32 pb-20">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h1 class="text-5xl font-bold mb-4">Simple, Transparent Pricing</h1>
+        <p class="text-xl text-gray-600">Choose the plan that fits your team</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <!-- Starter -->
+        <div class="bg-white border-2 border-gray-200 rounded-2xl p-8">
+          <h3 class="text-2xl font-bold mb-2">Starter</h3>
+          <div class="mb-6">
+            <span class="text-5xl font-bold">$99</span>
+            <span class="text-gray-600">/month</span>
+          </div>
+          <ul class="space-y-4 mb-8">
+            <li class="flex items-center gap-3"><i data-lucide="check" class="w-5 h-5 text-green-500"></i> <span>Up to 5 tenants</span></li>
+            <li class="flex items-center gap-3"><i data-lucide="check" class="w-5 h-5 text-green-500"></i> <span>50 workflows/month</span></li>
+            <li class="flex items-center gap-3"><i data-lucide="check" class="w-5 h-5 text-green-500"></i> <span>Email support</span></li>
+          </ul>
+          <a href="/dashboard/index.html" class="btn-primary w-full justify-center">Get Started</a>
+        </div>
+
+        <!-- Professional -->
+        <div class="bg-gradient-to-br from-orange-500 to-red-500 text-white rounded-2xl p-8 border-4 border-orange-400 transform scale-105">
+          <div class="mb-4"><span class="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">Most Popular</span></div>
+          <h3 class="text-2xl font-bold mb-2">Professional</h3>
+          <div class="mb-6">
+            <span class="text-5xl font-bold">$299</span>
+            <span class="text-orange-100">/month</span>
+          </div>
+          <ul class="space-y-4 mb-8">
+            <li class="flex items-center gap-3"><i data-lucide="check" class="w-5 h-5"></i> <span>Up to 50 tenants</span></li>
+            <li class="flex items-center gap-3"><i data-lucide="check" class="w-5 h-5"></i> <span>Unlimited workflows</span></li>
+            <li class="flex items-center gap-3"><i data-lucide="check" class="w-5 h-5"></i> <span>Priority support</span></li>
+            <li class="flex items-center gap-3"><i data-lucide="check" class="w-5 h-5"></i> <span>Advanced analytics</span></li>
+          </ul>
+          <a href="/dashboard/index.html" class="bg-white text-orange-500 hover:bg-gray-50 w-full justify-center btn-primary">Get Started</a>
+        </div>
+
+        <!-- Enterprise -->
+        <div class="bg-white border-2 border-gray-200 rounded-2xl p-8">
+          <h3 class="text-2xl font-bold mb-2">Enterprise</h3>
+          <div class="mb-6">
+            <span class="text-5xl font-bold">Custom</span>
+          </div>
+          <ul class="space-y-4 mb-8">
+            <li class="flex items-center gap-3"><i data-lucide="check" class="w-5 h-5 text-green-500"></i> <span>Unlimited tenants</span></li>
+            <li class="flex items-center gap-3"><i data-lucide="check" class="w-5 h-5 text-green-500"></i> <span>Custom integrations</span></li>
+            <li class="flex items-center gap-3"><i data-lucide="check" class="w-5 h-5 text-green-500"></i> <span>Dedicated support</span></li>
+            <li class="flex items-center gap-3"><i data-lucide="check" class="w-5 h-5 text-green-500"></i> <span>SLA guarantee</span></li>
+          </ul>
+          <a href="/dashboard/index.html" class="btn-primary w-full justify-center">Contact Sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="bg-white border-t border-gray-200 py-16">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="text-center">
+        <p class="text-sm text-gray-600">© 2025 InnerAnimal Media. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>lucide.createIcons();</script>
+
+    
+
+
+    <div id="footer-container-global"></div>
+    <script src="/shared/footer.js"></script>
+</body>
+</html>

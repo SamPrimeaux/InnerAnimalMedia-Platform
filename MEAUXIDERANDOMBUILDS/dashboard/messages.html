@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Message Board | InnerAnimalMedia OS</title>
+    <title>Messages | InnerAnimal Media OS</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,217 +41,41 @@
     <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
+    <!-- Dashboard Container CSS -->
+    <link rel="stylesheet" href="/shared/dashboard-container.css">
+
+    <!-- Theme System CSS (if available) -->
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+
+    <!-- Custom Styles -->
     <style>
         body {
-            background-color: #050507;
-            color: #f4f4f5;
+            margin: 0;
+            padding: 0;
             overflow: hidden;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #ff6b00;
-        }
-
-        .glass-panel {
-            background: rgba(23, 23, 23, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.4s ease-out forwards;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            box-shadow: 0 0 10px currentColor;
-        }
-
-        .message-bubble {
-            max-width: 70%;
-            word-wrap: break-word;
+            background: var(--dashboard-bg, #050507);
+            color: var(--dashboard-text-primary, rgba(255, 255, 255, 0.95));
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
     </style>
-    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+    
 </head>
 
-<body class="flex h-screen selection:bg-orange-500/30">
+<body>
+    <!-- Dashboard Layout Container -->
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
 
-    <!-- SIDEBAR NAVIGATION (Shared) -->
-    <aside id="sidebar"
-        class="w-64 bg-brand-panel/95 backdrop-blur-md border-r border-white/10 flex flex-col transition-all duration-300 z-40 relative">
-        <div class="h-20 flex items-center px-6 border-b border-white/5">
-            <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar"
-                alt="InnerAnimalMedia" class="w-10 h-10 rounded-xl shrink-0 shadow-lg" />
-            <div class="ml-3 sidebar-text">
-                <h1 class="font-bold text-base tracking-tight text-white leading-tight">InnerAnimal</h1>
-                <span class="text-[10px] text-zinc-500 font-mono tracking-wider">MEDIA OS v5.1</span>
-            </div>
-        </div>
-        <nav class="flex-1 overflow-y-auto p-4 space-y-8 custom-scrollbar">
-            <div>
-                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Hub
-                </div>
-                <div class="space-y-1">
-                    <a href="/dashboard"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
-                        data-page="overview">
-                        <i data-lucide="home" class="w-4 h-4"></i> <span class="sidebar-text">Dashboard</span>
-                    </a>
-                    <a href="/dashboard/projects"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
-                        data-page="projects">
-                        <i data-lucide="briefcase" class="w-4 h-4"></i> <span class="sidebar-text">Projects</span>
-                    </a>
-                    <a href="/dashboard/clients"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
-                        data-page="clients">
-                        <i data-lucide="users" class="w-4 h-4"></i> <span class="sidebar-text">Clients</span>
-                    </a>
-                </div>
-            </div>
-            <div>
-                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Work
-                </div>
-                <div class="space-y-1">
-                    <a href="/dashboard/calendar"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
-                        data-page="calendar">
-                        <i data-lucide="calendar" class="w-4 h-4"></i> <span class="sidebar-text">Calendar</span>
-                    </a>
-                    <a href="/dashboard/tasks"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
-                        data-page="tasks">
-                        <i data-lucide="check-square" class="w-4 h-4"></i> <span class="sidebar-text">InnerWork</span>
-                    </a>
-                    <a href="/dashboard/workflows"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
-                        data-page="workflows">
-                        <i data-lucide="zap" class="w-4 h-4"></i> <span class="sidebar-text">Automation</span>
-                    </a>
-                </div>
-            </div>
-            <div>
-                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">
-                    Community
-                </div>
-                <div class="space-y-1">
-                    <a href="/dashboard/messages"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-orange text-white shadow-lg shadow-orange-900/20"
-                        data-page="messages">
-                        <i data-lucide="message-square" class="w-4 h-4"></i> <span class="sidebar-text">Message
-                            Board</span>
-                    </a>
-                    <a href="/dashboard/video"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
-                        data-page="video">
-                        <i data-lucide="video" class="w-4 h-4"></i> <span class="sidebar-text">Video Calls</span>
-                    </a>
-                </div>
-            </div>
-            <div>
-                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Engine
-                </div>
-                <div class="space-y-1">
-                    <a href="/dashboard/meauxmcp"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
-                        data-page="meauxmcp">
-                        <i data-lucide="server" class="w-4 h-4"></i> <span class="sidebar-text">MeauxMCP</span>
-                    </a>
-                    <a href="/dashboard/meauxsql"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
-                        data-page="meauxsql">
-                        <i data-lucide="database" class="w-4 h-4"></i> <span class="sidebar-text">MeauxSQL</span>
-                    </a>
-                    <a href="/dashboard/meauxcad"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
-                        data-page="meauxcad">
-                        <i data-lucide="pen-tool" class="w-4 h-4"></i> <span class="sidebar-text">MeauxCAD</span>
-                    </a>
-                </div>
-            </div>
-            <div>
-                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">Assets
-                </div>
-                <div class="space-y-1">
-                    <a href="/dashboard/library"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
-                        data-page="library">
-                        <i data-lucide="layout-grid" class="w-4 h-4"></i> <span class="sidebar-text">CMS</span>
-                    </a>
-                    <a href="/dashboard/analytics"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
-                        data-page="analytics">
-                        <i data-lucide="palette" class="w-4 h-4"></i> <span class="sidebar-text">Brand Central</span>
-                    </a>
-                    <a href="/dashboard/workers"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
-                        data-page="workers">
-                        <i data-lucide="image" class="w-4 h-4"></i> <span class="sidebar-text">Gallery</span>
-                    </a>
-                </div>
-            </div>
-            <div>
-                <div class="px-3 mb-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest sidebar-text">System
-                </div>
-                <div class="space-y-1">
-                    <a href="/dashboard/settings"
-                        class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-zinc-400 hover:text-white"
-                        data-page="settings">
-                        <i data-lucide="settings" class="w-4 h-4"></i> <span class="sidebar-text">Settings</span>
-                    </a>
-                </div>
-            </div>
-        </nav>
-        <div class="p-4 border-t border-white/5">
-            <div
-                class="flex items-center gap-3 p-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition-all">
-                <div
-                    class="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-orange to-brand-red flex items-center justify-center text-xs font-bold text-white shrink-0 ring-2 ring-brand-panel">
-                    SP</div>
-                <div class="flex-1 min-w-0 sidebar-text">
-                    <div class="font-medium text-xs text-zinc-200">Sam Primeaux</div>
-                    <div class="text-[10px] text-zinc-500 truncate">sam@inneranimal.com</div>
-                </div>
-            </div>
-            <button onclick="app.toggleSidebar()"
-                class="w-full flex items-center justify-center p-2 mt-2 rounded-lg hover:bg-white/5 text-zinc-500 transition-colors">
-                <i data-lucide="panel-left-close" class="w-4 h-4"></i>
-            </button>
-        </div>
-    </aside>
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            <!-- Dashboard Header -->
+            <header class="dashboard-header" id="dashboard-header-container"></header>
 
-    <!-- MAIN CONTENT -->
-    <main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-dark relative">
-        <header
+            <!-- Dashboard Content -->
+            <div class="dashboard-content custom-scrollbar">
+                <div class="dashboard-content-inner">
+                    <header
             class="h-20 border-b border-white/10 bg-brand-panel/95 backdrop-blur-md flex items-center justify-between px-8 z-30">
             <div class="flex items-center gap-4 flex-1">
                 <div class="flex items-center gap-4 text-sm text-zinc-500">
@@ -318,434 +142,72 @@
                 </div>
             </div>
         </div>
-    </main>
-
-    <!-- Create Thread Modal -->
-    <div id="create-thread-modal"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center">
-        <div class="bg-brand-surface border border-white/20 rounded-2xl p-8 max-w-2xl w-full mx-4">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-2xl font-bold text-white">Create New Thread</h2>
-                <button onclick="messageBoard.hideCreateThreadModal()"
-                    class="p-2 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
+                </div>
             </div>
-            <form id="create-thread-form" onsubmit="messageBoard.createThread(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-zinc-400 mb-2">Title *</label>
-                    <input type="text" id="thread-title" required
-                        class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 transition-all" />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-zinc-400 mb-2">Category</label>
-                    <select id="thread-category"
-                        class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-orange/50 transition-all">
-                        <option value="general">General</option>
-                        <option value="announcements">Announcements</option>
-                        <option value="support">Support</option>
-                        <option value="ideas">Ideas</option>
-                        <option value="random">Random</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-zinc-400 mb-2">First Message *</label>
-                    <textarea id="thread-message" rows="6" required
-                        class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 transition-all resize-none"></textarea>
-                </div>
-                <div class="flex items-center gap-4 pt-4">
-                    <button type="submit"
-                        class="flex-1 px-6 py-3 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-all">
-                        Create Thread
-                    </button>
-                    <button type="button" onclick="messageBoard.hideCreateThreadModal()"
-                        class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 rounded-lg font-medium transition-all">
-                        Cancel
-                    </button>
-                </div>
-            </form>
-        </div>
+        </main>
     </div>
 
-    <!-- Theme System -->
-    <link rel="stylesheet" href="/shared/themes/base.css">
+    <!-- Mobile Menu Button (will be injected by sidebar) -->
 
-    <!-- Shared Layout Script -->
+    <!-- Shared Layout Scripts -->
     <script src="/shared/layout.js"></script>
+    <script src="/shared/dashboard-layout.js"></script>
 
-    <!-- Page-Specific Script -->
+    <!-- Load Sidebar and Header -->
     <script>
-        const messageBoard = {
-            threads: [],
-            currentThread: null,
-            messages: [],
-            currentCategory: 'all',
-            refreshInterval: null,
-
-            async init() {
-                lucide.createIcons();
-                await this.loadThreads();
-                this.setupEventListeners();
-                this.startAutoRefresh();
-            },
-
-            setupEventListeners() {
-                const searchInput = document.getElementById('thread-search');
-                if (searchInput) {
-                    let searchTimeout;
-                    searchInput.addEventListener('input', (e) => {
-                        clearTimeout(searchTimeout);
-                        searchTimeout = setTimeout(() => {
-                            this.filterThreads(e.target.value);
-                        }, 300);
-                    });
-                }
-            },
-
-            async loadThreads() {
-                try {
-                    const url = new URL(`${window.location.origin}/api/threads`);
-                    if (this.currentCategory !== 'all') url.searchParams.set('category', this.currentCategory);
-
-                    const res = await API.get(`threads${url.search}`);
-                    if (res.success && res.data) {
-                        this.threads = res.data || [];
-                        this.renderThreads();
-                    }
-                } catch (error) {
-                    console.error('Failed to load threads:', error);
-                    showNotification('Failed to load threads: ' + error.message, 'error');
-                }
-            },
-
-            renderThreads() {
-                const container = document.getElementById('threads-list');
-                if (!container) return;
-
-                if (this.threads.length === 0) {
-                    container.innerHTML = `
-                        <div class="text-center py-16 px-4">
-                            <i data-lucide="message-square" class="w-12 h-12 mx-auto mb-4 text-zinc-700"></i>
-                            <div class="text-sm font-medium text-zinc-400 mb-2">No threads yet</div>
-                            <div class="text-xs text-zinc-600">Create your first thread to start discussions</div>
-                        </div>
-                    `;
-                    lucide.createIcons();
-                    return;
-                }
-
-                container.innerHTML = this.threads.map(thread => {
-                    const lastMessage = thread.last_message_at ? new Date(thread.last_message_at * 1000) : null;
-                    const categoryColors = {
-                        general: 'bg-blue-500/20 text-blue-400',
-                        announcements: 'bg-purple-500/20 text-purple-400',
-                        support: 'bg-yellow-500/20 text-yellow-400',
-                        ideas: 'bg-green-500/20 text-green-400',
-                        random: 'bg-zinc-500/20 text-zinc-400'
-                    };
-
-                    return `
-                        <div class="thread-item p-4 border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors ${this.currentThread?.id === thread.id ? 'bg-brand-orange/10 border-l-2 border-l-brand-orange' : ''}"
-                             onclick="messageBoard.openThread('${thread.id}')">
-                            <div class="flex items-start justify-between mb-2">
-                                <h3 class="font-bold text-white text-sm flex-1 line-clamp-2">${this.escapeHtml(thread.title)}</h3>
-                                ${thread.is_pinned ? '<i data-lucide="pin" class="w-4 h-4 text-brand-orange ml-2 shrink-0"></i>' : ''}
-                            </div>
-                            <div class="flex items-center gap-3 text-xs text-zinc-500 mb-2">
-                                <span class="px-2 py-0.5 rounded ${categoryColors[thread.category] || categoryColors.general}">${thread.category || 'general'}</span>
-                                <span>${thread.message_count || 0} messages</span>
-                            </div>
-                            ${lastMessage ? `<div class="text-xs text-zinc-600">Last activity: ${this.timeAgo(lastMessage)}</div>` : ''}
-                        </div>
-                    `;
-                }).join('');
-
-                lucide.createIcons();
-            },
-
-            async openThread(threadId) {
-                try {
-                    const res = await API.get(`threads/${threadId}`);
-                    if (res.success && res.data) {
-                        this.currentThread = res.data;
-                        this.messages = res.data.messages || [];
-                        this.renderMessages();
-
-                        // Highlight selected thread
-                        document.querySelectorAll('.thread-item').forEach(item => {
-                            item.classList.remove('bg-brand-orange/10', 'border-l-2', 'border-l-brand-orange');
-                        });
-                        const threadEl = document.querySelector(`[onclick="messageBoard.openThread('${threadId}')"]`);
-                        if (threadEl) {
-                            threadEl.classList.add('bg-brand-orange/10', 'border-l-2', 'border-l-brand-orange');
+        async function loadDashboardComponents() {
+            // Load sidebar
+            try {
+                const sidebarRes = await fetch('/shared/sidebar.html');
+                if (sidebarRes.ok) {
+                    const sidebarHtml = await sidebarRes.text();
+                    const sidebarContainer = document.getElementById('sidebar-container');
+                    if (sidebarContainer) {
+                        sidebarContainer.innerHTML = sidebarHtml;
+                        // Reinitialize icons after sidebar loads
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
                         }
                     }
-                } catch (error) {
-                    console.error('Failed to load thread:', error);
-                    showNotification('Failed to load thread: ' + error.message, 'error');
                 }
-            },
-
-            renderMessages() {
-                const container = document.getElementById('messages-view');
-                if (!container || !this.currentThread) return;
-
-                container.innerHTML = `
-                    <div class="max-w-4xl mx-auto">
-                        <!-- Thread Header -->
-                        <div class="mb-6 pb-6 border-b border-white/10">
-                            <div class="flex items-start justify-between mb-4">
-                                <div>
-                                    <h1 class="text-3xl font-bold text-white mb-2">${this.escapeHtml(this.currentThread.title)}</h1>
-                                    ${this.currentThread.description ? `<p class="text-zinc-400">${this.escapeHtml(this.currentThread.description)}</p>` : ''}
-                                </div>
-                                ${this.currentThread.is_pinned ? '<span class="px-3 py-1 bg-brand-orange/20 text-brand-orange text-xs rounded-full border border-brand-orange/30">Pinned</span>' : ''}
-                            </div>
-                            <div class="flex items-center gap-4 text-xs text-zinc-500">
-                                <span>Category: ${this.currentThread.category || 'general'}</span>
-                                <span>•</span>
-                                <span>${this.currentThread.message_count || 0} messages</span>
-                                <span>•</span>
-                                <span>${this.currentThread.view_count || 0} views</span>
-                            </div>
-                        </div>
-
-                        <!-- Messages -->
-                        <div id="messages-container" class="space-y-6 mb-6">
-                            ${this.messages.map(msg => this.renderMessage(msg)).join('')}
-                        </div>
-
-                        <!-- Message Input -->
-                        <div class="sticky bottom-0 bg-brand-surface border-t border-white/10 p-4 rounded-t-2xl">
-                            <form id="send-message-form" onsubmit="messageBoard.sendMessage(event)" class="flex gap-3">
-                                <input type="text" id="message-input" placeholder="Write a message..."
-                                    class="flex-1 px-4 py-3 bg-black/20 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 transition-all" />
-                                <button type="submit"
-                                    class="px-6 py-3 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-all">
-                                    <i data-lucide="send" class="w-4 h-4"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                `;
-
-                lucide.createIcons();
-                this.scrollToBottom();
-            },
-
-            renderMessage(message) {
-                const date = new Date(message.created_at * 1000);
-                const isEdited = message.is_edited ? ' <span class="text-xs text-zinc-600">(edited)</span>' : '';
-                const reactions = message.reactions || [];
-
-                return `
-                    <div class="message-item">
-                        <div class="flex items-start gap-4">
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-orange to-brand-red flex items-center justify-center text-xs font-bold text-white shrink-0">
-                                ${(message.user_id || 'U')[0].toUpperCase()}
-                            </div>
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="font-semibold text-white text-sm">${message.user_id || 'User'}</span>
-                                    <span class="text-xs text-zinc-500">${this.timeAgo(date)}${isEdited}</span>
-                                </div>
-                                <div class="message-bubble bg-brand-surface border border-white/10 rounded-lg p-4 mb-2">
-                                    <p class="text-zinc-200 whitespace-pre-wrap">${this.escapeHtml(message.content)}</p>
-                                </div>
-                                ${reactions.length > 0 ? `
-                                    <div class="flex items-center gap-2">
-                                        ${reactions.map(r => `<span class="text-xs px-2 py-1 bg-white/5 rounded-full">${r.reaction_type}</span>`).join('')}
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            },
-
-            async sendMessage(e) {
-                e.preventDefault();
-                const input = document.getElementById('message-input');
-                const content = input.value.trim();
-                if (!content || !this.currentThread) return;
-
-                try {
-                    const res = await API.post('messages', {
-                        thread_id: this.currentThread.id,
-                        content,
-                        user_id: 'user-samprimeaux' // TODO: Get from auth
-                    });
-
-                    if (res.success) {
-                        input.value = '';
-                        await this.openThread(this.currentThread.id); // Reload thread with new message
-                        showNotification('Message sent!', 'success');
-                    } else {
-                        showNotification('Failed to send message: ' + (res.error || 'Unknown error'), 'error');
-                    }
-                } catch (error) {
-                    console.error('Send message error:', error);
-                    showNotification('Failed to send message: ' + error.message, 'error');
-                }
-            },
-
-            async createThread(e) {
-                e.preventDefault();
-                try {
-                    const title = document.getElementById('thread-title').value;
-                    const category = document.getElementById('thread-category').value;
-                    const message = document.getElementById('thread-message').value;
-
-                    const res = await API.post('threads', {
-                        title,
-                        category,
-                        description: null,
-                        created_by: 'user-samprimeaux' // TODO: Get from auth
-                    });
-
-                    if (res.success && res.data) {
-                        // Create first message
-                        await API.post('messages', {
-                            thread_id: res.data.id,
-                            content: message,
-                            user_id: 'user-samprimeaux'
-                        });
-
-                        showNotification('Thread created successfully!', 'success');
-                        this.hideCreateThreadModal();
-                        await this.loadThreads();
-                        await this.openThread(res.data.id);
-                    } else {
-                        showNotification('Failed to create thread: ' + (res.error || 'Unknown error'), 'error');
-                    }
-                } catch (error) {
-                    console.error('Create thread error:', error);
-                    showNotification('Failed to create thread: ' + error.message, 'error');
-                }
-            },
-
-            showCreateThreadModal() {
-                const modal = document.getElementById('create-thread-modal');
-                if (modal) {
-                    modal.classList.remove('hidden');
-                    modal.classList.add('flex');
-                    document.getElementById('thread-title')?.focus();
-                }
-            },
-
-            hideCreateThreadModal() {
-                const modal = document.getElementById('create-thread-modal');
-                if (modal) {
-                    modal.classList.add('hidden');
-                    modal.classList.remove('flex');
-                    document.getElementById('create-thread-form')?.reset();
-                }
-            },
-
-            setCategoryFilter(category) {
-                this.currentCategory = category;
-                document.querySelectorAll('.category-filter').forEach(btn => {
-                    btn.classList.remove('bg-brand-orange/20', 'text-brand-orange', 'border-brand-orange/30');
-                    btn.classList.add('hover:bg-white/5', 'text-zinc-400', 'hover:text-white');
-                });
-                const activeBtn = document.querySelector(`[data-category="${category}"]`);
-                if (activeBtn) {
-                    activeBtn.classList.add('bg-brand-orange/20', 'text-brand-orange', 'border', 'border-brand-orange/30');
-                    activeBtn.classList.remove('hover:bg-white/5', 'text-zinc-400', 'hover:text-white');
-                }
-                this.loadThreads();
-            },
-
-            filterThreads(searchTerm) {
-                // Client-side filtering for now (can be server-side)
-                const filtered = this.threads.filter(thread =>
-                    thread.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    (thread.description && thread.description.toLowerCase().includes(searchTerm.toLowerCase()))
-                );
-
-                const container = document.getElementById('threads-list');
-                if (container && filtered.length === 0 && searchTerm) {
-                    container.innerHTML = `
-                        <div class="text-center py-16 px-4">
-                            <i data-lucide="search-x" class="w-12 h-12 mx-auto mb-4 text-zinc-700"></i>
-                            <div class="text-sm font-medium text-zinc-400 mb-2">No threads match your search</div>
-                        </div>
-                    `;
-                    lucide.createIcons();
-                    return;
-                }
-
-                this.threads = searchTerm ? filtered : this.threads;
-                this.renderThreads();
-            },
-
-            async refresh() {
-                const btn = document.getElementById('refresh-threads-btn');
-                const icon = document.getElementById('refresh-icon');
-                if (icon) icon.classList.add('animate-spin');
-                if (btn) btn.disabled = true;
-
-                try {
-                    await this.loadThreads();
-                    if (this.currentThread) {
-                        await this.openThread(this.currentThread.id);
-                    }
-                    showNotification('Threads refreshed', 'success');
-                } finally {
-                    if (icon) icon.classList.remove('animate-spin');
-                    if (btn) btn.disabled = false;
-                }
-            },
-
-            startAutoRefresh() {
-                // Refresh every 30 seconds for real-time updates
-                this.refreshInterval = setInterval(() => {
-                    if (this.currentThread) {
-                        this.openThread(this.currentThread.id);
-                    } else {
-                        this.loadThreads();
-                    }
-                }, 30000);
-            },
-
-            scrollToBottom() {
-                const container = document.getElementById('messages-container');
-                if (container) {
-                    container.scrollTop = container.scrollHeight;
-                }
-            },
-
-            timeAgo(date) {
-                const seconds = Math.floor((new Date() - date) / 1000);
-                if (seconds < 60) return 'just now';
-                const minutes = Math.floor(seconds / 60);
-                if (minutes < 60) return `${minutes}m ago`;
-                const hours = Math.floor(minutes / 60);
-                if (hours < 24) return `${hours}h ago`;
-                const days = Math.floor(hours / 24);
-                if (days < 7) return `${days}d ago`;
-                return date.toLocaleDateString();
-            },
-
-            escapeHtml(text) {
-                if (!text) return '';
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
+            } catch (error) {
+                console.error('Error loading sidebar:', error);
             }
-        };
 
-        window.addEventListener('DOMContentLoaded', () => {
-            messageBoard.init();
-        });
-
-        window.addEventListener('beforeunload', () => {
-            if (messageBoard.refreshInterval) {
-                clearInterval(messageBoard.refreshInterval);
+            // Load header
+            try {
+                const headerRes = await fetch('/shared/header.html');
+                if (headerRes.ok) {
+                    const headerHtml = await headerRes.text();
+                    const headerContainer = document.getElementById('dashboard-header-container');
+                    if (headerContainer) {
+                        headerContainer.innerHTML = headerHtml;
+                        // Update page title
+                        const pageTitle = document.getElementById('page-title');
+                        if (pageTitle) {
+                            pageTitle.textContent = 'Messages';
+                        }
+                        // Reinitialize icons
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading header:', error);
             }
-        });
+        }
+
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadDashboardComponents);
+        } else {
+            loadDashboardComponents();
+        }
     </script>
-    <script src="/shared/layout-loader.js"></script>
+
+    <!-- Page-specific scripts -->
+    
 </body>
 
 </html>

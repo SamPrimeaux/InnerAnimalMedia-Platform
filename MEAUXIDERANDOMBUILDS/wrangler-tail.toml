@@ -1,0 +1,17 @@
+name = "inneranimalmedia-tail"
+main = "src/tail-worker.js"
+compatibility_date = "2025-11-17"
+compatibility_flags = ["nodejs_compat"]
+
+# Analytics Engine - Analytics dataset binding (Production)
+[[analytics_engine_datasets]]
+binding = "INNERANIMALMEDIA-ANALYTICENGINE"
+dataset = "inneranimalmedia"
+
+[env.production]
+name = "inneranimalmedia-tail"
+
+# Analytics Engine (Production)
+[[env.production.analytics_engine_datasets]]
+binding = "INNERANIMALMEDIA-ANALYTICENGINE"
+dataset = "inneranimalmedia"

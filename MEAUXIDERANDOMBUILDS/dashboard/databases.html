@@ -4,8 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Databases | InnerAnimalMedia</title>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <title>Databases | InnerAnimal Media OS</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -29,42 +37,45 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="/shared/themes/base.css">
-    <link rel="stylesheet" href="/shared/themes/inneranimal-media.css">
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Dashboard Container CSS -->
+    <link rel="stylesheet" href="/shared/dashboard-container.css">
+
+    <!-- Theme System CSS (if available) -->
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+
+    <!-- Custom Styles -->
     <style>
         body {
-            background-color: #050507;
-            color: #f4f4f5;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #ff6b00;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: var(--dashboard-bg, #050507);
+            color: var(--dashboard-text-primary, rgba(255, 255, 255, 0.95));
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
     </style>
-    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+    
 </head>
 
-<body class="flex h-screen">
-    <!-- Sidebar (loaded dynamically) -->
-    <div id="sidebar-container"></div>
+<body>
+    <!-- Dashboard Layout Container -->
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
 
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-dark">
-        <!-- Header -->
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            <!-- Dashboard Header -->
+            <header class="dashboard-header" id="dashboard-header-container"></header>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-content custom-scrollbar">
+                <div class="dashboard-content-inner">
+                    <!-- Header -->
         <header
             class="h-20 border-b border-white/10 bg-brand-panel/95 backdrop-blur-md flex items-center justify-between px-8 z-30">
             <div class="flex items-center gap-4">
@@ -101,265 +112,72 @@
                 </div>
             </div>
         </div>
-    </main>
+                </div>
+            </div>
+        </main>
+    </div>
 
-    <script src="/shared/dashboard-layout-loader.js"></script>
+    <!-- Mobile Menu Button (will be injected by sidebar) -->
+
+    <!-- Shared Layout Scripts -->
     <script src="/shared/layout.js"></script>
+    <script src="/shared/dashboard-layout.js"></script>
+
+    <!-- Load Sidebar and Header -->
     <script>
-        const API_BASE = window.API_BASE || 'https://iaccess-api.meauxbility.workers.dev';
-        const databases = {
-            databases: [],
-            selectedDatabase: null,
-            schema: null,
-            loading: false,
-
-            async init() {
-                await this.loadDatabases();
-            },
-
-            async loadDatabases() {
-                this.loading = true;
-                const container = document.getElementById('databases-list');
-
-                try {
-                    const response = await fetch(`${API_BASE}/api/databases`);
-                    const result = await response.json();
-
-                    if (result.success && result.data && result.data.databases) {
-                        this.databases = result.data.databases;
-                        this.renderDatabases();
-                    } else {
-                        this.databases = [];
-                        this.renderDatabases();
+        async function loadDashboardComponents() {
+            // Load sidebar
+            try {
+                const sidebarRes = await fetch('/shared/sidebar.html');
+                if (sidebarRes.ok) {
+                    const sidebarHtml = await sidebarRes.text();
+                    const sidebarContainer = document.getElementById('sidebar-container');
+                    if (sidebarContainer) {
+                        sidebarContainer.innerHTML = sidebarHtml;
+                        // Reinitialize icons after sidebar loads
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
                     }
-                } catch (error) {
-                    console.error('Error loading databases:', error);
-                    container.innerHTML = `<div class="text-red-400 text-sm p-4">Error: ${error.message}</div>`;
-                    this.databases = [];
-                } finally {
-                    this.loading = false;
                 }
-            },
-
-            renderDatabases() {
-                const container = document.getElementById('databases-list');
-
-                if (this.databases.length === 0) {
-                    container.innerHTML = `
-                        <div class="col-span-full text-center py-12 text-zinc-500">
-                            <i data-lucide="database" class="w-12 h-12 mx-auto mb-4 text-zinc-700"></i>
-                            <div class="font-medium mb-2">No databases found</div>
-                        </div>
-                    `;
-                    lucide.createIcons();
-                    return;
-                }
-
-                container.innerHTML = this.databases.map(db => `
-                    <div class="bg-brand-panel border border-white/10 rounded-xl p-6 hover:border-brand-orange/50 transition-all group">
-                        <div class="flex items-start justify-between mb-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
-                                    <i data-lucide="database" class="w-6 h-6 text-blue-400"></i>
-                                </div>
-                                <div>
-                                    <h3 class="font-semibold text-white mb-1">${escapeHtml(db.name)}</h3>
-                                    <p class="text-xs text-zinc-500 uppercase">${db.type || 'D1'}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="space-y-2 mb-4">
-                            <div class="flex items-center gap-2 text-xs text-zinc-400">
-                                <i data-lucide="hash" class="w-3 h-3"></i>
-                                <code class="font-mono text-zinc-500">${db.id || 'N/A'}</code>
-                            </div>
-                            <div class="flex items-center gap-2 text-xs text-zinc-400">
-                                <i data-lucide="server" class="w-3 h-3"></i>
-                                <span>Cloudflare D1</span>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-2 pt-4 border-t border-white/5">
-                            <button onclick="databases.exploreSchema('${db.name}')" 
-                                class="flex-1 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-lg text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center justify-center gap-1">
-                                <i data-lucide="search" class="w-3 h-3"></i>
-                                Explore Schema
-                            </button>
-                            <button onclick="databases.queryDatabase('${db.name}')" 
-                                class="flex-1 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-zinc-300 hover:text-white transition-colors flex items-center justify-center gap-1">
-                                <i data-lucide="terminal" class="w-3 h-3"></i>
-                                Query
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
-
-                lucide.createIcons();
-            },
-
-            async exploreSchema(dbName) {
-                this.selectedDatabase = dbName;
-                const explorer = document.getElementById('schema-explorer');
-                const content = document.getElementById('schema-content');
-                const title = document.getElementById('schema-title');
-
-                title.textContent = `${dbName} Schema`;
-                content.innerHTML = '<div class="text-zinc-500 text-sm animate-pulse p-8 text-center">Loading schema...</div>';
-                explorer.classList.remove('hidden');
-
-                try {
-                    const response = await fetch(`${API_BASE}/api/databases/${dbName}/schema`);
-                    const result = await response.json();
-
-                    if (result.success && result.data) {
-                        this.schema = result.data;
-                        this.renderSchema(result.data);
-                    } else {
-                        content.innerHTML = `<div class="text-red-400 text-sm p-4">Error: ${result.error || 'Failed to load schema'}</div>`;
-                    }
-                } catch (error) {
-                    console.error('Error loading schema:', error);
-                    content.innerHTML = `<div class="text-red-400 text-sm p-4">Error: ${error.message}</div>`;
-                }
-            },
-
-            renderSchema(data) {
-                const content = document.getElementById('schema-content');
-                const { tables, schemas } = data;
-
-                if (!tables || tables.length === 0) {
-                    content.innerHTML = '<div class="text-zinc-500 text-sm p-8 text-center">No tables found</div>';
-                    return;
-                }
-
-                content.innerHTML = tables.map(tableName => {
-                    const tableSchema = schemas[tableName] || [];
-                    return `
-                        <div class="bg-black/20 border border-white/10 rounded-lg p-4">
-                            <div class="flex items-center justify-between mb-3">
-                                <h4 class="font-semibold text-white font-mono">${escapeHtml(tableName)}</h4>
-                                <span class="text-xs text-zinc-500">${tableSchema.length} columns</span>
-                            </div>
-                            ${tableSchema.length > 0 ? `
-                                <div class="overflow-x-auto">
-                                    <table class="w-full text-xs">
-                                        <thead>
-                                            <tr class="border-b border-white/10 text-zinc-400">
-                                                <th class="text-left py-2 px-3">Column</th>
-                                                <th class="text-left py-2 px-3">Type</th>
-                                                <th class="text-center py-2 px-3">Null</th>
-                                                <th class="text-center py-2 px-3">Default</th>
-                                                <th class="text-center py-2 px-3">PK</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="text-zinc-300 font-mono">
-                                            ${tableSchema.map(col => `
-                                                <tr class="border-b border-white/5">
-                                                    <td class="py-2 px-3 font-medium">${escapeHtml(col.name || 'N/A')}</td>
-                                                    <td class="py-2 px-3 text-zinc-400">${escapeHtml(col.type || 'TEXT')}</td>
-                                                    <td class="text-center py-2 px-3">${col.notnull ? '<i data-lucide="x" class="w-3 h-3 text-red-400 mx-auto"></i>' : '<i data-lucide="check" class="w-3 h-3 text-emerald-400 mx-auto"></i>'}</td>
-                                                    <td class="text-center py-2 px-3 text-zinc-500">${col.dflt_value ? escapeHtml(String(col.dflt_value)) : '-'}</td>
-                                                    <td class="text-center py-2 px-3">${col.pk ? '<i data-lucide="key" class="w-3 h-3 text-brand-orange mx-auto"></i>' : '-'}</td>
-                                                </tr>
-                                            `).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ` : '<div class="text-zinc-500 text-sm p-2">No schema information available</div>'}
-                        </div>
-                    `;
-                }).join('');
-
-                lucide.createIcons();
-            },
-
-            closeSchema() {
-                document.getElementById('schema-explorer').classList.add('hidden');
-                this.selectedDatabase = null;
-                this.schema = null;
-            },
-
-            async queryDatabase(dbName) {
-                const query = prompt(`Enter SQL query for ${dbName}:`);
-                if (!query) return;
-
-                try {
-                    // Use MeauxSQL API
-                    const response = await fetch(`${API_BASE}/api/sql`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            query: query.trim(),
-                            database: dbName
-                        })
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success && result.data) {
-                        // Show results in a new window or modal
-                        const resultsWindow = window.open('', '_blank', 'width=800,height=600');
-                        resultsWindow.document.write(`
-                            <html>
-                                <head><title>Query Results - ${dbName}</title>
-                                <style>
-                                    body { background: #050507; color: #f4f4f5; font-family: 'JetBrains Mono', monospace; padding: 20px; }
-                                    pre { background: #0a0a0f; padding: 15px; border-radius: 8px; overflow-x: auto; }
-                                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                                    th, td { border: 1px solid #333; padding: 8px; text-align: left; }
-                                    th { background: #1a1a1a; }
-                                </style>
-                                    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
-</head>
-                                <body>
-                                    <h2>Query Results</h2>
-                                    <pre>${escapeHtml(query)}</pre>
-                                    <pre>${JSON.stringify(result.data, null, 2)}</pre>
-                                </body>
-                            </html>
-                        `);
-                        this.showNotification('Query executed successfully!', 'success');
-                    } else {
-                        alert(`Error: ${result.error || 'Query failed'}`);
-                        this.showNotification(`Error: ${result.error || 'Query failed'}`, 'error');
-                    }
-                } catch (error) {
-                    console.error('Error executing query:', error);
-                    alert(`Error: ${error.message}`);
-                    this.showNotification(`Error: ${error.message}`, 'error');
-                }
-            },
-
-            async refresh() {
-                await this.loadDatabases();
-                this.showNotification('Databases refreshed', 'success');
-            },
-
-            showNotification(message, type = 'info') {
-                const bgColor = type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-                const notification = document.createElement('div');
-                notification.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-3 rounded-lg shadow-xl z-50 flex items-center gap-2`;
-                notification.innerHTML = `
-                    <span>${escapeHtml(message)}</span>
-                    <button onclick="this.parentElement.remove()" class="ml-2 hover:opacity-70">×</button>
-                `;
-                document.body.appendChild(notification);
-                setTimeout(() => notification.remove(), 5000);
+            } catch (error) {
+                console.error('Error loading sidebar:', error);
             }
-        };
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            // Load header
+            try {
+                const headerRes = await fetch('/shared/header.html');
+                if (headerRes.ok) {
+                    const headerHtml = await headerRes.text();
+                    const headerContainer = document.getElementById('dashboard-header-container');
+                    if (headerContainer) {
+                        headerContainer.innerHTML = headerHtml;
+                        // Update page title
+                        const pageTitle = document.getElementById('page-title');
+                        if (pageTitle) {
+                            pageTitle.textContent = 'Databases';
+                        }
+                        // Reinitialize icons
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading header:', error);
+            }
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            await databases.init();
-            lucide.createIcons();
-        });
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadDashboardComponents);
+        } else {
+            loadDashboardComponents();
+        }
     </script>
+
+    <!-- Page-specific scripts -->
+    
 </body>
 
 </html>

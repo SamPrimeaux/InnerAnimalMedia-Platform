@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Admin | iautodidact.org</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0A0E27;
+            --bg-secondary: #141B2D;
+            --bg-elevated: #1E2742;
+            --accent: #4AECDC;
+            --accent-hover: #3DD4C4;
+            --text: #FFFFFF;
+            --text-secondary: #94A3B8;
+            --border: rgba(255, 255, 255, 0.1);
+            --card: #141B2D;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        
+        /* Flexfit Sidenav - Mobile Prioritized */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            z-index: 100;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+        }
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), #3B82F6);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: var(--bg);
+            font-size: 1.25rem;
+        }
+        .logo-text {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 101;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.25rem;
+        }
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+        }
+        .nav-section {
+            padding: 16px 0;
+        }
+        .nav-section-title {
+            padding: 8px 20px;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.9375rem;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+        .nav-item:hover {
+            background: rgba(74, 236, 220, 0.1);
+        }
+        .nav-item.active {
+            background: rgba(74, 236, 220, 0.15);
+            border-left-color: var(--accent);
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .nav-icon {
+            font-size: 1.125rem;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+            padding: 0;
+        }
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+                padding-top: 60px;
+            }
+        }
+        
+        /* Topbar */
+        .topbar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(12px);
+        }
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Content Area */
+        .content-area {
+            padding: 40px;
+        }
+        .page-header {
+            margin-bottom: 32px;
+        }
+        .page-title {
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+        .page-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+        .content-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+        .btn {
+            padding: 12px 24px;
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9375rem;
+        }
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(74, 236, 220, 0.3);
+        }
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-elevated);
+        }
+    </style>
+</head>
+<body>
+    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleSidenav()">?</button>
+    
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-icon">M</div>
+            <div class="logo-text">MeauxAccess</div>
+        </div>
+        
+        <nav class="nav-section">
+            <div class="nav-section-title">Admin</div>
+            <a href="/dashboard/admin" class="nav-item">
+                <span class="nav-icon">?</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="/dashboard/admin/users" class="nav-item">
+                <span class="nav-icon">??</span>
+                <span>Users</span>
+            </a>
+            <a href="/dashboard/admin/setup" class="nav-item">
+                <span class="nav-icon">??</span>
+                <span>Setup</span>
+            </a>
+            <a href="/dashboard/admin/settings" class="nav-item">
+                <span class="nav-icon">??</span>
+                <span>Settings</span>
+            </a>
+        </nav>
+        
+        <nav class="nav-section">
+            <div class="nav-section-title">Core Modules</div>
+            <a href="/dashboard" class="nav-item">
+                <span class="nav-icon">??</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="/meauxwork" class="nav-item">
+                <span class="nav-icon">??</span>
+                <span>MeauxWork</span>
+            </a>
+            <a href="/meauxstats" class="nav-item">
+                <span class="nav-icon">??</span>
+                <span>MeauxStats</span>
+            </a>
+            <a href="/meauxteam" class="nav-item">
+                <span class="nav-icon">??</span>
+                <span>MeauxTeam</span>
+            </a>
+        </nav>
+        
+        <nav class="nav-section">
+            <div class="nav-section-title">Content & Media</div>
+            <a href="/meauxdoc" class="nav-item">
+                <span class="nav-icon">??</span>
+                <span>MeauxDOC</span>
+            </a>
+            <a href="/meauxphoto" class="nav-item">
+                <span class="nav-icon">??</span>
+                <span>MeauxPHOTO</span>
+            </a>
+            <a href="/meauxmemories" class="nav-item">
+                <span class="nav-icon">???</span>
+                <span>MeauxMemories</span>
+            </a>
+            <a href="/meauxmedia" class="nav-item">
+                <span class="nav-icon">??</span>
+                <span>MeauxMedia</span>
+            </a>
+        </nav>
+        
+        <nav class="nav-section">
+            <div class="nav-section-title">Infrastructure</div>
+            <a href="/meauxcloud" class="nav-item">
+                <span class="nav-icon">??</span>
+                <span>MeauxCloud</span>
+            </a>
+            <a href="/meauxcad" class="nav-item">
+                <span class="nav-icon">???</span>
+                <span>MeauxCAD</span>
+            </a>
+        </nav>
+        
+        <nav class="nav-section">
+            <div class="nav-section-title">Learning</div>
+            <a href="/meauxlearn" class="nav-item">
+                <span class="nav-icon">??</span>
+                <span>MeauxLearn</span>
+            </a>
+        </nav>
+        
+        <nav class="nav-section">
+            <div class="nav-section-title">Settings</div>
+            <a href="/settings" class="nav-item">
+                <span class="nav-icon">??</span>
+                <span>Settings</span>
+            </a>
+            <a href="/billing" class="nav-item">
+                <span class="nav-icon">??</span>
+                <span>Billing</span>
+            </a>
+        </nav>
+    </aside>
+    
+    <main class="main-content">
+        <div class="topbar">
+            <div class="topbar-right">
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    <span>System Online</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content-area">
+            <div class="page-header">
+                <h1 class="page-title">?? User Management</h1>
+                <p class="page-subtitle">Manage Users & Roles</p>
+            </div>
+            
+            
+            <div class="content-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h3 style="font-size: 1.25rem;">All Users</h3>
+                    <button class="btn">+ Add User</button>
+                </div>
+                <div style="color: var(--text-secondary);">User management interface coming soon...</div>
+            </div>
+        
+        </div>
+    </main>
+    
+    <script>
+        function toggleSidenav() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+        
+        // Set active nav item
+        const currentPath = window.location.pathname;
+        document.querySelectorAll('.nav-item').forEach(item => {
+            if (item.getAttribute('href') === currentPath) {
+                item.classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html>

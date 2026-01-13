@@ -1,10 +1,19 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team | InnerAnimalMedia</title>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <title>Team | InnerAnimal Media OS</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -28,22 +37,45 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="/shared/themes/base.css">
-    <link rel="stylesheet" href="/shared/themes/inneranimal-media.css">
-    <style>
-        body { background-color: #050507; color: #f4f4f5; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #ff6b00; }
-    </style>
-    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
-</head>
-<body class="flex h-screen">
-    <div id="sidebar-container"></div>
 
-    <main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-dark">
-        <header class="h-20 border-b border-white/10 bg-brand-panel/95 backdrop-blur-md flex items-center justify-between px-8 z-30">
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Dashboard Container CSS -->
+    <link rel="stylesheet" href="/shared/dashboard-container.css">
+
+    <!-- Theme System CSS (if available) -->
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+
+    <!-- Custom Styles -->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: var(--dashboard-bg, #050507);
+            color: var(--dashboard-text-primary, rgba(255, 255, 255, 0.95));
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+    </style>
+    
+</head>
+
+<body>
+    <!-- Dashboard Layout Container -->
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
+
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            <!-- Dashboard Header -->
+            <header class="dashboard-header" id="dashboard-header-container"></header>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-content custom-scrollbar">
+                <div class="dashboard-content-inner">
+                    <header class="h-20 border-b border-white/10 bg-brand-panel/95 backdrop-blur-md flex items-center justify-between px-8 z-30">
             <div class="flex items-center gap-4">
                 <h1 class="text-2xl font-bold text-white">Team</h1>
                 <span class="text-xs text-zinc-500">Team member management</span>
@@ -68,317 +100,72 @@
                 </button>
             </div>
         </div>
-    </main>
-
-    <!-- Add/Edit Modal -->
-    <div id="member-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-brand-panel border border-white/10 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div class="p-6 border-b border-white/10 flex items-center justify-between">
-                <h2 class="text-xl font-bold text-white" id="modal-title">Add Team Member</h2>
-                <button onclick="team.closeModal()" class="p-2 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-white transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
+                </div>
             </div>
-            <form id="member-form" onsubmit="team.saveMember(event)" class="p-6 space-y-4">
-                <input type="hidden" id="member-id" value="">
-                
-                <div>
-                    <label class="block text-sm font-medium text-zinc-300 mb-2">Name *</label>
-                    <input type="text" id="member-name" required
-                        class="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50"
-                        placeholder="e.g., John Doe">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-zinc-300 mb-2">Email *</label>
-                    <input type="email" id="member-email" required
-                        class="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50"
-                        placeholder="john@example.com">
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-300 mb-2">Team Role *</label>
-                        <select id="member-role" required
-                            class="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-orange/50">
-                            <option value="member">Member</option>
-                            <option value="admin">Admin</option>
-                            <option value="owner">Owner</option>
-                            <option value="viewer">Viewer</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-300 mb-2">User ID (Optional)</label>
-                        <input type="text" id="member-user-id"
-                            class="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-brand-orange/50 font-mono text-xs"
-                            placeholder="Auto-generated if empty">
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
-                    <button type="button" onclick="team.closeModal()" class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-zinc-300 transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg font-medium transition-colors">
-                        Save Member
-                    </button>
-                </div>
-            </form>
-        </div>
+        </main>
     </div>
 
-    <script src="/shared/dashboard-layout-loader.js"></script>
+    <!-- Mobile Menu Button (will be injected by sidebar) -->
+
+    <!-- Shared Layout Scripts -->
     <script src="/shared/layout.js"></script>
+    <script src="/shared/dashboard-layout.js"></script>
+
+    <!-- Load Sidebar and Header -->
     <script>
-        const API_BASE = window.API_BASE || 'https://iaccess-api.meauxbility.workers.dev';
-        const team = {
-            members: [],
-            selectedMember: null,
-            loading: false,
-
-            async init() {
-                await this.loadMembers();
-            },
-
-            async loadMembers() {
-                this.loading = true;
-                const container = document.getElementById('members-container');
-                const emptyState = document.getElementById('empty-state');
-                container.innerHTML = '<div class="col-span-full text-zinc-500 text-sm animate-pulse p-8 text-center">Loading...</div>';
-
-                try {
-                    const response = await fetch(`${API_BASE}/api/team`);
-                    const result = await response.json();
-
-                    if (result.success && result.data && result.data.members) {
-                        this.members = result.data.members;
-                        this.renderMembers();
-                    } else {
-                        this.members = [];
-                        this.renderMembers();
-                    }
-                } catch (error) {
-                    console.error('Error loading team members:', error);
-                    container.innerHTML = `<div class="col-span-full text-red-400 text-sm p-4">Error: ${error.message}</div>`;
-                    this.members = [];
-                } finally {
-                    this.loading = false;
-                }
-            },
-
-            renderMembers() {
-                const container = document.getElementById('members-container');
-                const emptyState = document.getElementById('empty-state');
-
-                if (this.members.length === 0) {
-                    container.classList.add('hidden');
-                    emptyState.classList.remove('hidden');
-                    return;
-                }
-
-                container.classList.remove('hidden');
-                emptyState.classList.add('hidden');
-
-                container.innerHTML = this.members.map(member => {
-                    const roleColor = {
-                        owner: 'bg-purple-500/20 text-purple-400',
-                        admin: 'bg-red-500/20 text-red-400',
-                        member: 'bg-blue-500/20 text-blue-400',
-                        viewer: 'bg-zinc-500/20 text-zinc-400'
-                    }[member.team_role] || 'bg-zinc-500/20 text-zinc-400';
-
-                    return `
-                        <div class="bg-brand-panel border border-white/10 rounded-xl p-6 hover:border-brand-orange/50 transition-all group">
-                            <div class="flex items-start justify-between mb-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-brand-orange/20 to-brand-red/20 flex items-center justify-center text-lg font-bold text-white">
-                                        ${escapeHtml((member.name || member.email || 'U').charAt(0).toUpperCase())}
-                                    </div>
-                                    <div>
-                                        <h3 class="font-semibold text-white mb-1">${escapeHtml(member.name || 'Unknown')}</h3>
-                                        <p class="text-xs text-zinc-500">${escapeHtml(member.email || 'No email')}</p>
-                                    </div>
-                                </div>
-                                <span class="px-2 py-1 rounded-full text-xs font-medium ${roleColor} capitalize">
-                                    ${member.team_role || 'member'}
-                                </span>
-                            </div>
-
-                            <div class="space-y-2 mb-4">
-                                ${member.user_id ? `
-                                    <div class="flex items-center gap-2 text-xs text-zinc-400">
-                                        <i data-lucide="hash" class="w-3 h-3"></i>
-                                        <code class="font-mono text-zinc-500 truncate">${escapeHtml(member.user_id)}</code>
-                                    </div>
-                                ` : ''}
-                                ${member.joined_at ? `
-                                    <div class="flex items-center gap-2 text-xs text-zinc-400">
-                                        <i data-lucide="calendar" class="w-3 h-3"></i>
-                                        <span>Joined ${new Date(member.joined_at * 1000).toLocaleDateString()}</span>
-                                    </div>
-                                ` : ''}
-                            </div>
-
-                            <div class="flex items-center gap-2 pt-4 border-t border-white/5">
-                                <button onclick="team.editMember('${member.id}')" 
-                                    class="flex-1 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-zinc-300 hover:text-white transition-colors flex items-center justify-center gap-1">
-                                    <i data-lucide="edit" class="w-3 h-3"></i>
-                                    Edit
-                                </button>
-                                <button onclick="team.removeMember('${member.id}')" 
-                                    class="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-xs text-red-400 hover:text-red-300 transition-colors"
-                                    title="Remove member">
-                                    <i data-lucide="user-minus" class="w-3 h-3"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-
-                lucide.createIcons();
-            },
-
-            showAddModal() {
-                document.getElementById('modal-title').textContent = 'Add Team Member';
-                document.getElementById('member-form').reset();
-                document.getElementById('member-id').value = '';
-                document.getElementById('member-modal').classList.remove('hidden');
-            },
-
-            async editMember(memberId) {
-                const member = this.members.find(m => m.id === memberId);
-                if (!member) return;
-
-                document.getElementById('modal-title').textContent = 'Edit Team Member';
-                document.getElementById('member-id').value = member.id;
-                document.getElementById('member-name').value = member.name || '';
-                document.getElementById('member-email').value = member.email || '';
-                document.getElementById('member-role').value = member.team_role || 'member';
-                document.getElementById('member-user-id').value = member.user_id || '';
-                
-                document.getElementById('member-modal').classList.remove('hidden');
-            },
-
-            closeModal() {
-                document.getElementById('member-modal').classList.add('hidden');
-                document.getElementById('member-form').reset();
-                document.getElementById('member-id').value = '';
-            },
-
-            async saveMember(e) {
-                e.preventDefault();
-                const id = document.getElementById('member-id').value;
-                const name = document.getElementById('member-name').value;
-                const email = document.getElementById('member-email').value;
-                const teamRole = document.getElementById('member-role').value;
-                const userId = document.getElementById('member-user-id').value || null;
-
-                if (!name || !email || !teamRole) {
-                    this.showNotification('All required fields must be filled', 'error');
-                    return;
-                }
-
-                try {
-                    if (id) {
-                        // Update existing member
-                        const response = await fetch(`${API_BASE}/api/team/members/${id}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                name,
-                                team_role: teamRole,
-                                permissions: {}
-                            })
-                        });
-
-                        const result = await response.json();
-
-                        if (result.success) {
-                            this.showNotification('Team member updated successfully!', 'success');
-                            this.closeModal();
-                            await this.loadMembers();
-                        } else {
-                            this.showNotification(`Error: ${result.error || 'Failed to update member'}`, 'error');
-                        }
-                    } else {
-                        // Add new member
-                        const response = await fetch(`${API_BASE}/api/team/members`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                user_id: userId,
-                                email,
-                                name,
-                                team_role: teamRole,
-                                permissions: {}
-                            })
-                        });
-
-                        const result = await response.json();
-
-                        if (result.success) {
-                            this.showNotification('Team member added successfully!', 'success');
-                            this.closeModal();
-                            await this.loadMembers();
-                        } else {
-                            this.showNotification(`Error: ${result.error || 'Failed to add member'}`, 'error');
+        async function loadDashboardComponents() {
+            // Load sidebar
+            try {
+                const sidebarRes = await fetch('/shared/sidebar.html');
+                if (sidebarRes.ok) {
+                    const sidebarHtml = await sidebarRes.text();
+                    const sidebarContainer = document.getElementById('sidebar-container');
+                    if (sidebarContainer) {
+                        sidebarContainer.innerHTML = sidebarHtml;
+                        // Reinitialize icons after sidebar loads
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
                         }
                     }
-                } catch (error) {
-                    console.error('Error saving team member:', error);
-                    this.showNotification(`Error: ${error.message}`, 'error');
                 }
-            },
-
-            async removeMember(memberId) {
-                if (!confirm('Are you sure you want to remove this team member? This cannot be undone.')) {
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`${API_BASE}/api/team/members/${memberId}`, {
-                        method: 'DELETE'
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        this.showNotification('Team member removed successfully', 'success');
-                        await this.loadMembers();
-                    } else {
-                        this.showNotification(`Error: ${result.error || 'Failed to remove member'}`, 'error');
-                    }
-                } catch (error) {
-                    console.error('Error removing team member:', error);
-                    this.showNotification(`Error: ${error.message}`, 'error');
-                }
-            },
-
-            showNotification(message, type = 'info') {
-                const bgColor = type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-                const notification = document.createElement('div');
-                notification.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-3 rounded-lg shadow-xl z-50 flex items-center gap-2`;
-                notification.innerHTML = `
-                    <span>${escapeHtml(message)}</span>
-                    <button onclick="this.parentElement.remove()" class="ml-2 hover:opacity-70">×</button>
-                `;
-                document.body.appendChild(notification);
-                setTimeout(() => notification.remove(), 5000);
+            } catch (error) {
+                console.error('Error loading sidebar:', error);
             }
-        };
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            // Load header
+            try {
+                const headerRes = await fetch('/shared/header.html');
+                if (headerRes.ok) {
+                    const headerHtml = await headerRes.text();
+                    const headerContainer = document.getElementById('dashboard-header-container');
+                    if (headerContainer) {
+                        headerContainer.innerHTML = headerHtml;
+                        // Update page title
+                        const pageTitle = document.getElementById('page-title');
+                        if (pageTitle) {
+                            pageTitle.textContent = 'Team';
+                        }
+                        // Reinitialize icons
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading header:', error);
+            }
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            await team.init();
-            lucide.createIcons();
-        });
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadDashboardComponents);
+        } else {
+            loadDashboardComponents();
+        }
     </script>
+
+    <!-- Page-specific scripts -->
+    
 </body>
+
 </html>

@@ -4,12 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MeauxIDE | Code Editor</title>
+    <title>MeauxIDE | InnerAnimal Media OS</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -33,659 +37,183 @@
             }
         }
     </script>
+
+    <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Dashboard Container CSS -->
+    <link rel="stylesheet" href="/shared/dashboard-container.css">
+
+    <!-- Theme System CSS (if available) -->
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+
+    <!-- Custom Styles -->
     <style>
         body {
-            background-color: #050507;
-            color: #f4f4f5;
+            margin: 0;
+            padding: 0;
             overflow: hidden;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #ff6b00;
-        }
-
-        .code-editor {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 14px;
-            line-height: 1.6;
-            tab-size: 2;
-        }
-
-        .code-editor:focus {
-            outline: none;
-        }
-
-        .line-number {
-            color: #6b7280;
-            text-align: right;
-            padding-right: 1rem;
-            user-select: none;
+            background: var(--dashboard-bg, #050507);
+            color: var(--dashboard-text-primary, rgba(255, 255, 255, 0.95));
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
     </style>
-    <link rel="stylesheet" href="/shared/themes/base.css">
-    <link rel="stylesheet" href="/shared/themes/inneranimal-media.css">
-    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+
 </head>
 
-<body class="flex h-screen">
-    <!-- Sidebar -->
-    <aside class="w-64 bg-brand-panel border-r border-white/10 flex flex-col">
-        <div class="h-16 flex items-center px-4 border-b border-white/5">
-            <div
-                class="w-8 h-8 bg-gradient-to-br from-brand-orange to-brand-red rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                IDE</div>
-            <div class="ml-3">
-                <h1 class="font-bold text-sm text-white">MeauxIDE</h1>
-                <span class="text-[10px] text-zinc-500 font-mono">v2.0</span>
-            </div>
-        </div>
-        <div class="flex-1 overflow-y-auto p-2 custom-scrollbar">
-            <div class="mb-4">
-                <button onclick="ide.newFile()"
-                    class="w-full flex items-center gap-2 px-3 py-2 bg-brand-orange/10 hover:bg-brand-orange/20 border border-brand-orange/20 text-brand-orange rounded-lg text-xs font-medium transition-colors mb-2">
-                    <i data-lucide="plus" class="w-4 h-4"></i> New File
-                </button>
-                <button onclick="ide.openFolder()"
-                    class="w-full flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 rounded-lg text-xs font-medium transition-colors">
-                    <i data-lucide="folder-open" class="w-4 h-4"></i> Open Folder
-                </button>
-            </div>
-            <div>
-                <div class="px-2 mb-2 text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Explorer</div>
-                <div class="space-y-1" id="file-explorer">
-                    <!-- Files will appear here -->
-                </div>
-            </div>
-        </div>
-        <div class="p-4 border-t border-white/5">
-            <a href="/dashboard/"
-                class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-zinc-300 transition-colors">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back
-            </a>
-        </div>
-    </aside>
+<body>
+    <!-- Dashboard Layout Container -->
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
 
-    <!-- Main Editor -->
-    <main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-dark">
-        <!-- Tab Bar -->
-        <div class="h-10 border-b border-white/10 bg-brand-panel flex items-center overflow-x-auto custom-scrollbar"
-            id="tab-bar">
-            <!-- Tabs will appear here -->
-        </div>
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            <!-- Dashboard Header -->
+            <header class="dashboard-header" id="dashboard-header-container"></header>
 
-        <!-- Editor Area -->
-        <div class="flex-1 flex overflow-hidden">
-            <!-- Editor -->
-            <div class="flex-1 flex flex-col">
-                <div class="flex-1 relative">
-                    <div class="absolute inset-0 flex">
-                        <!-- Line Numbers -->
-                        <div class="w-12 bg-zinc-900/50 border-r border-white/10 p-2 text-xs font-mono line-number custom-scrollbar"
-                            id="line-numbers">
-                            <!-- Line numbers -->
-                        </div>
-                        <!-- Code Editor -->
-                        <textarea id="code-editor"
-                            class="flex-1 bg-black p-4 text-zinc-300 code-editor custom-scrollbar resize-none"
-                            placeholder="// Start coding...
+            <!-- Dashboard Content -->
+            <div class="dashboard-content custom-scrollbar">
+                <div class="dashboard-content-inner">
+                    <!-- Tab Bar -->
+                    <div class="h-10 border-b border-white/10 bg-brand-panel flex items-center overflow-x-auto custom-scrollbar"
+                        id="tab-bar">
+                        <!-- Tabs will appear here -->
+                    </div>
+
+                    <!-- Editor Area -->
+                    <div class="flex-1 flex overflow-hidden">
+                        <!-- Editor -->
+                        <div class="flex-1 flex flex-col">
+                            <div class="flex-1 relative">
+                                <div class="absolute inset-0 flex">
+                                    <!-- Line Numbers -->
+                                    <div class="w-12 bg-zinc-900/50 border-r border-white/10 p-2 text-xs font-mono line-number custom-scrollbar"
+                                        id="line-numbers">
+                                        <!-- Line numbers -->
+                                    </div>
+                                    <!-- Code Editor -->
+                                    <textarea id="code-editor"
+                                        class="flex-1 bg-black p-4 text-zinc-300 code-editor custom-scrollbar resize-none"
+                                        placeholder="// Start coding...
 // Press Ctrl+S to save
 // Press Ctrl+/ to toggle comment
 
 function hello() {
     console.log('Hello from MeauxIDE!');
 }"></textarea>
-                    </div>
-                </div>
-                <!-- Status Bar -->
-                <div
-                    class="h-6 border-t border-white/10 bg-zinc-900/50 flex items-center justify-between px-4 text-xs text-zinc-500">
-                    <div class="flex items-center gap-4">
-                        <span id="cursor-position">Ln 1, Col 1</span>
-                        <span>|</span>
-                        <span id="file-language">Plain Text</span>
-                        <span>|</span>
-                        <span id="file-encoding">UTF-8</span>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <span id="line-count">1 line</span>
-                        <span>|</span>
-                        <button onclick="ide.toggleTerminal()" class="hover:text-white">
-                            <i data-lucide="terminal" class="w-3 h-3"></i>
-                        </button>
+                                </div>
+                            </div>
+                            <!-- Status Bar -->
+                            <div
+                                class="h-6 border-t border-white/10 bg-zinc-900/50 flex items-center justify-between px-4 text-xs text-zinc-500">
+                                <div class="flex items-center gap-4">
+                                    <span id="cursor-position">Ln 1, Col 1</span>
+                                    <span>|</span>
+                                    <span id="file-language">Plain Text</span>
+                                    <span>|</span>
+                                    <span id="file-encoding">UTF-8</span>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <span id="line-count">1 line</span>
+                                    <span>|</span>
+                                    <button onclick="ide.toggleTerminal()" class="hover:text-white">
+                                        <i data-lucide="terminal" class="w-3 h-3"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Terminal/Output (Collapsible) -->
+                        <div id="terminal-panel"
+                            class="w-0 border-l border-white/10 bg-black overflow-hidden transition-all duration-300">
+                            <div
+                                class="h-8 border-b border-white/10 flex items-center justify-between px-4 bg-zinc-900/50">
+                                <span class="text-xs font-mono text-zinc-400">Terminal</span>
+                                <button onclick="ide.toggleTerminal()" class="text-zinc-500 hover:text-white">
+                                    <i data-lucide="x" class="w-3 h-3"></i>
+                                </button>
+                            </div>
+                            <div class="h-full overflow-y-auto p-4 font-mono text-sm custom-scrollbar"
+                                id="terminal-output">
+                                <div class="text-zinc-500">$ Ready</div>
+                            </div>
+                            <div class="h-10 border-t border-white/10 p-2">
+                                <form onsubmit="ide.runTerminalCommand(event)" class="flex items-center gap-2">
+                                    <span class="text-brand-orange font-bold">$</span>
+                                    <input type="text" id="terminal-input"
+                                        class="flex-1 bg-transparent outline-none text-white font-mono placeholder:text-zinc-600"
+                                        placeholder="Enter command..." autocomplete="off">
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+        </main>
+    </div>
 
-            <!-- Right: Terminal/Output (Collapsible) -->
-            <div id="terminal-panel"
-                class="w-0 border-l border-white/10 bg-black overflow-hidden transition-all duration-300">
-                <div class="h-8 border-b border-white/10 flex items-center justify-between px-4 bg-zinc-900/50">
-                    <span class="text-xs font-mono text-zinc-400">Terminal</span>
-                    <button onclick="ide.toggleTerminal()" class="text-zinc-500 hover:text-white">
-                        <i data-lucide="x" class="w-3 h-3"></i>
-                    </button>
-                </div>
-                <div class="h-full overflow-y-auto p-4 font-mono text-sm custom-scrollbar" id="terminal-output">
-                    <div class="text-zinc-500">$ Ready</div>
-                </div>
-                <div class="h-10 border-t border-white/10 p-2">
-                    <form onsubmit="ide.runTerminalCommand(event)" class="flex items-center gap-2">
-                        <span class="text-brand-orange font-bold">$</span>
-                        <input type="text" id="terminal-input"
-                            class="flex-1 bg-transparent outline-none text-white font-mono placeholder:text-zinc-600"
-                            placeholder="Enter command..." autocomplete="off">
-                    </form>
-                </div>
-            </div>
-        </div>
-    </main>
+    <!-- Mobile Menu Button (will be injected by sidebar) -->
 
+    <!-- Shared Layout Scripts -->
+    <script src="/shared/layout.js"></script>
+    <script src="/shared/dashboard-layout.js"></script>
+
+    <!-- Load Sidebar and Header -->
     <script>
-        const API_BASE = window.API_BASE || 'https://iaccess-api.meauxbility.workers.dev';
-        const ide = {
-            files: [],
-            activeFile: null,
-            terminalOpen: false,
-            currentPath: '/',
-            loadingFiles: false,
-
-            async init() {
-                await this.loadFiles();
-                this.setupEditor();
-                this.setupKeyboardShortcuts();
-            },
-
-            async loadFiles(path = '') {
-                this.loadingFiles = true;
-                const container = document.getElementById('file-explorer');
-                container.innerHTML = '<div class="text-zinc-500 text-xs animate-pulse p-4">Loading files...</div>';
-
-                try {
-                    const url = path ? `${API_BASE}/api/files?path=${encodeURIComponent(path)}` : `${API_BASE}/api/files`;
-                    const response = await fetch(url);
-                    const result = await response.json();
-
-                    if (result.success && result.data && result.data.files) {
-                        this.files = result.data.files.map(file => ({
-                            id: file.path.replace(/\//g, '-'),
-                            name: file.name,
-                            path: file.path,
-                            type: file.type,
-                            size: file.size,
-                            language: this.detectLanguage(file.name),
-                            content: null, // Load on demand
-                            lastModified: file.lastModified
-                        }));
-                        this.currentPath = result.data.path || '/';
-                        this.renderFiles();
-
-                        // Load first file if available
-                        if (this.files.length > 0 && this.files[0].type === 'file') {
-                            await this.openFile(this.files[0]);
+        async function loadDashboardComponents() {
+            // Load sidebar
+            try {
+                const sidebarRes = await fetch('/shared/sidebar.html');
+                if (sidebarRes.ok) {
+                    const sidebarHtml = await sidebarRes.text();
+                    const sidebarContainer = document.getElementById('sidebar-container');
+                    if (sidebarContainer) {
+                        sidebarContainer.innerHTML = sidebarHtml;
+                        // Reinitialize icons after sidebar loads
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
                         }
-                    } else {
-                        container.innerHTML = '<div class="text-zinc-500 text-xs p-4">No files found</div>';
-                        this.files = [];
-                    }
-                } catch (error) {
-                    console.error('Error loading files:', error);
-                    container.innerHTML = '<div class="text-red-400 text-xs p-4">Error loading files</div>';
-                    this.files = [];
-                } finally {
-                    this.loadingFiles = false;
-                }
-            },
-
-            async renderFiles() {
-                const container = document.getElementById('file-explorer');
-
-                // Add back button if not at root
-                let html = '';
-                if (this.currentPath !== '/') {
-                    html += `
-                        <button onclick="ide.navigateUp()" class="w-full text-left px-2 py-1.5 rounded hover:bg-white/5 text-zinc-400 hover:text-white transition-colors flex items-center gap-2 text-sm mb-2">
-                            <i data-lucide="arrow-up" class="w-4 h-4"></i>
-                            <span>..</span>
-                        </button>
-                    `;
-                }
-
-                // Group by type (directories first)
-                const dirs = this.files.filter(f => f.type === 'directory');
-                const files = this.files.filter(f => f.type === 'file');
-
-                html += dirs.map(file => `
-                    <button onclick="ide.openDirectory('${file.path}')" 
-                        class="w-full text-left px-2 py-1.5 rounded hover:bg-white/5 text-zinc-400 hover:text-white transition-colors flex items-center gap-2 text-sm">
-                        <i data-lucide="folder" class="w-4 h-4 text-blue-400"></i>
-                        <span>${escapeHtml(file.name)}</span>
-                    </button>
-                `).join('');
-
-                html += files.map(file => `
-                    <button onclick="ide.openFile(ide.files.find(f => f.path === '${file.path}'))" 
-                        class="w-full text-left px-2 py-1.5 rounded hover:bg-white/5 text-zinc-400 hover:text-white transition-colors flex items-center gap-2 text-sm">
-                        <i data-lucide="${this.getFileIcon(file.language)}" class="w-4 h-4"></i>
-                        <span>${escapeHtml(file.name)}</span>
-                    </button>
-                `).join('');
-
-                container.innerHTML = html || '<div class="text-zinc-500 text-xs p-4">No files</div>';
-                lucide.createIcons();
-            },
-
-            async navigateUp() {
-                const parts = this.currentPath.split('/').filter(p => p);
-                parts.pop();
-                const newPath = parts.length > 0 ? '/' + parts.join('/') : '/';
-                await this.loadFiles(newPath);
-            },
-
-            async openDirectory(path) {
-                await this.loadFiles(path);
-            },
-
-            async openFile(file) {
-                if (!file || file.type === 'directory') return;
-
-                // Check if file content already loaded
-                if (file.content !== null) {
-                    this.activeFile = file;
-                    const editor = document.getElementById('code-editor');
-                    editor.value = file.content;
-                    this.updateLineNumbers();
-                    this.updateStatusBar();
-                    this.renderTabs();
-                    return;
-                }
-
-                // Load file content
-                try {
-                    const editor = document.getElementById('code-editor');
-                    editor.disabled = true;
-                    editor.value = 'Loading...';
-
-                    const response = await fetch(`${API_BASE}/api/files/${encodeURIComponent(file.path)}`);
-                    const result = await response.json();
-
-                    if (result.success && result.data) {
-                        file.content = result.data.content || '';
-                        file.size = result.data.size || 0;
-                        this.activeFile = file;
-                        editor.value = file.content;
-                        editor.disabled = false;
-                        this.updateLineNumbers();
-                        this.updateStatusBar();
-                        this.renderTabs();
-                        this.addToTabs(file);
-                    } else {
-                        editor.value = '';
-                        editor.disabled = false;
-                        alert(`Error loading file: ${result.error || 'Unknown error'}`);
-                    }
-                } catch (error) {
-                    console.error('Error loading file:', error);
-                    const editor = document.getElementById('code-editor');
-                    editor.value = '';
-                    editor.disabled = false;
-                    alert(`Error loading file: ${error.message}`);
-                }
-            },
-
-            async saveFile() {
-                if (!this.activeFile) {
-                    alert('No file open to save');
-                    return;
-                }
-
-                const editor = document.getElementById('code-editor');
-                const content = editor.value;
-                const fileName = this.activeFile.name;
-
-                try {
-                    editor.disabled = true;
-                    const savePath = this.activeFile.path || `${this.currentPath}${fileName}`;
-
-                    const response = await fetch(`${API_BASE}/api/files/${encodeURIComponent(savePath)}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            content,
-                            contentType: this.getContentType(fileName)
-                        })
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        this.activeFile.content = content;
-                        // Show temporary success indicator
-                        const statusBar = document.getElementById('file-language');
-                        const original = statusBar.textContent;
-                        statusBar.textContent = 'Saved!';
-                        statusBar.style.color = '#10b981';
-                        setTimeout(() => {
-                            statusBar.textContent = original;
-                            statusBar.style.color = '';
-                        }, 2000);
-                    } else {
-                        alert(`Error saving file: ${result.error || 'Unknown error'}`);
-                    }
-                } catch (error) {
-                    console.error('Error saving file:', error);
-                    alert(`Error saving file: ${error.message}`);
-                } finally {
-                    editor.disabled = false;
-                    editor.focus();
-                }
-            },
-
-            async runTerminalCommand(e) {
-                e.preventDefault();
-                const input = document.getElementById('terminal-input');
-                const command = input.value.trim();
-                if (!command) return;
-
-                const output = document.getElementById('terminal-output');
-                output.innerHTML += `<div class="text-zinc-500">$ ${command}</div>`;
-                input.value = '';
-                input.disabled = true;
-
-                try {
-                    const response = await fetch(`${API_BASE}/api/ide/terminal`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            command,
-                            workingDir: this.currentPath
-                        })
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success && result.data) {
-                        if (result.data.output) {
-                            output.innerHTML += `<div class="text-white">${escapeHtml(result.data.output)}</div>`;
-                        }
-                        if (result.data.data && result.data.data.table) {
-                            // Render table
-                            const table = result.data.data.table;
-                            let tableHtml = '<div class="mt-2 mb-2"><table class="text-xs border border-white/10"><thead><tr>';
-                            table.headers.forEach(h => tableHtml += `<th class="border border-white/10 px-2 py-1">${escapeHtml(h)}</th>`);
-                            tableHtml += '</tr></thead><tbody>';
-                            table.rows.slice(0, 10).forEach(row => {
-                                tableHtml += '<tr>';
-                                row.forEach(cell => tableHtml += `<td class="border border-white/10 px-2 py-1">${escapeHtml(String(cell))}</td>`);
-                                tableHtml += '</tr>';
-                            });
-                            tableHtml += '</tbody></table></div>';
-                            output.innerHTML += tableHtml;
-                        }
-                    } else {
-                        output.innerHTML += `<div class="text-red-400">Error: ${escapeHtml(result.error || 'Command failed')}</div>`;
-                    }
-                } catch (error) {
-                    console.error('Terminal command error:', error);
-                    output.innerHTML += `<div class="text-red-400">Error: ${escapeHtml(error.message)}</div>`;
-                } finally {
-                    input.disabled = false;
-                    input.focus();
-                    output.scrollTop = output.scrollHeight;
-                }
-            },
-
-            getContentType(fileName) {
-                const ext = fileName.split('.').pop().toLowerCase();
-                const types = {
-                    js: 'application/javascript',
-                    ts: 'application/typescript',
-                    jsx: 'application/javascript',
-                    tsx: 'application/typescript',
-                    json: 'application/json',
-                    css: 'text/css',
-                    html: 'text/html',
-                    md: 'text/markdown',
-                    txt: 'text/plain',
-                    py: 'text/x-python',
-                    go: 'text/x-go',
-                    rs: 'text/x-rust',
-                    java: 'text/x-java',
-                    default: 'text/plain'
-                };
-                return types[ext] || types.default;
-            },
-
-            detectLanguage(fileName) {
-                const ext = fileName.split('.').pop().toLowerCase();
-                const languages = {
-                    js: 'javascript',
-                    jsx: 'javascript',
-                    ts: 'typescript',
-                    tsx: 'typescript',
-                    py: 'python',
-                    java: 'java',
-                    go: 'go',
-                    rs: 'rust',
-                    html: 'html',
-                    css: 'css',
-                    json: 'json',
-                    md: 'markdown',
-                    sql: 'sql',
-                    sh: 'shell',
-                    default: 'plaintext'
-                };
-                return languages[ext] || languages.default;
-            },
-
-            setupKeyboardShortcuts() {
-                // Global shortcuts
-                document.addEventListener('keydown', (e) => {
-                    // Ctrl+S to save
-                    if (e.ctrlKey && e.key === 's') {
-                        e.preventDefault();
-                        this.saveFile();
-                    }
-                    // Ctrl+N to new file
-                    if (e.ctrlKey && e.key === 'n') {
-                        e.preventDefault();
-                        this.newFile();
-                    }
-                });
-            },
-
-            newFile() {
-                const name = prompt('Enter file name:');
-                if (!name) return;
-
-                const newFile = {
-                    id: `new-${Date.now()}`,
-                    name,
-                    path: `${this.currentPath}${name}`,
-                    type: 'file',
-                    language: this.detectLanguage(name),
-                    content: '',
-                    size: 0
-                };
-
-                this.files.push(newFile);
-                this.renderFiles();
-                this.openFile(newFile);
-            },
-
-            addToTabs(file) {
-                // Ensure file is in tabs
-                if (!this.files.find(f => f.path === file.path)) {
-                    this.files.push(file);
-                }
-                this.renderTabs();
-            },
-
-            escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            },
-
-            getFileIcon(language) {
-                const icons = {
-                    javascript: 'file-code',
-                    typescript: 'file-code',
-                    css: 'file-code',
-                    html: 'file-code',
-                    json: 'file-code',
-                    python: 'file-code',
-                    java: 'file-code',
-                    go: 'file-code',
-                    rust: 'file-code',
-                    sql: 'database',
-                    shell: 'terminal',
-                    markdown: 'file-text',
-                    default: 'file'
-                };
-                return icons[language] || icons.default;
-            },
-
-            renderTabs() {
-                const container = document.getElementById('tab-bar');
-                container.innerHTML = this.files.map(file => `
-                    <button onclick="ide.openFile(ide.files.find(f => f.id === ${file.id}))" 
-                        class="h-full px-4 flex items-center gap-2 border-r border-white/10 text-xs font-medium transition-colors ${this.activeFile?.id === file.id
-                        ? 'bg-brand-dark text-white border-b-2 border-brand-orange'
-                        : 'bg-brand-panel text-zinc-400 hover:text-white'
-                    }">
-                        <i data-lucide="${this.getFileIcon(file.language)}" class="w-3 h-3"></i>
-                        <span>${file.name}</span>
-                        <button onclick="event.stopPropagation(); ide.closeFile(${file.id})" class="ml-2 hover:text-red-400">
-                            <i data-lucide="x" class="w-3 h-3"></i>
-                        </button>
-                    </button>
-                `).join('');
-                lucide.createIcons();
-            },
-
-            setupEditor() {
-                const editor = document.getElementById('code-editor');
-
-                // Update line numbers on input
-                editor.addEventListener('input', () => {
-                    this.updateLineNumbers();
-                    this.updateStatusBar();
-                    this.updateCursorPosition();
-                    if (this.activeFile) {
-                        this.activeFile.content = editor.value;
-                    }
-                });
-
-                // Track cursor position
-                editor.addEventListener('keyup', () => this.updateCursorPosition());
-                editor.addEventListener('click', () => this.updateCursorPosition());
-                editor.addEventListener('scroll', () => {
-                    // Sync line numbers scroll with editor
-                    const lineNumbers = document.getElementById('line-numbers');
-                    if (lineNumbers) {
-                        lineNumbers.scrollTop = editor.scrollTop;
-                    }
-                });
-            },
-
-            updateLineNumbers() {
-                const editor = document.getElementById('code-editor');
-                const lines = editor.value.split('\n').length;
-                const lineNumbers = document.getElementById('line-numbers');
-                lineNumbers.innerHTML = Array.from({ length: lines }, (_, i) =>
-                    `<div class="text-zinc-600 text-xs text-right pr-2 select-none">${i + 1}</div>`
-                ).join('');
-            },
-
-            updateCursorPosition() {
-                const editor = document.getElementById('code-editor');
-                const textBeforeCursor = editor.value.substring(0, editor.selectionStart);
-                const lines = textBeforeCursor.split('\n');
-                const line = lines.length;
-                const col = lines[lines.length - 1].length + 1;
-                document.getElementById('cursor-position').textContent = `Ln ${line}, Col ${col}`;
-            },
-
-            updateStatusBar() {
-                const editor = document.getElementById('code-editor');
-                const lines = editor.value.split('\\n').length;
-                document.getElementById('line-count').textContent = `${lines} line${lines !== 1 ? 's' : ''}`;
-
-                if (this.activeFile) {
-                    document.getElementById('file-language').textContent = this.activeFile.language || 'Plain Text';
-                }
-            },
-
-            toggleComment() {
-                const editor = document.getElementById('code-editor');
-                const selection = editor.value.substring(editor.selectionStart, editor.selectionEnd);
-                if (!selection) return;
-
-                const lines = selection.split('\n');
-                const commented = lines.map(line => line.trim().startsWith('//')
-                    ? line.replace(/^\s*\/\//, '')
-                    : '// ' + line
-                ).join('\n');
-
-                editor.setRangeText(commented, editor.selectionStart, editor.selectionEnd, 'select');
-            },
-
-            closeFile(fileId) {
-                this.files = this.files.filter(f => f.id !== fileId);
-                if (this.activeFile && (this.activeFile.id === fileId || this.activeFile.path === fileId)) {
-                    this.activeFile = this.files.find(f => f.type === 'file') || null;
-                    const editor = document.getElementById('code-editor');
-                    if (this.activeFile) {
-                        this.openFile(this.activeFile);
-                    } else {
-                        editor.value = '';
-                        this.updateLineNumbers();
                     }
                 }
-                this.renderTabs();
-            },
-
-            toggleTerminal() {
-                this.terminalOpen = !this.terminalOpen;
-                const panel = document.getElementById('terminal-panel');
-                if (this.terminalOpen) {
-                    panel.classList.remove('w-0');
-                    panel.classList.add('w-96');
-                    document.getElementById('terminal-input')?.focus();
-                } else {
-                    panel.classList.remove('w-96');
-                    panel.classList.add('w-0');
-                }
-            },
-
-            showNotification(message) {
-                // Simple notification (could be enhanced)
-                console.log(message);
+            } catch (error) {
+                console.error('Error loading sidebar:', error);
             }
-        };
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            await ide.init();
-            lucide.createIcons();
-        });
+            // Load header
+            try {
+                const headerRes = await fetch('/shared/header.html');
+                if (headerRes.ok) {
+                    const headerHtml = await headerRes.text();
+                    const headerContainer = document.getElementById('dashboard-header-container');
+                    if (headerContainer) {
+                        headerContainer.innerHTML = headerHtml;
+                        // Update page title
+                        const pageTitle = document.getElementById('page-title');
+                        if (pageTitle) {
+                            pageTitle.textContent = 'MeauxIDE';
+                        }
+                        // Reinitialize icons
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading header:', error);
+            }
+        }
+
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadDashboardComponents);
+        } else {
+            loadDashboardComponents();
+        }
     </script>
-    <script src="/shared/layout-loader.js"></script>
-    <script src="/shared/onboarding-wizard.js"></script>
+
+    <!-- Page-specific scripts -->
+    <script src="/dashboard/meauxide.js"></script>
 </body>
 
 </html>

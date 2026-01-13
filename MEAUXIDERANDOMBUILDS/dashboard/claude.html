@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude AI Chat - InnerAnimal Media</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-orange': '#ff6b00',
+                        'brand-red': '#dc2626',
+                        'brand-panel': '#0a0a0a',
+                        'brand-surface': '#050507',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #ff6b00;
+            border-radius: 4px;
+        }
+
+        .message-user {
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        .message-assistant {
+            animation: slideInLeft 0.3s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-brand-surface text-white min-h-screen">
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-brand-panel border-b border-white/10 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                        <i data-lucide="bot" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold">Claude AI Chat</h1>
+                        <p class="text-sm text-zinc-400">Anthropic Claude Assistant</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select id="account-select" class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm">
+                        <option value="default">Default Account</option>
+                    </select>
+                    <button onclick="claudeChat.clearChat()"
+                        class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm transition-colors flex items-center gap-2">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Messages Container -->
+        <div id="messages-container" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+            <div class="text-center py-12 text-zinc-500">
+                <i data-lucide="message-square" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+                <p>Start a conversation with Claude</p>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="bg-brand-panel border-t border-white/10 p-4">
+            <form id="chat-form" class="flex gap-3">
+                <div class="flex-1 relative">
+                    <textarea id="message-input" rows="1" placeholder="Type your message..."
+                        class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg resize-none focus:outline-none focus:border-brand-orange text-white placeholder-zinc-500"
+                        style="max-height: 200px;"></textarea>
+                </div>
+                <button type="submit" id="send-button"
+                    class="px-6 py-3 bg-brand-orange hover:bg-orange-600 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                    Send
+                </button>
+            </form>
+            <div class="mt-2 text-xs text-zinc-500 text-center">
+                Claude API powered by Anthropic • Multiple accounts supported
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const claudeChat = {
+            // Use current origin (inneranimalmedia.com or www.inneranimalmedia.com) 
+            // Worker is routed to inneranimalmedia.com/* and www.inneranimalmedia.com/*
+            apiBase: window.location.origin,
+            fallbackApiBase: 'https://inneranimalmedia-dev.meauxbility.workers.dev',
+            currentConnectionId: null,
+            messages: [],
+            userId: localStorage.getItem('userId') || 'user-samprimeaux',
+
+            async init() {
+                lucide.createIcons();
+                await this.loadConnections();
+                this.setupEventListeners();
+                this.autoResizeTextarea();
+            },
+
+            async loadConnections() {
+                try {
+                    // Try current origin first (works for custom domains)
+                    let res = await fetch(`${this.apiBase}/api/users/${this.userId}/connections`).catch(() => null);
+                    // Fallback to workers.dev if needed
+                    if (!res || !res.ok) {
+                        res = await fetch(`${this.fallbackApiBase}/api/users/${this.userId}/connections`);
+                    }
+                    const data = await res.json();
+                    if (data.success && data.data) {
+                        const claudeConnections = data.data.filter(c => c.app_id === 'claude');
+                        const select = document.getElementById('account-select');
+                        select.innerHTML = '<option value="">Select Account</option>';
+
+                        claudeConnections.forEach(conn => {
+                            const option = document.createElement('option');
+                            option.value = conn.id;
+                            option.textContent = conn.config?.account_name || conn.app_name || 'Claude Account';
+                            option.dataset.connectionId = conn.id;
+                            select.appendChild(option);
+                        });
+
+                        if (claudeConnections.length > 0) {
+                            select.value = claudeConnections[0].id;
+                            this.currentConnectionId = claudeConnections[0].id;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading connections:', error);
+                }
+            },
+
+            setupEventListeners() {
+                document.getElementById('chat-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.sendMessage();
+                });
+
+                document.getElementById('account-select').addEventListener('change', (e) => {
+                    this.currentConnectionId = e.target.value;
+                });
+
+                document.getElementById('message-input').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+            },
+
+            autoResizeTextarea() {
+                const textarea = document.getElementById('message-input');
+                textarea.addEventListener('input', () => {
+                    textarea.style.height = 'auto';
+                    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+                });
+            },
+
+            async sendMessage() {
+                const input = document.getElementById('message-input');
+                const message = input.value.trim();
+                if (!message || !this.currentConnectionId) return;
+
+                // Add user message
+                this.addMessage('user', message);
+                input.value = '';
+                input.style.height = 'auto';
+
+                // Disable input
+                const sendButton = document.getElementById('send-button');
+                sendButton.disabled = true;
+                sendButton.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>';
+
+                try {
+                    // Get conversation history
+                    const messages = this.messages.map(m => ({
+                        role: m.role,
+                        content: m.content
+                    }));
+
+                    // Try current origin first (works for custom domains)
+                    let response = await fetch(`${this.apiBase}/api/claude/chat?connection_id=${this.currentConnectionId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            messages: messages,
+                            options: { model: 'claude-3-5-sonnet-20241022' }
+                        })
+                    }).catch(() => null);
+
+                    // Fallback to workers.dev if needed
+                    if (!response || !response.ok) {
+                        response = await fetch(`${this.fallbackApiBase}/api/claude/chat?connection_id=${this.currentConnectionId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                messages: messages,
+                                options: { model: 'claude-3-5-sonnet-20241022' }
+                            })
+                        });
+
+                        const data = await response.json();
+                        if (data.success && data.data.content) {
+                            // Claude returns content as array
+                            const content = Array.isArray(data.data.content)
+                                ? data.data.content.map(c => c.text || c).join('')
+                                : data.data.content;
+                            this.addMessage('assistant', content);
+                        } else {
+                            this.addMessage('assistant', 'Error: ' + (data.error || 'Unknown error'));
+                        }
+                    } catch (error) {
+                        console.error('Error sending message:', error);
+                        this.addMessage('assistant', 'Error: ' + error.message);
+                    } finally {
+                        sendButton.disabled = false;
+                        sendButton.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Send';
+                        lucide.createIcons();
+                    }
+                },
+
+                addMessage(role, content) {
+                    this.messages.push({ role, content, timestamp: Date.now() });
+
+                    const container = document.getElementById('messages-container');
+                    if (container.children.length === 1 && container.children[0].classList.contains('text-center')) {
+                        container.innerHTML = '';
+                    }
+
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} message-${role}`;
+
+                    messageDiv.innerHTML = `
+                    <div class="max-w-3xl ${role === 'user' ? 'bg-brand-orange/20' : 'bg-white/5'} rounded-lg px-4 py-3 border ${role === 'user' ? 'border-brand-orange/30' : 'border-white/10'}">
+                        <div class="text-sm whitespace-pre-wrap">${this.formatMessage(content)}</div>
+                        <div class="text-xs text-zinc-500 mt-2">${new Date().toLocaleTimeString()}</div>
+                    </div>
+                `;
+
+                    container.appendChild(messageDiv);
+                    container.scrollTop = container.scrollHeight;
+                    lucide.createIcons();
+                },
+
+                formatMessage(content) {
+                    // Simple markdown-like formatting
+                    return content
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/`(.*?)`/g, '<code class="bg-white/10 px-1 rounded">$1</code>')
+                        .replace(/\n/g, '<br>');
+                },
+
+                clearChat() {
+                    if (confirm('Clear all messages?')) {
+                        this.messages = [];
+                        document.getElementById('messages-container').innerHTML = `
+                        <div class="text-center py-12 text-zinc-500">
+                            <i data-lucide="message-square" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+                            <p>Start a conversation with Claude</p>
+                        </div>
+                    `;
+                        lucide.createIcons();
+                    }
+                }
+            };
+
+            // Initialize on load
+            document.addEventListener('DOMContentLoaded', () => {
+                claudeChat.init();
+            });
+    </script>
+</body>
+
+</html>

@@ -1,59 +1,102 @@
-# 🌐 ALL LIVE URLS - InnerAnimalMedia
+# 🌐 Complete Live URLs - InnerAnimalMedia Platform
 
-## ✅ **PRIMARY PRODUCTION DOMAIN**
-
-### Custom Domain (Main Site)
-- ✅ **Homepage**: `https://inneranimalmedia.com/` (HTTP 200 ✅)
-- ✅ **Dashboard**: `https://inneranimalmedia.com/dashboard/`
-- ✅ **API**: `https://inneranimalmedia.com/api/`
+**Last Updated**: 2025-01-13
 
 ---
 
-## 🔧 **WORKER - Main Application**
+## 🎯 **PRIMARY PRODUCTION DOMAINS**
 
-### Worker Direct Access
-- ✅ **Main URL**: `https://inneranimalmedia-dev.meauxbility.workers.dev`
+### **Custom Domain (Main Site)**
+- ✅ **Homepage**: `https://inneranimalmedia.com/`
+- ✅ **Dashboard**: `https://inneranimalmedia.com/dashboard/`
+- ✅ **API Root**: `https://inneranimalmedia.com/api`
+- ✅ **WWW**: `https://www.inneranimalmedia.com/` (also works)
+
+---
+
+## 🚀 **WORKER API (Backend)**
+
+### **Primary Worker**
+- ✅ **Worker URL**: `https://inneranimalmedia-dev.meauxbility.workers.dev`
+- ✅ **API Root**: `https://inneranimalmedia-dev.meauxbility.workers.dev/api`
 - ✅ **Status**: LIVE ✅
-- ✅ **Static Files**: Served from R2 bucket `inneranimalmedia-assets` at `static/` prefix
 
-### Frontend Pages (Custom Domain - https://inneranimalmedia.com/)
+### **Routes Configuration**
+- `inneranimalmedia.com/*` → Worker `inneranimalmedia-dev`
+- `www.inneranimalmedia.com/*` → Worker `inneranimalmedia-dev`
 
-#### Dashboard Pages
+---
+
+## 📄 **DASHBOARD PAGES** (31+ Pages)
+
+### **Main Dashboard**
 - `https://inneranimalmedia.com/dashboard/`
-- `https://inneranimalmedia.com/dashboard/index`
-- `https://inneranimalmedia.com/dashboard/projects`
-- `https://inneranimalmedia.com/dashboard/library`
-- `https://inneranimalmedia.com/dashboard/tasks`
-- `https://inneranimalmedia.com/dashboard/calendar`
-- `https://inneranimalmedia.com/dashboard/workflows`
-- `https://inneranimalmedia.com/dashboard/workers`
-- `https://inneranimalmedia.com/dashboard/deployments`
-- `https://inneranimalmedia.com/dashboard/tenants`
-- `https://inneranimalmedia.com/dashboard/team`
-- `https://inneranimalmedia.com/dashboard/analytics`
+- `https://inneranimalmedia.com/dashboard/index.html`
 
-#### Tools
-- `https://inneranimalmedia.com/dashboard/meauxmcp` (MCP Protocol)
-- `https://inneranimalmedia.com/dashboard/meauxsql` (Database Tool)
-- `https://inneranimalmedia.com/dashboard/meauxcad` (3D CAD)
-- `https://inneranimalmedia.com/dashboard/meauxide` (Code Editor)
+### **Core Pages**
+- `https://inneranimalmedia.com/dashboard/projects.html`
+- `https://inneranimalmedia.com/dashboard/library.html`
+- `https://inneranimalmedia.com/dashboard/tasks.html`
+- `https://inneranimalmedia.com/dashboard/calendar.html`
+- `https://inneranimalmedia.com/dashboard/workflows.html`
+- `https://inneranimalmedia.com/dashboard/workers.html`
+- `https://inneranimalmedia.com/dashboard/deployments.html`
+- `https://inneranimalmedia.com/dashboard/tenants.html`
+- `https://inneranimalmedia.com/dashboard/team.html`
+- `https://inneranimalmedia.com/dashboard/analytics.html`
 
-#### Public Pages
-- `https://inneranimalmedia.com/index.html`
-- `https://inneranimalmedia.com/dashboard.html`
-- `https://inneranimalmedia.com/features.html`
+### **Tools**
+- `https://inneranimalmedia.com/dashboard/meauxmcp.html` - MCP Protocol Manager
+- `https://inneranimalmedia.com/dashboard/meauxsql.html` - Database Query Tool (InnerData)
+- `https://inneranimalmedia.com/dashboard/meauxcad.html` - 3D Modeling Tool
+- `https://inneranimalmedia.com/dashboard/meauxide.html` - Code Editor
+- `https://inneranimalmedia.com/dashboard/meauxwork.html` - Work Management
+
+### **Services & Integrations**
+- `https://inneranimalmedia.com/dashboard/ai-services.html`
+- `https://inneranimalmedia.com/dashboard/api-gateway.html`
+- `https://inneranimalmedia.com/dashboard/cloudflare.html`
+- `https://inneranimalmedia.com/dashboard/databases.html`
+- `https://inneranimalmedia.com/dashboard/claude.html` - Claude Chat UI
+
+### **Content & Media**
+- `https://inneranimalmedia.com/dashboard/gallery.html`
+- `https://inneranimalmedia.com/dashboard/templates.html`
+- `https://inneranimalmedia.com/dashboard/brand.html`
+- `https://inneranimalmedia.com/dashboard/video.html`
+- `https://inneranimalmedia.com/dashboard/prompts.html`
+
+### **Communication**
+- `https://inneranimalmedia.com/dashboard/messages.html`
+- `https://inneranimalmedia.com/dashboard/talk.html`
+- `https://inneranimalmedia.com/dashboard/support.html`
+
+### **Settings & Admin**
+- `https://inneranimalmedia.com/dashboard/settings.html` - Settings & External Apps
+- `https://inneranimalmedia.com/dashboard/clients.html`
+- `https://inneranimalmedia.com/dashboard/tail.html` - Tail Workers
+
+---
+
+## 🌐 **PUBLIC PAGES**
+
+- `https://inneranimalmedia.com/` - Homepage
+- `https://inneranimalmedia.com/about.html`
+- `https://inneranimalmedia.com/contact.html`
 - `https://inneranimalmedia.com/pricing.html`
 - `https://inneranimalmedia.com/terms.html`
+- `https://inneranimalmedia.com/services.html`
+- `https://inneranimalmedia.com/work.html`
+- `https://inneranimalmedia.com/features.html`
 - `https://inneranimalmedia.com/tools.html`
-- `https://inneranimalmedia.com/tutor.html`
-- `https://inneranimalmedia.com/users.html`
-- `https://inneranimalmedia.com/workflows.html`
-- `https://inneranimalmedia.com/workers.html`
+- `https://inneranimalmedia.com/login.html`
 
-### API Endpoints (Custom Domain - https://inneranimalmedia.com/api)
+---
 
-#### Core API
-- `GET https://inneranimalmedia.com/api/` - API info & endpoints list
+## 🔌 **API ENDPOINTS**
+
+### **Core API**
+- `GET https://inneranimalmedia.com/api` - API info & endpoints list
 - `GET https://inneranimalmedia.com/api/stats` - Dashboard statistics
 - `GET https://inneranimalmedia.com/api/tenants` - List tenants
 - `GET https://inneranimalmedia.com/api/tools` - Available tools
@@ -62,112 +105,106 @@
 - `GET https://inneranimalmedia.com/api/deployments` - Deployments (synced from Cloudflare)
 - `GET https://inneranimalmedia.com/api/workers` - Workers list (synced from Cloudflare)
 
-#### OAuth & Authentication
-- `GET https://inneranimalmedia.com/api/oauth/github` - GitHub OAuth login
+### **User Management**
+- `GET/POST https://inneranimalmedia.com/api/users/:userId` - User operations
+- `GET/POST https://inneranimalmedia.com/api/users/:userId/preferences` - User preferences
+- `GET/POST https://inneranimalmedia.com/api/users/:userId/connections` - External app connections
+
+### **OAuth & Authentication**
+- `GET https://inneranimalmedia.com/api/oauth/github/authorize` - GitHub OAuth login
 - `GET https://inneranimalmedia.com/api/oauth/github/callback` - GitHub OAuth callback
-- `GET https://inneranimalmedia.com/api/oauth/google` - Google OAuth login
+- `GET https://inneranimalmedia.com/api/oauth/google/authorize` - Google OAuth login
 - `GET https://inneranimalmedia.com/api/oauth/google/callback` - Google OAuth callback
 
-#### Advanced Features
-- `GET/POST https://inneranimalmedia.com/api/calendar` - Calendar integration
-- `POST https://inneranimalmedia.com/api/agent/execute` - Agent execution
-- `GET/POST/PUT/DELETE https://inneranimalmedia.com/api/images` - Image management (R2 + Cloudflare Images)
-- `GET/POST https://inneranimalmedia.com/api/users/:userId/preferences` - User preferences
-- `GET/POST https://inneranimalmedia.com/api/users/:userId/connections` - External connections
+### **AI Integrations**
+- `POST https://inneranimalmedia.com/api/claude/chat` - Claude chat completions
+- `POST https://inneranimalmedia.com/api/claude/generate` - Claude text generation
+- `POST https://inneranimalmedia.com/api/cursor/chat` - Cursor chat completions
+- `POST https://inneranimalmedia.com/api/cursor/generate` - Cursor code generation
 
-#### Durable Objects (SQL-backed)
-- `GET/POST https://inneranimalmedia.com/api/session/:id` - Session management (MCP, browser, video, chat)
+### **MCP Protocol**
+- `GET https://inneranimalmedia.com/api/mcp/sse` - SSE endpoint for Claude Desktop
+- `POST https://inneranimalmedia.com/api/mcp/message` - JSON-RPC message handler
+- `GET https://inneranimalmedia.com/api/mcp/tools/list` - List MCP tools
+- `POST https://inneranimalmedia.com/api/mcp/tools/call` - Execute MCP tool
+
+### **Storage & Media**
+- `GET/POST/PUT/DELETE https://inneranimalmedia.com/api/storage/r2/*` - R2 storage operations
+- `GET/POST/PUT/DELETE https://inneranimalmedia.com/api/images/*` - Image management (R2 + Cloudflare Images)
+
+### **Advanced Features**
+- `GET/POST https://inneranimalmedia.com/api/calendar/*` - Calendar integration
+- `POST https://inneranimalmedia.com/api/agent/execute` - Agent execution
+- `GET/POST/PUT/DELETE https://inneranimalmedia.com/api/session/:id` - Session management (Durable Objects)
 
 ---
 
 ## 📦 **CLOUDFLARE PAGES** (Alternative Frontend)
 
-### Pages Project
 - ✅ **Pages URL**: `https://inneranimalmedia.pages.dev`
-- ✅ **Latest Deploy**: `https://2ab0d63a.inneranimalmedia.pages.dev`
 - ✅ **Status**: LIVE ✅
 
----
-
-## 🔐 **DURABLE OBJECTS** (SQL-backed)
-
-### Session Durable Object
-- **Binding**: `IAM_SESSION`
-- **Class**: `IAMSession`
-- **Storage**: SQL-backed (SQLite) ✅
-- **Endpoint**: `https://inneranimalmedia.com/api/session/:id`
-  - `GET /api/session/:id` - Get session data
-  - `POST /api/session/:id` - Update session data
+**Note**: Static files are primarily served from R2, but Pages can serve as backup/CDN.
 
 ---
 
-## 💾 **DATABASE & STORAGE**
+## 💾 **STORAGE & DATABASE**
 
-### D1 Database
-- **Name**: `inneranimalmedia-business`
-- **ID**: `cf87b717-d4e2-4cf8-bab0-a81268e32d49`
-- **Binding**: `DB`
-- **Access**: Via Worker API endpoints only
-
-### R2 Storage
+### **R2 Storage**
 - **Bucket**: `inneranimalmedia-assets`
-- **Binding**: `STORAGE`
-- **Static Files Prefix**: `static/` (all frontend files uploaded ✅)
 - **Public URL**: `https://pub-e733f82cb31c4f34b6a719e749d0416d.r2.dev`
 - **S3 API**: `https://ede6590ac0d2fb7daf155b35653457b2.r2.cloudflarestorage.com/inneranimalmedia-assets`
+- **Static Files**: `static/` prefix
+- **Backups**: `backups/` prefix
+
+### **D1 Database**
+- **Database**: `inneranimalmedia-business`
+- **ID**: `cf87b717-d4e2-4cf8-bab0-a81268e32d49`
+- **Access**: Via Worker API only (not directly accessible)
 
 ---
 
-## 🚀 **ADDITIONAL SERVICES**
+## 🔗 **QUICK REFERENCE**
 
-### InnerAnimalMedia Services Worker
-- **Name**: `inneranimalmediaservices`
-- **Status**: ⚠️ Created but NOT deployed (in `inneranimalmediaservices/` directory)
-- **URL**: `https://inneranimalmediaservices.meauxbility.workers.dev` (when deployed)
-- **Features**: MCP server, browser rendering, video calls, chat, Resend email
+### **Most Used URLs**
+1. **Homepage**: `https://inneranimalmedia.com/`
+2. **Dashboard**: `https://inneranimalmedia.com/dashboard/`
+3. **API Info**: `https://inneranimalmedia.com/api`
+4. **Claude Chat**: `https://inneranimalmedia.com/dashboard/claude.html`
+5. **Settings**: `https://inneranimalmedia.com/dashboard/settings.html`
 
----
+### **API Base URLs** (All Work)
+- Custom Domain: `https://inneranimalmedia.com/api`
+- Worker Direct: `https://inneranimalmedia-dev.meauxbility.workers.dev/api`
+- WWW: `https://www.inneranimalmedia.com/api`
 
-## 📊 **QUICK REFERENCE - MOST USED**
-
-### Primary URLs
-1. ✅ **Main Site**: `https://inneranimalmedia.com/` (HTTP 200 ✅)
-2. ✅ **Dashboard**: `https://inneranimalmedia.com/dashboard/`
-3. ✅ **API Info**: `https://inneranimalmedia.com/api/`
-4. ✅ **Projects**: `https://inneranimalmedia.com/dashboard/projects`
-5. ✅ **API Stats**: `https://inneranimalmedia.com/api/stats`
-
-### Worker Direct Access (if custom domain issues)
-- ✅ **Worker**: `https://inneranimalmedia-dev.meauxbility.workers.dev`
-- ✅ **Pages**: `https://inneranimalmedia.pages.dev`
-
-### API Base URLs
-- ✅ **Custom Domain**: `https://inneranimalmedia.com/api`
-- ✅ **Worker Direct**: `https://inneranimalmedia-dev.meauxbility.workers.dev/api`
-- ✅ **Pages**: `https://inneranimalmedia.pages.dev/api` (if routed)
+### **Fallback URLs** (If Custom Domain Issues)
+- Worker: `https://inneranimalmedia-dev.meauxbility.workers.dev`
+- Pages: `https://inneranimalmedia.pages.dev`
 
 ---
 
 ## ✅ **VERIFICATION STATUS**
 
-### Live & Working ✅
-- ✅ Custom domain: `inneranimalmedia.com` (HTTP 200 ✅)
-- ✅ Routes: `inneranimalmedia.com/*` → Worker `inneranimalmedia-dev`
-- ✅ Routes: `www.inneranimalmedia.com/*` → Worker `inneranimalmedia-dev`
-- ✅ Worker: `inneranimalmedia-dev.meauxbility.workers.dev` (LIVE)
-- ✅ Pages: `inneranimalmedia.pages.dev` (LIVE)
+### **Live & Working** ✅
+- ✅ Custom domain: `inneranimalmedia.com` (configured routes)
+- ✅ WWW domain: `www.inneranimalmedia.com` (configured routes)
+- ✅ Worker: `inneranimalmedia-dev.meauxbility.workers.dev`
+- ✅ Pages: `inneranimalmedia.pages.dev`
 - ✅ All API endpoints functional
-- ✅ All dashboard pages deployed to R2
+- ✅ All dashboard pages deployed
 - ✅ OAuth endpoints configured
 - ✅ Durable Objects (SQL-backed) configured
-- ✅ Static files uploaded to R2 (`inneranimalmedia-assets/static/`)
-- ✅ Database connected (D1: `inneranimalmedia-business`)
-- ✅ R2 storage configured (`inneranimalmedia-assets`)
+- ✅ Static files uploaded to R2
+- ✅ Database connected (D1)
+- ✅ R2 storage configured
 
-### Configuration Summary
-- **Worker Name**: `inneranimalmedia-dev`
-- **R2 Bucket**: `inneranimalmedia-assets` ✅
-- **D1 Database**: `inneranimalmedia-business` ✅
-- **Durable Object**: `IAMSession` (SQL-backed) ✅
-- **Custom Domain**: `inneranimalmedia.com` ✅ (HTTP 200)
-- **Pages Project**: `inneranimalmedia` ✅
+---
+
+## 📝 **Notes**
+
+- All URLs work with both `inneranimalmedia.com` and `www.inneranimalmedia.com`
+- API calls use `window.location.origin` first, then fallback to `workers.dev`
+- Static files are served from R2 at `static/` prefix
+- Database is accessed through Worker API only (not directly)
+- All remote functionality uses the configured domains

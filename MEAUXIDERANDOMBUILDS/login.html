@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-MTH9P66B');</script>
+    <!-- End Google Tag Manager -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | InnerAnimal Media</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#ff6b00',
+                            red: '#dc2626',
+                            dark: '#050507',
+                            panel: '#0a0a0f',
+                            surface: '#171717'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #050507;
+            color: #f4f4f5;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Galaxy Background Animation */
+        .galaxy-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(138, 43, 226, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(30, 144, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255, 20, 147, 0.1) 0%, transparent 50%),
+                linear-gradient(180deg, #050507 0%, #0a0a0f 50%, #050507 100%);
+            background-size: 200% 200%;
+            animation: galaxyShift 20s ease infinite;
+        }
+
+        @keyframes galaxyShift {
+
+            0%,
+            100% {
+                background-position: 0% 0%;
+            }
+
+            50% {
+                background-position: 100% 100%;
+            }
+        }
+
+        /* Animated Stars */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+            background-image:
+                radial-gradient(2px 2px at 20% 30%, #fff, transparent),
+                radial-gradient(2px 2px at 60% 70%, rgba(255, 255, 255, 0.8), transparent),
+                radial-gradient(1px 1px at 50% 50%, #fff, transparent),
+                radial-gradient(1px 1px at 80% 10%, rgba(255, 255, 255, 0.6), transparent),
+                radial-gradient(2px 2px at 90% 40%, rgba(255, 255, 255, 0.4), transparent),
+                radial-gradient(1px 1px at 33% 60%, rgba(255, 255, 255, 0.8), transparent),
+                radial-gradient(1px 1px at 55% 80%, rgba(255, 255, 255, 0.6), transparent),
+                radial-gradient(2px 2px at 10% 90%, rgba(255, 255, 255, 0.4), transparent);
+            background-repeat: repeat;
+            background-size: 200% 200%;
+            animation: starsMove 50s linear infinite;
+            opacity: 0.8;
+        }
+
+        @keyframes starsMove {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(-200px);
+            }
+        }
+
+        /* Floating Particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        /* Glassmorphic Login Card */
+        .login-card {
+            background: rgba(10, 10, 15, 0.7);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+                inset 0 1px 2px rgba(255, 255, 255, 0.1);
+        }
+
+        /* OAuth Button Styles */
+        .oauth-btn {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .oauth-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .oauth-btn.github:hover {
+            border-color: rgba(255, 107, 0, 0.5);
+            box-shadow: 0 8px 24px rgba(255, 107, 0, 0.2);
+        }
+
+        .oauth-btn.google:hover {
+            border-color: rgba(66, 133, 244, 0.5);
+            box-shadow: 0 8px 24px rgba(66, 133, 244, 0.2);
+        }
+
+        /* Input Field Styles */
+        .login-input {
+            color: #ffffff !important;
+            background-color: rgba(0, 0, 0, 0.4) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        .login-input::placeholder {
+            color: rgba(161, 161, 170, 0.7) !important;
+        }
+
+        .login-input:focus {
+            background-color: rgba(0, 0, 0, 0.6) !important;
+            border-color: #ff6b00 !important;
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1) !important;
+        }
+    </style>
+
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+    <link rel="stylesheet" href="/shared/footer.css">
+</head>
+
+<body class="flex items-center justify-center min-h-screen p-4">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MTH9P66B" height="0" width="0"
+            style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <!-- Galaxy Background -->
+    <div class="galaxy-bg"></div>
+    <div class="stars"></div>
+
+    <!-- Floating Particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Login Card -->
+    <div class="login-card rounded-3xl p-8 md:p-12 w-full max-w-md relative z-10 animate-fade-in">
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <div class="flex items-center justify-center gap-3 mb-6">
+                <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar"
+                    alt="InnerAnimal Media" class="w-16 h-16 rounded-2xl shadow-2xl shadow-orange-500/30 object-cover"
+                    style="border: 2px solid rgba(255, 107, 0, 0.3);" />
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-2">Welcome Back</h1>
+            <p class="text-zinc-400 text-sm">Sign in to continue to InnerAnimal Media</p>
+        </div>
+
+        <!-- OAuth Buttons -->
+        <div class="space-y-4 mb-6">
+            <a href="/api/oauth/inneranimal/authorize"
+                class="oauth-btn w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white font-medium group bg-gradient-to-r from-brand-orange/20 to-brand-orange/10 border-brand-orange/30 hover:from-brand-orange/30 hover:to-brand-orange/20">
+                <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar?w=24&h=24&fit=cover&format=webp&quality=90"
+                    alt="InnerAnimal" class="w-6 h-6 rounded" />
+                <span>Continue with InnerAnimal</span>
+            </a>
+
+            <a href="/api/oauth/github/authorize"
+                class="oauth-btn github w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white font-medium group">
+                <i data-lucide="github" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                <span>Continue with GitHub</span>
+            </a>
+
+            <a href="/api/oauth/google/authorize"
+                class="oauth-btn google w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white font-medium group">
+                <svg class="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="currentColor"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="currentColor"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="currentColor"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="currentColor"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
+                <span>Continue with Google</span>
+            </a>
+        </div>
+
+        <!-- Divider -->
+        <div class="relative flex items-center py-6">
+            <div class="flex-1 border-t border-white/10"></div>
+            <span class="px-4 text-sm text-zinc-500">or</span>
+            <div class="flex-1 border-t border-white/10"></div>
+        </div>
+
+        <!-- Email/Password Form (Optional - for future) -->
+        <form id="email-login-form" class="space-y-4 mb-6" onsubmit="handleEmailLogin(event)">
+            <div>
+                <label class="block text-sm font-medium text-white mb-2">Email Address</label>
+                <input type="email" id="login-email" name="email" placeholder="you@example.com" required
+                    class="login-input w-full px-4 py-3 rounded-xl border placeholder-zinc-500 focus:ring-2 focus:ring-brand-orange/20 transition-all" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-white mb-2">Password</label>
+                <input type="password" id="login-password" name="password" placeholder="••••••••" required
+                    class="login-input w-full px-4 py-3 rounded-xl border placeholder-zinc-500 focus:ring-2 focus:ring-brand-orange/20 transition-all" />
+            </div>
+            <div class="flex items-center justify-between text-sm">
+                <label class="flex items-center gap-2 text-zinc-400 cursor-pointer">
+                    <input type="checkbox" class="rounded border-white/10 text-brand-orange focus:ring-brand-orange" />
+                    <span>Remember me</span>
+                </label>
+                <a href="/forgot-password" class="text-brand-orange hover:text-orange-400 transition-colors">Forgot
+                    password?</a>
+            </div>
+            <button type="submit"
+                class="w-full px-6 py-3 bg-brand-orange hover:bg-orange-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 transform hover:scale-[1.02]">
+                Sign In
+            </button>
+        </form>
+
+        <!-- Sign Up Link / Registration -->
+        <div class="text-center text-sm text-zinc-400 mb-4">
+            <p>Don't have an account?
+                <a href="#" onclick="event.preventDefault(); showRegisterForm();"
+                    class="text-brand-orange hover:text-orange-400 font-medium transition-colors">Sign up</a>
+            </p>
+        </div>
+
+        <!-- Registration Form (Hidden by default) -->
+        <form id="register-form" class="space-y-4 mb-6 hidden" onsubmit="handleRegister(event)">
+            <div>
+                <label class="block text-sm font-medium text-white mb-2">Name</label>
+                <input type="text" id="register-name" name="name" placeholder="Your name" required
+                    class="login-input w-full px-4 py-3 rounded-xl border placeholder-zinc-500 focus:ring-2 focus:ring-brand-orange/20 transition-all" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-white mb-2">Email Address</label>
+                <input type="email" id="register-email" name="email" placeholder="you@example.com" required
+                    class="login-input w-full px-4 py-3 rounded-xl border placeholder-zinc-500 focus:ring-2 focus:ring-brand-orange/20 transition-all" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-white mb-2">Password</label>
+                <input type="password" id="register-password" name="password" placeholder="••••••••" required
+                    class="login-input w-full px-4 py-3 rounded-xl border placeholder-zinc-500 focus:ring-2 focus:ring-brand-orange/20 transition-all" />
+                <p class="text-xs text-zinc-500 mt-1">Must be at least 8 characters with letters and numbers</p>
+            </div>
+            <button type="submit"
+                class="w-full px-6 py-3 bg-brand-orange hover:bg-orange-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 transform hover:scale-[1.02]">
+                Create Account
+            </button>
+            <button type="button" onclick="showLoginForm()"
+                class="w-full text-sm text-zinc-400 hover:text-white transition-colors">
+                Back to login
+            </button>
+        </form>
+
+        <!-- Back to Home -->
+        <div class="mt-6 text-center">
+            <a href="/"
+                class="text-xs text-zinc-500 hover:text-zinc-400 transition-colors flex items-center justify-center gap-2">
+                <i data-lucide="arrow-left" class="w-3 h-3"></i>
+                Back to homepage
+            </a>
+        </div>
+    </div>
+
+    <!-- Unified Header (Dark Theme) -->
+    <script src="/shared/header.js"></script>
+
+    <script>
+        // Create floating particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            if (!particlesContainer) return;
+
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Email/Password Login Handler
+        async function handleEmailLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Store tokens
+                    localStorage.setItem('authToken', data.data.access_token);
+                    localStorage.setItem('refreshToken', data.data.refresh_token);
+                    localStorage.setItem('user_id', data.data.user.id);
+                    localStorage.setItem('tenant_id', data.data.user.tenant_id);
+
+                    // Check if this is an OAuth flow continuation
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const oauth = urlParams.get('oauth');
+                    const redirectUri = urlParams.get('redirect_uri');
+
+                    if (oauth === 'inneranimal' && redirectUri) {
+                        // Continue OAuth flow
+                        const oauthUrl = new URL('/api/oauth/inneranimal/authorize', window.location.origin);
+                        oauthUrl.searchParams.set('user_id', data.data.user.id);
+                        oauthUrl.searchParams.set('redirect_uri', redirectUri);
+                        oauthUrl.searchParams.set('state', urlParams.get('state') || '');
+                        oauthUrl.searchParams.set('code_challenge', urlParams.get('code_challenge') || '');
+                        oauthUrl.searchParams.set('code_challenge_method', urlParams.get('code_challenge_method') || 'S256');
+                        window.location.href = oauthUrl.toString();
+                    } else {
+                        // Normal login - redirect to dashboard
+                        window.location.href = '/dashboard';
+                    }
+                } else {
+                    alert('Login failed: ' + (data.error || 'Invalid credentials'));
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('Login failed: ' + error.message);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            createParticles();
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+
+            // Check for OAuth errors in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            const oauthError = urlParams.get('oauth_error');
+
+            if (error || oauthError) {
+                const errorMsg = error || oauthError;
+                alert('Login error: ' + errorMsg);
+                // Clean URL
+                window.history.replaceState({}, document.title, '/login');
+            }
+
+            // Check if already logged in, redirect to dashboard
+            const authToken = localStorage.getItem('authToken');
+            if (authToken) {
+                window.location.href = '/dashboard';
+            }
+        });
+
+        // Show/Hide Registration Form
+        function showRegisterForm() {
+            document.getElementById('email-login-form').classList.add('hidden');
+            document.getElementById('register-form').classList.remove('hidden');
+        }
+
+        function showLoginForm() {
+            document.getElementById('register-form').classList.add('hidden');
+            document.getElementById('email-login-form').classList.remove('hidden');
+        }
+
+        // Registration Handler
+        async function handleRegister(event) {
+            event.preventDefault();
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password, name })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Registration successful! Please login.');
+                    showLoginForm();
+                    document.getElementById('login-email').value = email;
+                } else {
+                    alert('Registration failed: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert('Registration failed: ' + error.message);
+            }
+        }
+
+        // Add fade-in animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .animate-fade-in {
+                animation: fadeIn 0.6s ease-out forwards;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+
+    
+
+
+    <div id="footer-container-global"></div>
+    <script src="/shared/footer.js"></script>
+</body>
+
+</html>

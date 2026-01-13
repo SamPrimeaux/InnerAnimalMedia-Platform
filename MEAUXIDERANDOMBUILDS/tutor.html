@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeauxMarkets - Tutor</title>
+  <style>
+    :root {
+      --bg: #0a0e27;
+      --card: #1a2332;
+      --glass: rgba(26, 35, 50, 0.8);
+      --mint: #10b981;
+      --aqua: #06b6d4;
+      --text: #ffffff;
+      --muted: #94a3b8;
+      --border: #243447;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    .header {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f1629;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--aqua);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    .page-header {
+      padding: 20px 16px 16px;
+      background: #0f1629;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .page-subtitle {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .section {
+      padding: 16px;
+    }
+
+    .disclaimer {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #fca5a5;
+      text-align: center;
+    }
+
+    .safety-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .safety-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--aqua);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .safety-list {
+      list-style: none;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .safety-list li {
+      display: flex;
+      align-items: start;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .beginner-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+    }
+
+    .toggle-switch {
+      width: 48px;
+      height: 24px;
+      background: var(--border);
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .toggle-switch.active {
+      background: var(--aqua);
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.3s;
+    }
+
+    .toggle-switch.active::after {
+      transform: translateX(24px);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .chip {
+      padding: 8px 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .chip:hover {
+      background: var(--aqua);
+      border-color: var(--aqua);
+    }
+
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 400px);
+      min-height: 400px;
+      max-height: 600px;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 16px;
+      padding: 16px;
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .message {
+      margin-bottom: 16px;
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .message.user {
+      background: var(--glass);
+      margin-left: 20%;
+    }
+
+    .message.assistant {
+      background: rgba(6, 182, 212, 0.1);
+      margin-right: 20%;
+      border: 1px solid rgba(6, 182, 212, 0.2);
+    }
+
+    .message-header {
+      font-weight: 600;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .message-content {
+      line-height: 1.6;
+    }
+
+    .key-takeaways {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .key-takeaways h4 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--aqua);
+      margin-bottom: 8px;
+    }
+
+    .key-takeaways ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .key-takeaways li {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      padding-left: 16px;
+      position: relative;
+    }
+
+    .key-takeaways li::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: var(--aqua);
+    }
+
+    .questions {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .questions h4 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--mint);
+      margin-bottom: 8px;
+    }
+
+    .questions p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .input-area {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-area textarea {
+      flex: 1;
+      padding: 12px;
+      background: #0f1629;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 16px;
+      font-family: inherit;
+      resize: none;
+      min-height: 60px;
+    }
+
+    .input-area button {
+      padding: 12px 24px;
+      background: var(--aqua);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      align-self: flex-end;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .input-area button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .nav-bottom {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #0f1629;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 0;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: #64748b;
+      text-decoration: none;
+      font-size: 12px;
+    }
+
+    .nav-item.active {
+      color: var(--aqua);
+    }
+
+    .nav-item svg {
+      width: 24px;
+      height: 24px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">M</div>
+      <span>MeauxAccess</span>
+    </div>
+  </div>
+
+  <div class="page-header">
+    <h1 class="page-title">Tutor</h1>
+    <p class="page-subtitle">Ask questions. Get explanations. Educational only.</p>
+  </div>
+
+  <div class="section">
+    <div class="disclaimer">Educational only. Not financial advice.</div>
+
+    <div class="safety-card">
+      <div class="safety-title">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+        Safety Guidelines
+      </div>
+      <ul class="safety-list">
+        <li>
+          <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18" stroke-width="2" stroke-linecap="round" />
+            <line x1="6" y1="6" x2="18" y2="18" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          We do not place trades.
+        </li>
+        <li>
+          <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18" stroke-width="2" stroke-linecap="round" />
+            <line x1="6" y1="6" x2="18" y2="18" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          We do not tell you what to buy/sell.
+        </li>
+        <li>
+          <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M9 12l2 2 4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          We explain concepts + risks.
+        </li>
+      </ul>
+    </div>
+
+    <div class="beginner-toggle">
+      <div>
+        <div style="font-weight: 600; font-size: 14px; margin-bottom: 2px;">Beginner Mode</div>
+        <div style="font-size: 12px; color: var(--muted);">Simplified explanations</div>
+      </div>
+      <div class="toggle-switch" id="beginnerToggle" onclick="toggleBeginnerMode()"></div>
+    </div>
+
+    <div class="chips" id="chips">
+      <div class="chip" onclick="sendChip('Explain calls vs puts')">Explain calls vs puts</div>
+      <div class="chip" onclick="sendChip('What is time decay?')">What is time decay?</div>
+      <div class="chip" onclick="sendChip('Why 30-90 DTE?')">Why 30-90 DTE?</div>
+      <div class="chip" onclick="sendChip('How do I size risk?')">How do I size risk?</div>
+      <div class="chip" onclick="sendChip('META in simple English')">META in simple English</div>
+      <div class="chip" onclick="sendChip('SPY vs QQQ')">SPY vs QQQ</div>
+      <div class="chip" onclick="sendChip('When would I buy more vs wait (educational)')">When would I buy more vs wait
+        (educational)</div>
+    </div>
+
+    <div class="chat-container">
+      <div class="messages" id="messages">
+        <div class="message assistant">
+          <div class="message-header">Trading Tutor</div>
+          <div class="message-content">
+            Hi! I'm your Trading Tutor. I'm here to help you learn about trading concepts, risk management, and market
+            analysis. Ask me anything about trading!
+          </div>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <textarea id="messageInput"
+          placeholder="Ask me about trading, risk management, technical analysis, or any trading concept..."
+          rows="3"></textarea>
+        <button id="sendButton" onclick="sendMessage()">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <line x1="22" y1="2" x2="11" y2="13" stroke-width="2" stroke-linecap="round" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          Send
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="nav-bottom">
+    <a href="/markets" class="nav-item">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M3 3v18h18" stroke-width="2" stroke-linecap="round" />
+        <path d="M7 12l4-4 4 4 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>Markets</span>
+    </a>
+    <a href="/markets/wallet" class="nav-item">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke-width="2" />
+        <line x1="1" y1="10" x2="23" y2="10" stroke-width="2" />
+      </svg>
+      <span>Wallet</span>
+    </a>
+    <a href="/markets/paper" class="nav-item">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2L2 7l10 5 10-5-10-5z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M2 17l10 5 10-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M2 12l10 5 10-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>Paper: Trade</span>
+    </a>
+    <a href="/markets/journal" class="nav-item">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" />
+        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>Journal</span>
+    </a>
+    <a href="/markets/tutor" class="nav-item active">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>Tutor AI</span>
+    </a>
+  </nav>
+
+  <script>
+    let beginnerMode = false;
+    const messagesContainer = document.getElementById('messages');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+
+    // Prewritten explanations (client-side for cost efficiency)
+    const prewrittenExplanations = {
+      'META in simple English': {
+        text: `**META (Meta Platforms Inc.)**\n\n**What it is:**\nMETA is the company behind Facebook, Instagram, WhatsApp, and the metaverse. It's a social media and technology giant.\n\n**Why people watch it:**\n- High trading volume (liquid)\n- Major tech stock with significant market impact\n- Often moves on earnings, product launches, and regulatory news\n- Popular for options trading due to volatility\n\n**Biggest risk:**\nRegulatory changes, privacy concerns, and competition from other platforms can significantly impact the stock price.\n\n**When I'd consider buying more vs wait (educational, trend-based):**\n- **Consider buying more (if already in):** When the stock is in a clear uptrend, holding above key support levels, and volume confirms the move. Always use proper position sizing.\n- **Wait:** When the stock is in a downtrend, breaking below support, or showing signs of weakness. Wait for a clear reversal signal or better entry point.\n\nRemember: This is educational. Always have a plan for if you're wrong.`,
+        keyTakeaways: [
+          'META is a major tech stock with high liquidity',
+          'Watch for regulatory and earnings news',
+          'Use trend analysis and support/resistance levels',
+          'Always have an exit plan'
+        ],
+        questions: [
+          'What\'s your time horizon for this trade?',
+          'What would invalidate your thesis?'
+        ]
+      },
+      'SPY vs QQQ': {
+        text: `**SPY vs QQQ**\n\n**SPY (S&P 500 ETF):**\n- Tracks the S&P 500 index (500 largest US companies)\n- More diversified across sectors\n- Generally less volatile\n- Good for broad market exposure\n\n**QQQ (Nasdaq-100 ETF):**\n- Tracks the Nasdaq-100 (100 largest non-financial Nasdaq companies)\n- Tech-heavy (Apple, Microsoft, Amazon, etc.)\n- More volatile than SPY\n- Better for tech-focused exposure\n\n**Key Differences:**\n- **Diversification:** SPY is more diversified; QQQ is tech-concentrated\n- **Volatility:** QQQ typically moves more than SPY\n- **Sector exposure:** SPY includes financials, energy, etc.; QQQ is mostly tech\n\n**When to use each (educational):**\n- **SPY:** When you want broad market exposure with lower volatility\n- **QQQ:** When you want tech-focused exposure and can handle higher volatility\n\nRemember: Both are ETFs, so you're buying a basket of stocks, not individual companies.`,
+        keyTakeaways: [
+          'SPY = broad market, QQQ = tech-focused',
+          'QQQ is typically more volatile',
+          'Choose based on your risk tolerance and market view',
+          'Both are good for learning options trading'
+        ],
+        questions: [
+          'What\'s your risk tolerance?',
+          'Do you want broad or tech-focused exposure?'
+        ]
+      }
+    };
+
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    function toggleBeginnerMode() {
+      beginnerMode = !beginnerMode;
+      document.getElementById('beginnerToggle').classList.toggle('active', beginnerMode);
+    }
+
+    function sendChip(text) {
+      messageInput.value = text;
+      sendMessage();
+    }
+
+    async function sendMessage() {
+      const message = messageInput.value.trim();
+      if (!message || sendButton.disabled) return;
+
+      // Check for prewritten explanations first
+      if (prewrittenExplanations[message]) {
+        const explanation = prewrittenExplanations[message];
+        addMessage('user', message);
+        messageInput.value = '';
+        addTutorResponse(explanation.text, explanation.keyTakeaways, explanation.questions);
+        return;
+      }
+
+      // Add user message
+      addMessage('user', message);
+      messageInput.value = '';
+      sendButton.disabled = true;
+      sendButton.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><polyline points="12 6 12 12 16 14" stroke-width="2"/></svg>';
+
+      try {
+        const res = await fetch('/api/markets/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, beginner_mode: beginnerMode })
+        });
+        const data = await res.json();
+
+        if (data.ok && data.reply) {
+          addTutorResponse(data.reply, data.key_takeaways, data.questions);
+        } else {
+          addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+        }
+      } catch (err) {
+        console.error('Chat error:', err);
+        addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+      } finally {
+        sendButton.disabled = false;
+        sendButton.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13" stroke-width="2" stroke-linecap="round"/><polygon points="22 2 15 22 11 13 2 9 22 2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Send';
+      }
+    }
+
+    function addMessage(role, content) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${role}`;
+      messageDiv.innerHTML = `
+        <div class="message-header">${role === 'user' ? 'You' : 'Trading Tutor'}</div>
+        <div class="message-content">${content.replace(/\n/g, '<br>')}</div>
+      `;
+      messagesContainer.appendChild(messageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function addTutorResponse(text, keyTakeaways, questions) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message assistant';
+
+      let html = `
+        <div class="message-header">Trading Tutor</div>
+        <div class="message-content">${text.replace(/\n/g, '<br>')}</div>
+      `;
+
+      if (keyTakeaways && keyTakeaways.length > 0) {
+        html += `
+          <div class="key-takeaways">
+            <h4>Key Takeaways</h4>
+            <ul>
+              ${keyTakeaways.map(t => `<li>${t}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      if (questions && questions.length > 0) {
+        html += `
+          <div class="questions">
+            <h4>Questions to Consider</h4>
+            ${questions.map(q => `<p>${q}</p>`).join('')}
+          </div>
+        `;
+      }
+
+      messageDiv.innerHTML = html;
+      messagesContainer.appendChild(messageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  </script>
+</body>
+
+</html>

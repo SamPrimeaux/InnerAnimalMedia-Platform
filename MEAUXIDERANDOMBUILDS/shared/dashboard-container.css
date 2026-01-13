@@ -1,0 +1,355 @@
+/* Unified Dashboard Container - Theme-Aware, Flexbox Optimized */
+:root {
+    /* Theme Variables - Default Dark Theme */
+    --dashboard-bg: #050507;
+    --dashboard-panel: #0a0a0f;
+    --dashboard-surface: #171717;
+    --dashboard-border: rgba(255, 255, 255, 0.08);
+    --dashboard-text-primary: rgba(255, 255, 255, 0.95);
+    --dashboard-text-secondary: rgba(244, 244, 245, 0.7);
+    --dashboard-text-tertiary: rgba(161, 161, 170, 0.6);
+    --brand-orange: #ff6b00;
+    --brand-hover: #ff8533;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dashboard Layout Container */
+.dashboard-layout {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background: var(--dashboard-bg);
+    color: var(--dashboard-text-primary);
+    position: relative;
+}
+
+/* Main Content Area - Flexbox Optimized */
+.dashboard-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    /* Prevents flex items from overflowing */
+    overflow: hidden;
+    margin-left: 280px;
+    /* Sidebar width */
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-main.sidebar-collapsed {
+    margin-left: 72px;
+    /* Collapsed sidebar width */
+}
+
+/* Dashboard Header */
+.dashboard-header {
+    height: 72px;
+    min-height: 72px;
+    border-bottom: 1px solid var(--dashboard-border);
+    background: var(--dashboard-panel);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    z-index: 100;
+    flex-shrink: 0;
+}
+
+/* Dashboard Content Area */
+.dashboard-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 24px;
+    min-height: 0;
+    /* Critical for flexbox scrolling */
+    position: relative;
+}
+
+.dashboard-content.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.dashboard-content.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.dashboard-content.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dashboard-content.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.dashboard-content.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 107, 0, 0.3);
+    background-clip: padding-box;
+}
+
+/* Content Container - Max Width for Readability */
+.dashboard-content-inner {
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .dashboard-main {
+        margin-left: 0;
+    }
+
+    .dashboard-content {
+        padding: 16px;
+    }
+}
+
+/* Grid Background Pattern */
+.dashboard-content.grid-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.dashboard-content-inner {
+    position: relative;
+    z-index: 1;
+}
+
+/* Fade-in Animation */
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Glass Panel Effect */
+.glass-panel {
+    background: rgba(23, 23, 23, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--dashboard-border);
+    border-radius: 12px;
+}
+
+/* Selection Highlight */
+::selection {
+    background: rgba(255, 107, 0, 0.3);
+    color: var(--dashboard-text-primary);
+}
+
+::-moz-selection {
+    background: rgba(255, 107, 0, 0.3);
+    color: var(--dashboard-text-primary);
+}
+
+/* Loading States */
+.loading-shimmer {
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.05) 0%,
+            rgba(255, 255, 255, 0.1) 50%,
+            rgba(255, 255, 255, 0.05) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Utility Classes */
+.full-width {
+    width: 100%;
+}
+
+.full-height {
+    height: 100%;
+}
+
+.flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.text-ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ============================================
+   PAGE CONTAINER & HEADER
+   ============================================ */
+
+.page-container {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.page-header {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--dashboard-border);
+}
+
+.page-title {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--dashboard-text-primary);
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+    font-size: 16px;
+    color: var(--dashboard-text-secondary);
+    font-weight: 400;
+}
+
+/* ============================================
+   DASHBOARD GRID & CARDS
+   ============================================ */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+}
+
+.dashboard-card {
+    background: var(--dashboard-surface);
+    border: 1px solid var(--dashboard-border);
+    border-radius: 16px;
+    padding: 24px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--dashboard-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(255, 107, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--brand-orange);
+    flex-shrink: 0;
+}
+
+.card-value {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--dashboard-text-primary);
+    margin-bottom: 8px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+.card-label {
+    font-size: 14px;
+    color: var(--dashboard-text-secondary);
+    margin-bottom: 12px;
+}
+
+.card-trend {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 6px;
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--dashboard-text-tertiary);
+}
+
+.card-trend.up {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.card-trend.down {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.card-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--brand-orange);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.card-link:hover {
+    color: var(--brand-hover);
+}

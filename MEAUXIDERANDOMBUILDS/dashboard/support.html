@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Support Center | InnerAnimalMedia</title>
+    <title>Support | InnerAnimal Media OS</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,107 +41,41 @@
     <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
+    <!-- Dashboard Container CSS -->
+    <link rel="stylesheet" href="/shared/dashboard-container.css">
+
+    <!-- Theme System CSS (if available) -->
+    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+
+    <!-- Custom Styles -->
     <style>
         body {
-            background-color: #050507;
-            color: #f4f4f5;
-        }
-
-        .glass-panel {
-            background: rgba(23, 23, 23, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .status-open {
-            background: rgba(74, 159, 255, 0.2);
-            color: #4A9FFF;
-            border: 1px solid rgba(74, 159, 255, 0.3);
-        }
-
-        .status-in-progress {
-            background: rgba(255, 193, 7, 0.2);
-            color: #FFC107;
-            border: 1px solid rgba(255, 193, 7, 0.3);
-        }
-
-        .status-resolved {
-            background: rgba(76, 175, 80, 0.2);
-            color: #4CAF50;
-            border: 1px solid rgba(76, 175, 80, 0.3);
-        }
-
-        .status-closed {
-            background: rgba(158, 158, 158, 0.2);
-            color: #9E9E9E;
-            border: 1px solid rgba(158, 158, 158, 0.3);
-        }
-
-        .priority-low {
-            background: rgba(33, 150, 243, 0.2);
-            color: #2196F3;
-        }
-
-        .priority-normal {
-            background: rgba(255, 152, 0, 0.2);
-            color: #FF9800;
-        }
-
-        .priority-high {
-            background: rgba(244, 67, 54, 0.2);
-            color: #F44336;
-        }
-
-        .priority-urgent {
-            background: rgba(156, 39, 176, 0.2);
-            color: #9C27B0;
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease-out forwards;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: var(--dashboard-bg, #050507);
+            color: var(--dashboard-text-primary, rgba(255, 255, 255, 0.95));
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
     </style>
-    <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
+    
 </head>
 
 <body>
-    <!-- Header -->
-    <header class="glass-panel border-b border-white/10 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <a href="/dashboard" class="flex items-center gap-3 text-white hover:text-brand-orange transition-colors">
-                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                    <span class="font-semibold">Back to Dashboard</span>
-                </a>
-            </div>
-            <div class="flex items-center gap-4">
-                <h1 class="text-2xl font-bold">Support Center</h1>
-            </div>
-        </div>
-    </header>
+    <!-- Dashboard Layout Container -->
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
 
-    <main class="max-w-7xl mx-auto px-6 py-8">
-        <!-- Tabs -->
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            <!-- Dashboard Header -->
+            <header class="dashboard-header" id="dashboard-header-container"></header>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-content custom-scrollbar">
+                <div class="dashboard-content-inner">
+                    <!-- Tabs -->
         <div class="flex gap-2 mb-6 border-b border-white/10">
             <button onclick="showTab('tickets')" id="tab-tickets"
                 class="px-6 py-3 font-semibold text-sm border-b-2 border-brand-orange text-brand-orange transition-colors">
@@ -275,419 +209,72 @@
                 </div>
             </div>
         </div>
-    </main>
-
-    <!-- Ticket Detail Modal -->
-    <div id="ticket-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6">
-        <div class="glass-panel rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b border-white/10 flex items-center justify-between sticky top-0 bg-inherit">
-                <h3 id="modal-ticket-subject" class="text-xl font-bold"></h3>
-                <button onclick="closeTicketModal()"
-                    class="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <div class="p-6">
-                <div id="modal-ticket-info" class="mb-6"></div>
-                <div id="modal-ticket-messages" class="space-y-4 mb-6"></div>
-                <div class="border-t border-white/10 pt-4">
-                    <textarea id="modal-reply-message" rows="4"
-                        class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-brand-orange focus:outline-none transition-colors resize-none mb-4"
-                        placeholder="Type your reply..."></textarea>
-                    <button onclick="sendTicketReply()"
-                        class="px-6 py-3 bg-brand-orange text-white rounded-lg font-semibold hover:bg-opacity-90 transition-colors">
-                        Send Reply
-                    </button>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
 
+    <!-- Mobile Menu Button (will be injected by sidebar) -->
+
+    <!-- Shared Layout Scripts -->
+    <script src="/shared/layout.js"></script>
+    <script src="/shared/dashboard-layout.js"></script>
+
+    <!-- Load Sidebar and Header -->
     <script>
-        // Helper: Escape HTML
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        let currentTab = 'tickets';
-        let currentTicketId = null;
-        let currentCategory = '';
-
-        // Initialize
-        lucide.createIcons();
-
-        // Tab switching
-        function showTab(tabName) {
-            currentTab = tabName;
-
-            // Update tab buttons
-            document.querySelectorAll('[id^="tab-"]').forEach(btn => {
-                btn.classList.remove('border-brand-orange', 'text-brand-orange');
-                btn.classList.add('border-transparent', 'text-gray-400');
-            });
-
-            const activeBtn = document.getElementById(`tab-${tabName}`);
-            if (activeBtn) {
-                activeBtn.classList.add('border-brand-orange', 'text-brand-orange');
-                activeBtn.classList.remove('border-transparent', 'text-gray-400');
-            }
-
-            // Update tab content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.add('hidden');
-            });
-
-            const activeContent = document.getElementById(`tab-content-${tabName}`);
-            if (activeContent) {
-                activeContent.classList.remove('hidden');
-                activeContent.classList.add('animate-fade-in');
-            }
-
-            // Load data for active tab
-            if (tabName === 'tickets') {
-                loadTickets();
-            } else if (tabName === 'help') {
-                loadHelpCategories();
-                loadHelpArticles();
-            }
-        }
-
-        // Load support tickets
-        async function loadTickets() {
-            const container = document.getElementById('tickets-list');
-            container.innerHTML = '<div class="glass-panel rounded-lg p-8 text-center text-gray-400"><i data-lucide="loader" class="w-8 h-8 mx-auto mb-4 animate-spin"></i>Loading tickets...</div>';
-            lucide.createIcons();
-
+        async function loadDashboardComponents() {
+            // Load sidebar
             try {
-                // TODO: Get email from session/auth
-                const email = localStorage.getItem('user_email') || 'user@example.com';
-                const response = await fetch(`/api/support/tickets?email=${encodeURIComponent(email)}`);
-                const result = await response.json();
-
-                if (result.success && result.data.length > 0) {
-                    container.innerHTML = result.data.map(ticket => `
-                        <div class="glass-panel rounded-lg p-6 hover:border-brand-orange/50 transition-colors cursor-pointer" onclick="viewTicket('${ticket.id}')">
-                            <div class="flex items-start justify-between mb-4">
-                                <div class="flex-1">
-                                    <h3 class="text-lg font-bold mb-2">${escapeHtml(ticket.subject)}</h3>
-                                    <p class="text-gray-400 text-sm mb-4 line-clamp-2">${escapeHtml(ticket.description)}</p>
-                                </div>
-                                <span class="status-badge status-${ticket.status}">${ticket.status}</span>
-                            </div>
-                            <div class="flex items-center gap-4 text-sm text-gray-400">
-                                <span class="priority-${ticket.priority} px-2 py-1 rounded text-xs font-semibold">${ticket.priority}</span>
-                                ${ticket.category ? `<span>${escapeHtml(ticket.category)}</span>` : ''}
-                                <span>${new Date(ticket.created_at * 1000).toLocaleDateString()}</span>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    container.innerHTML = `
-                        <div class="glass-panel rounded-lg p-12 text-center">
-                            <i data-lucide="ticket" class="w-16 h-16 mx-auto mb-4 text-gray-600"></i>
-                            <p class="text-gray-400 mb-6">You don't have any support tickets yet.</p>
-                            <button onclick="showTab('new')" class="px-6 py-3 bg-brand-orange text-white rounded-lg font-semibold hover:bg-opacity-90 transition-colors">
-                                Create Your First Ticket
-                            </button>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error loading tickets:', error);
-                container.innerHTML = `<div class="glass-panel rounded-lg p-8 text-center text-red-400">Error loading tickets. Please try again.</div>`;
-            }
-
-            lucide.createIcons();
-        }
-
-        // View ticket details
-        async function viewTicket(ticketId) {
-            currentTicketId = ticketId;
-            const modal = document.getElementById('ticket-modal');
-
-            try {
-                const response = await fetch(`/api/support/tickets/${ticketId}`);
-                const result = await response.json();
-
-                if (result.success) {
-                    const ticket = result.data;
-                    document.getElementById('modal-ticket-subject').textContent = ticket.subject;
-                    
-                    document.getElementById('modal-ticket-info').innerHTML = `
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <span class="text-sm text-gray-400">Status:</span>
-                                <span class="status-badge status-${ticket.status} ml-2">${ticket.status}</span>
-                            </div>
-                            <div>
-                                <span class="text-sm text-gray-400">Priority:</span>
-                                <span class="priority-${ticket.priority} px-2 py-1 rounded text-xs font-semibold ml-2">${ticket.priority}</span>
-                            </div>
-                        </div>
-                        <p class="text-gray-300 mb-4">${escapeHtml(ticket.description)}</p>
-                    `;
-
-                    const messagesContainer = document.getElementById('modal-ticket-messages');
-                    if (ticket.messages && ticket.messages.length > 0) {
-                        messagesContainer.innerHTML = ticket.messages.map(msg => `
-                            <div class="glass-panel rounded-lg p-4 ${msg.sender_type === 'support' ? 'border-l-4 border-brand-orange' : ''}">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="font-semibold">${escapeHtml(msg.sender_name || msg.sender_email || 'Anonymous')}</span>
-                                    <span class="text-sm text-gray-400">${new Date(msg.created_at * 1000).toLocaleString()}</span>
-                                </div>
-                                <p class="text-gray-300">${escapeHtml(msg.message)}</p>
-                            </div>
-                        `).join('');
-                    } else {
-                        messagesContainer.innerHTML = '<p class="text-gray-400 text-center py-4">No messages yet.</p>';
+                const sidebarRes = await fetch('/shared/sidebar.html');
+                if (sidebarRes.ok) {
+                    const sidebarHtml = await sidebarRes.text();
+                    const sidebarContainer = document.getElementById('sidebar-container');
+                    if (sidebarContainer) {
+                        sidebarContainer.innerHTML = sidebarHtml;
+                        // Reinitialize icons after sidebar loads
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
                     }
-
-                    modal.classList.remove('hidden');
-                    lucide.createIcons();
                 }
             } catch (error) {
-                console.error('Error loading ticket:', error);
-                alert('Error loading ticket details');
-            }
-        }
-
-        function closeTicketModal() {
-            document.getElementById('ticket-modal').classList.add('hidden');
-            document.getElementById('modal-reply-message').value = '';
-            currentTicketId = null;
-        }
-
-        async function sendTicketReply() {
-            if (!currentTicketId) return;
-
-            const message = document.getElementById('modal-reply-message').value.trim();
-            if (!message) {
-                alert('Please enter a message');
-                return;
+                console.error('Error loading sidebar:', error);
             }
 
+            // Load header
             try {
-                const response = await fetch(`/api/support/tickets/${currentTicketId}/messages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message,
-                        sender_type: 'user',
-                        sender_email: localStorage.getItem('user_email') || 'user@example.com'
-                    })
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    document.getElementById('modal-reply-message').value = '';
-                    viewTicket(currentTicketId); // Reload ticket
-                } else {
-                    alert('Error sending reply: ' + result.error);
+                const headerRes = await fetch('/shared/header.html');
+                if (headerRes.ok) {
+                    const headerHtml = await headerRes.text();
+                    const headerContainer = document.getElementById('dashboard-header-container');
+                    if (headerContainer) {
+                        headerContainer.innerHTML = headerHtml;
+                        // Update page title
+                        const pageTitle = document.getElementById('page-title');
+                        if (pageTitle) {
+                            pageTitle.textContent = 'Support';
+                        }
+                        // Reinitialize icons
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
+                    }
                 }
             } catch (error) {
-                console.error('Error sending reply:', error);
-                alert('Error sending reply');
+                console.error('Error loading header:', error);
             }
         }
 
-        // New ticket form
-        document.getElementById('new-ticket-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const subject = document.getElementById('ticket-subject').value;
-            const description = document.getElementById('ticket-description').value;
-            const priority = document.getElementById('ticket-priority').value;
-            const category = document.getElementById('ticket-category').value;
-            const tags = document.getElementById('ticket-tags').value.split(',').map(t => t.trim()).filter(t => t);
-
-            try {
-                const response = await fetch('/api/support/tickets', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        subject,
-                        description,
-                        priority,
-                        category: category || null,
-                        tags,
-                        email: localStorage.getItem('user_email') || 'user@example.com'
-                    })
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    alert('Ticket created successfully!');
-                    document.getElementById('new-ticket-form').reset();
-                    showTab('tickets');
-                } else {
-                    alert('Error creating ticket: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Error creating ticket:', error);
-                alert('Error creating ticket');
-            }
-        });
-
-        // Help Center
-        async function loadHelpCategories() {
-            try {
-                const response = await fetch('/api/help/categories');
-                const result = await response.json();
-
-                if (result.success) {
-                    const container = document.getElementById('category-filters');
-                    container.innerHTML = result.data.map(cat => `
-                        <button onclick="filterHelpByCategory('${escapeHtml(cat.category)}')"
-                            class="category-filter px-4 py-2 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-colors whitespace-nowrap">
-                            ${escapeHtml(cat.category)} (${cat.article_count})
-                        </button>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Error loading categories:', error);
-            }
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadDashboardComponents);
+        } else {
+            loadDashboardComponents();
         }
+    </script>
 
-        function filterHelpByCategory(category) {
-            currentCategory = category;
-            document.querySelectorAll('.category-filter').forEach(btn => {
-                btn.classList.remove('bg-brand-orange', 'text-white');
-                btn.classList.add('bg-white/10');
-            });
-            
-            if (category) {
-                event.target.classList.add('bg-brand-orange', 'text-white');
-                event.target.classList.remove('bg-white/10');
-            } else {
-                document.querySelectorAll('.category-filter')[0].classList.add('bg-brand-orange', 'text-white');
-                document.querySelectorAll('.category-filter')[0].classList.remove('bg-white/10');
-            }
-
-            loadHelpArticles();
-        }
-
-        async function loadHelpArticles(category = currentCategory) {
-            const container = document.getElementById('help-articles');
-            container.innerHTML = '<div class="glass-panel rounded-lg p-8 text-center text-gray-400 col-span-full"><i data-lucide="loader" class="w-8 h-8 mx-auto mb-4 animate-spin"></i>Loading articles...</div>';
-            lucide.createIcons();
-
-            try {
-                const url = category ? `/api/help/articles?category=${encodeURIComponent(category)}` : '/api/help/articles';
-                const response = await fetch(url);
-                const result = await response.json();
-
-                if (result.success && result.data.length > 0) {
-                    container.innerHTML = result.data.map(article => `
-                        <div class="glass-panel rounded-lg p-6 hover:border-brand-orange/50 transition-colors cursor-pointer" onclick="viewArticle('${article.slug}')">
-                            <div class="flex items-start justify-between mb-3">
-                                <span class="text-xs text-gray-400 uppercase">${escapeHtml(article.category)}</span>
-                                <span class="text-xs text-gray-500">${article.view_count} views</span>
-                            </div>
-                            <h3 class="text-lg font-bold mb-2">${escapeHtml(article.title)}</h3>
-                            <p class="text-gray-400 text-sm mb-4 line-clamp-2">${escapeHtml(article.summary || '')}</p>
-                            <div class="flex items-center gap-4 text-xs text-gray-500">
-                                <span>👍 ${article.helpful_count || 0}</span>
-                                <span>👎 ${article.not_helpful_count || 0}</span>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    container.innerHTML = '<div class="glass-panel rounded-lg p-12 text-center col-span-full"><p class="text-gray-400">No articles found.</p></div>';
-                }
-            } catch (error) {
-                console.error('Error loading articles:', error);
-                container.innerHTML = '<div class="glass-panel rounded-lg p-8 text-center text-red-400 col-span-full">Error loading articles.</div>';
-            }
-
-            lucide.createIcons();
-        }
-
-        async function viewArticle(slug) {
-            try {
-                const response = await fetch(`/api/help/articles/${slug}`);
-                const result = await response.json();
-
-                if (result.success) {
-                    const article = result.data;
-                    const modal = document.getElementById('ticket-modal');
-                    document.getElementById('modal-ticket-subject').textContent = article.title;
-                    document.getElementById('modal-ticket-info').innerHTML = `
-                        <div class="prose prose-invert max-w-none">
-                            <div class="text-sm text-gray-400 mb-4">${escapeHtml(article.category)} • ${article.view_count || 0} views</div>
-                            <div class="text-gray-300 whitespace-pre-wrap">${escapeHtml(article.content)}</div>
-                        </div>
-                    `;
-                    document.getElementById('modal-ticket-messages').innerHTML = `
-                        <div class="flex gap-4 pt-4">
-                            <button onclick="submitArticleFeedback('${slug}', true)" class="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors flex items-center gap-2">
-                                <i data-lucide="thumbs-up" class="w-4 h-4"></i>
-                                Helpful (${article.helpful_count || 0})
-                            </button>
-                            <button onclick="submitArticleFeedback('${slug}', false)" class="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2">
-                                <i data-lucide="thumbs-down" class="w-4 h-4"></i>
-                                Not Helpful (${article.not_helpful_count || 0})
-                            </button>
-                        </div>
-                    `;
-                    modal.classList.remove('hidden');
-                    lucide.createIcons();
-                }
-            } catch (error) {
-                console.error('Error loading article:', error);
-                alert('Error loading article');
-            }
-        }
-
-        async function submitArticleFeedback(slug, helpful) {
-            try {
-                const response = await fetch(`/api/help/articles/${slug}/feedback`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ helpful })
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    alert('Thank you for your feedback!');
-                    viewArticle(slug); // Reload article
-                }
-            } catch (error) {
-                console.error('Error submitting feedback:', error);
-            }
-        }
-
-        async function searchHelpArticles() {
-            const query = document.getElementById('help-search').value.trim();
-            if (!query) {
-                loadHelpArticles();
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/help/search?q=${encodeURIComponent(query)}`);
-                const result = await response.json();
-
-                const container = document.getElementById('help-articles');
-                if (result.success && result.data.length > 0) {
-                    container.innerHTML = result.data.map(article => `
-                        <div class="glass-panel rounded-lg p-6 hover:border-brand-orange/50 transition-colors cursor-pointer" onclick="viewArticle('${article.slug}')">
-                            <h3 class="text-lg font-bold mb-2">${escapeHtml(article.title)}</h3>
-                            <p class="text-gray-400 text-sm mb-4 line-clamp-2">${escapeHtml(article.summary || '')}</p>
-                        </div>
-                    `).join('');
-                } else {
-                    container.innerHTML = '<div class="glass-panel rounded-lg p-12 text-center col-span-full"><p class="text-gray-400">No articles found matching your search.</p></div>';
-                }
-            } catch (error) {
-                console.error('Error searching articles:', error);
-            }
-        }
-
-        // Load initial data
-        loadTickets();
+    <!-- Page-specific scripts -->
+    
 </body>
 
 </html>

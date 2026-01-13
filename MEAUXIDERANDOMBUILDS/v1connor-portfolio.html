@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connor McNeely - Multi-Disciplinary Engineering Leader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a365d;
+            --accent: #3182ce;
+            --success: #48bb78;
+            --text-dark: #2d3748;
+            --text-light: #718096;
+            --bg-light: #f7fafc;
+            --bg-dark: #1a202c;
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #3182ce 0%, #1a365d 100%);
+            --gradient-3: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            overflow-x: hidden;
+            background: #ffffff;
+        }
+
+        /* Loading Screen */
+        .loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-dark);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+
+        .loader.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loader-content {
+            text-align: center;
+        }
+
+        .loader-gear {
+            width: 60px;
+            height: 60px;
+            border: 3px solid var(--accent);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 20px 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0);
+        }
+
+        nav.scrolled {
+            padding: 15px 0;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 24px;
+            font-weight: bold;
+            background: var(--gradient-2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-dark);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent);
+            transition: width 0.3s;
+        }
+
+        .nav-links a:hover::after,
+        .nav-links a.active::after {
+            width: 100%;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .hero-content {
+            text-align: center;
+            color: white;
+            z-index: 1;
+            padding: 0 20px;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 1s forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            margin-bottom: 10px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            margin-bottom: 30px;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+
+        .hero-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        .tag {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .tag:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 35px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: white;
+            color: var(--primary);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Scroll Indicator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+            40% { transform: translateX(-50%) translateY(-10px); }
+            60% { transform: translateX(-50%) translateY(-5px); }
+        }
+
+        /* Stats Section */
+        .stats-section {
+            padding: 80px 20px;
+            background: var(--bg-light);
+            position: relative;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .stat-card.animate {
+            animation: fadeInUp 0.6s forwards;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            background: var(--gradient-2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: var(--text-light);
+            font-size: 1.1rem;
+        }
+
+        /* Experience Timeline */
+        .experience-section {
+            padding: 80px 20px;
+            background: white;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-light);
+            max-width: 600px;
+            margin: 0 auto 50px;
+        }
+
+        .timeline {
+            position: relative;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--accent);
+            transform: translateX(-50%);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding: 20px 0;
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+
+        .timeline-item.animate {
+            animation: slideIn 0.6s forwards;
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .timeline-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.1);
+            width: calc(50% - 40px);
+            position: relative;
+        }
+
+        .timeline-item:nth-child(even) .timeline-content {
+            margin-left: auto;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .timeline-date {
+            position: absolute;
+            top: 35px;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .timeline-item:nth-child(odd) .timeline-date {
+            right: calc(50% + 40px);
+        }
+
+        .timeline-item:nth-child(even) .timeline-date {
+            left: calc(50% + 40px);
+        }
+
+        .timeline-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .timeline-company {
+            color: var(--text-light);
+            margin-bottom: 15px;
+        }
+
+        .timeline-description {
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .timeline-achievements {
+            margin-top: 15px;
+            padding-left: 20px;
+        }
+
+        .timeline-achievements li {
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        .timeline-achievements li::before {
+            content: '▸';
+            color: var(--success);
+            position: absolute;
+            left: -20px;
+            font-weight: bold;
+        }
+
+        /* Skills Section */
+        .skills-section {
+            padding: 80px 20px;
+            background: var(--bg-light);
+        }
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .skill-category {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.08);
+            opacity: 0;
+            transform: scale(0.9);
+            transition: all 0.3s;
+        }
+
+        .skill-category.animate {
+            animation: scaleIn 0.6s forwards;
+        }
+
+        @keyframes scaleIn {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .skill-category:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .skill-category h3 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .skill-icon {
+            width: 30px;
+            height: 30px;
+            background: var(--gradient-2);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+        }
+
+        .skill-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .skill-tag {
+            background: var(--bg-light);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: var(--text-dark);
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s;
+        }
+
+        .skill-tag:hover {
+            background: var(--accent);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Projects Section */
+        .projects-section {
+            padding: 80px 20px;
+            background: white;
+        }
+
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+            margin-top: 50px;
+        }
+
+        .project-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .project-card.animate {
+            animation: fadeInUp 0.6s forwards;
+        }
+
+        .project-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+        }
+
+        .project-image {
+            height: 250px;
+            background: var(--gradient-2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .project-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.3;
+        }
+
+        .project-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 60px;
+            color: white;
+            opacity: 0.8;
+        }
+
+        .project-content {
+            padding: 30px;
+        }
+
+        .project-title {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .project-subtitle {
+            color: var(--text-light);
+            margin-bottom: 15px;
+        }
+
+        .project-description {
+            color: var(--text-dark);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .project-metrics {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .metric {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            color: var(--success);
+        }
+
+        .metric-label {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        /* Contact Section */
+        .contact-section {
+            padding: 80px 20px;
+            background: var(--gradient-2);
+            color: white;
+            text-align: center;
+        }
+
+        .contact-section h2 {
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .contact-info {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+        }
+
+        .contact-item a {
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+
+        .contact-item a:hover {
+            opacity: 0.8;
+        }
+
+        /* Certifications Section */
+        .certifications-section {
+            padding: 80px 20px;
+            background: var(--bg-light);
+        }
+
+        .cert-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 50px;
+        }
+
+        .cert-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s;
+        }
+
+        .cert-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .cert-icon {
+            font-size: 40px;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+
+        .cert-name {
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .timeline::before {
+                left: 30px;
+            }
+
+            .timeline-content {
+                width: calc(100% - 60px);
+                margin-left: 60px !important;
+            }
+
+            .timeline-dot {
+                left: 30px;
+            }
+
+            .timeline-date {
+                position: static;
+                margin-bottom: 10px;
+            }
+
+            .stats-grid,
+            .skills-grid,
+            .projects-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .contact-info {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        /* Scroll Progress Bar */
+        .progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.1);
+            z-index: 10000;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--gradient-2);
+            width: 0;
+            transition: width 0.2s;
+        }
+
+        /* Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: var(--gradient-2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            opacity: 0;
+            transform: scale(0);
+        }
+
+        .fab.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loader" id="loader">
+        <div class="loader-content">
+            <div class="loader-gear"></div>
+            <h3 style="color: white;">Engineering Excellence Loading...</h3>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav id="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">Connor McNeely</div>
+            <ul class="nav-links">
+                <li><a href="#home" class="nav-link active">Home</a></li>
+                <li><a href="#experience" class="nav-link">Experience</a></li>
+                <li><a href="#skills" class="nav-link">Skills</a></li>
+                <li><a href="#projects" class="nav-link">Projects</a></li>
+                <li><a href="#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-bg"></div>
+        <div class="hero-content">
+            <h1>Connor McNeely</h1>
+            <p class="hero-subtitle">Multi-Disciplinary Engineering Leader & Lifetime Learner</p>
+            <div class="hero-tags">
+                <span class="tag">🔧 Mechanical Design</span>
+                <span class="tag">⚙️ Automation</span>
+                <span class="tag">🤖 AI/ML</span>
+                <span class="tag">📊 Process Optimization</span>
+                <span class="tag">🚀 Innovation</span>
+            </div>
+            <div class="cta-buttons">
+                <a href="#contact" class="btn btn-primary">Hire Me</a>
+                <a href="#projects" class="btn btn-secondary">View Projects</a>
+            </div>
+        </div>
+        <div class="scroll-indicator">
+            <svg width="30" height="50" viewBox="0 0 30 50">
+                <rect x="10" y="10" width="10" height="20" rx="5" stroke="white" stroke-width="2" fill="none"/>
+                <circle cx="15" cy="20" r="3" fill="white"/>
+            </svg>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="container">
+            <h2 class="section-title">Impact by Numbers</h2>
+            <p class="section-subtitle">Quantifiable achievements that demonstrate engineering excellence</p>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" data-target="75">0</div>
+                    <div class="stat-label">% Downtime Reduction</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" data-target="50">0</div>
+                    <div class="stat-label">% Efficiency Improvement</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" data-target="20">0</div>
+                    <div class="stat-label">% Cost Reduction</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" data-target="759">0</div>
+                    <div class="stat-label">Million Units Produced</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Experience Timeline -->
+    <section id="experience" class="experience-section">
+        <div class="container">
+            <h2 class="section-title">Professional Journey</h2>
+            <p class="section-subtitle">Building engineering excellence across multiple industries</p>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-date">2023 - Present</div>
+                    <div class="timeline-content">
+                        <h3 class="timeline-title">Lead Mechanical Design Engineer</h3>
+                        <p class="timeline-company">Pump Manufacturer | Youngsville, LA</p>
+                        <p class="timeline-description">
+                            Sole in-house engineer overseeing full-cycle design of high-efficiency disc pumps, 
+                            from conception to manufacturing.
+                        </p>
+                        <ul class="timeline-achievements">
+                            <li>Designed complete pump systems using SolidWorks with FEA/CFD analysis</li>
+                            <li>Improved pump efficiency by 20% through innovative design optimization</li>
+                            <li>Reduced manufacturing costs by 15% implementing DFMA principles</li>
+                            <li>Managed cross-functional coordination between sales, manufacturing, and clients</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-date">2023</div>
+                    <div class="timeline-content">
+                        <h3 class="timeline-title">Automation/Mechatronics Engineer</h3>
+                        <p class="timeline-company">John Deere Turf Care</p>
+                        <p class="timeline-description">
+                            Led critical automation initiatives to enhance production efficiency and safety.
+                        </p>
+                        <ul class="timeline-achievements">
+                            <li>Reduced takt time by 20% through sensor and actuator programming</li>
+                            <li>Improved ergonomics by 30% via automation solutions</li>
+                            <li>Programmed PLCs and maintained SQL databases for MES systems</li>
+                            <li>Designed mistake-proofing systems using machine vision</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-date">2021 - 2022</div>
+                    <div class="timeline-content">
+                        <h3 class="timeline-title">Inspection/Automation/Mechanical Engineer</h3>
+                        <p class="timeline-company">Pfizer</p>
+                        <p class="timeline-description">
+                            Contributed to producing 759M vaccine doses while optimizing critical processes.
+                        </p>
+                        <ul class="timeline-achievements">
+                            <li>Enhanced Pfizer's efficiency leading to #1 PatientView ranking</li>
+                            <li>Implemented image processing and IoT dashboards for quality control</li>
+                            <li>Led Kaizen initiatives reducing waste and improving safety</li>
+                            <li>Ensured GMP, FDA, and ASME standards compliance</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-date">2020</div>
+                    <div class="timeline-content">
+                        <h3 class="timeline-title">Machine Design Engineer</h3>
+                        <p class="timeline-company">Louisiana Tech - Turbomachinery Project</p>
+                        <p class="timeline-description">
+                            Designed complete centrifugal pump system adhering to international standards.
+                        </p>
+                        <ul class="timeline-achievements">
+                            <li>Applied ISO 5199 and ASME B73.1 standards throughout design</li>
+                            <li>Conducted comprehensive CFD and FEA analyses</li>
+                            <li>Delivered innovative design combining manufacturability and performance</li>
+                            <li>Gained expertise in holistic system design and DFMA</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Skills Section -->
+    <section id="skills" class="skills-section">
+        <div class="container">
+            <h2 class="section-title">Technical Arsenal</h2>
+            <p class="section-subtitle">Comprehensive skill set spanning mechanical, automation, and data sciences</p>
+            <div class="skills-grid">
+                <div class="skill-category">
+                    <h3><span class="skill-icon">🔧</span> Mechanical Design & Analysis</h3>
+                    <div class="skill-list">
+                        <span class="skill-tag">SolidWorks</span>
+                        <span class="skill-tag">AutoCAD</span>
+                        <span class="skill-tag">FEA</span>
+                        <span class="skill-tag">CFD</span>
+                        <span class="skill-tag">GD&T</span>
+                        <span class="skill-tag">DFMA</span>
+                        <span class="skill-tag">FMEA</span>
+                        <span class="skill-tag">P&ID</span>
+                    </div>
+                </div>
+
+                <div class="skill-category">
+                    <h3><span class="skill-icon">⚙️</span> Automation & Control</h3>
+                    <div class="skill-list">
+                        <span class="skill-tag">PLC Programming</span>
+                        <span class="skill-tag">SCADA</span>
+                        <span class="skill-tag">Allen-Bradley</span>
+                        <span class="skill-tag">Siemens</span>
+                        <span class="skill-tag">Fanuc Robotics</span>
+                        <span class="skill-tag">Machine Vision</span>
+                        <span class="skill-tag">HMI</span>
+                        <span class="skill-tag">VFD</span>
+                    </div>
+                </div>
+
+                <div class="skill-category">
+                    <h3><span class="skill-icon">🏭</span> Manufacturing & Process</h3>
+                    <div class="skill-list">
+                        <span class="skill-tag">Lean Six Sigma</span>
+                        <span class="skill-tag">Kaizen</span>
+                        <span class="skill-tag">5S</span>
+                        <span class="skill-tag">DMAIC</span>
+                        <span class="skill-tag">CNC Programming</span>
+                        <span class="skill-tag">3D Printing</span>
+                        <span class="skill-tag">Injection Molding</span>
+                        <span class="skill-tag">DOE</span>
+                    </div>
+                </div>
+
+                <div class="skill-category">
+                    <h3><span class="skill-icon">💻</span> Programming & Data</h3>
+                    <div class="skill-list">
+                        <span class="skill-tag">Python</span>
+                        <span class="skill-tag">MATLAB</span>
+                        <span class="skill-tag">SQL</span>
+                        <span class="skill-tag">TensorFlow</span>
+                        <span class="skill-tag">Pandas</span>
+                        <span class="skill-tag">Scikit-learn</span>
+                        <span class="skill-tag">Visual Basic</span>
+                        <span class="skill-tag">Mathcad</span>
+                    </div>
+                </div>
+
+                <div class="skill-category">
+                    <h3><span class="skill-icon">📋</span> Standards & Compliance</h3>
+                    <div class="skill-list">
+                        <span class="skill-tag">ASME</span>
+                        <span class="skill-tag">ISO 9001</span>
+                        <span class="skill-tag">API 610</span>
+                        <span class="skill-tag">ASTM</span>
+                        <span class="skill-tag">FDA/GMP</span>
+                        <span class="skill-tag">NEC</span>
+                        <span class="skill-tag">ISO 14001</span>
+                        <span class="skill-tag">OSHA</span>
+                    </div>
+                </div>
+
+                <div class="skill-category">
+                    <h3><span class="skill-icon">🎯</span> Leadership & Strategy</h3>
+                    <div class="skill-list">
+                        <span class="skill-tag">Project Management</span>
+                        <span class="skill-tag">Cross-functional Teams</span>
+                        <span class="skill-tag">Technical Documentation</span>
+                        <span class="skill-tag">Vendor Management</span>
+                        <span class="skill-tag">Budget Planning</span>
+                        <span class="skill-tag">R&D</span>
+                        <span class="skill-tag">Continuous Improvement</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section id="projects" class="projects-section">
+        <div class="container">
+            <h2 class="section-title">Engineering Innovations</h2>
+            <p class="section-subtitle">Transformative projects delivering measurable business impact</p>
+            <div class="projects-grid">
+                <div class="project-card">
+                    <div class="project-image">
+                        <div class="project-icon">⚙️</div>
+                    </div>
+                    <div class="project-content">
+                        <h3 class="project-title">CNC Pneumatic Gang Drill System</h3>
+                        <p class="project-subtitle">Galaxy Products LLC</p>
+                        <p class="project-description">
+                            Led design and development of automated drilling system, managing multidisciplinary team 
+                            and applying advanced CAD/CAE with comprehensive standards compliance.
+                        </p>
+                        <div class="project-metrics">
+                            <div class="metric">
+                                <span class="metric-value">75%</span>
+                                <span class="metric-label">Downtime Reduction</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-value">50%</span>
+                                <span class="metric-label">Efficiency Gain</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="project-card">
+                    <div class="project-image" style="background: var(--gradient-3);">
+                        <div class="project-icon">💊</div>
+                    </div>
+                    <div class="project-content">
+                        <h3 class="project-title">Vaccine Production Optimization</h3>
+                        <p class="project-subtitle">Pfizer</p>
+                        <p class="project-description">
+                            Enhanced critical inspection and packaging processes contributing to 759M vaccine doses 
+                            production while maintaining strict FDA/GMP compliance.
+                        </p>
+                        <div class="project-metrics">
+                            <div class="metric">
+                                <span class="metric-value">759M</span>
+                                <span class="metric-label">Doses Produced</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-value">#1</span>
+                                <span class="metric-label">PatientView Ranking</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="project-card">
+                    <div class="project-image" style="background: var(--gradient-1);">
+                        <div class="project-icon">🔩</div>
+                    </div>
+                    <div class="project-content">
+                        <h3 class="project-title">High-Efficiency Disc Pump Design</h3>
+                        <p class="project-subtitle">Tesla Disk Pumps LLC</p>
+                        <p class="project-description">
+                            Engineered complete pump systems from conception to manufacturing, implementing 
+                            advanced CFD/FEA analysis and DFMA principles for optimal performance.
+                        </p>
+                        <div class="project-metrics">
+                            <div class="metric">
+                                <span class="metric-value">20%</span>
+                                <span class="metric-label">Efficiency Increase</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-value">15%</span>
+                                <span class="metric-label">Cost Reduction</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="project-card">
+                    <div class="project-image">
+                        <div class="project-icon">🏗️</div>
+                    </div>
+                    <div class="project-content">
+                        <h3 class="project-title">V6 Engine Design Study</h3>
+                        <p class="project-subtitle">Personal Project</p>
+                        <p class="project-description">
+                            Comprehensive V6 engine model demonstrating advanced mechanical design concepts, 
+                            structural analysis, and manufacturing feasibility using parametric CAD.
+                        </p>
+                        <div class="project-metrics">
+                            <div class="metric">
+                                <span class="metric-value">100%</span>
+                                <span class="metric-label">Parametric Model</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-value">Full</span>
+                                <span class="metric-label">FEA/CFD Validation</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="project-card">
+                    <div class="project-image" style="background: var(--gradient-3);">
+                        <div class="project-icon">🤖</div>
+                    </div>
+                    <div class="project-content">
+                        <h3 class="project-title">Manufacturing Line Automation</h3>
+                        <p class="project-subtitle">John Deere</p>
+                        <p class="project-description">
+                            Programmed sensors, actuators, and MES systems reducing takt time while improving 
+                            ergonomics through strategic automation implementation.
+                        </p>
+                        <div class="project-metrics">
+                            <div class="metric">
+                                <span class="metric-value">20%</span>
+                                <span class="metric-label">Takt Time Reduction</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-value">30%</span>
+                                <span class="metric-label">Ergonomic Improvement</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="project-card">
+                    <div class="project-image" style="background: var(--gradient-1);">
+                        <div class="project-icon">🧪</div>
+                    </div>
+                    <div class="project-content">
+                        <h3 class="project-title">Injection Molding Optimization</h3>
+                        <p class="project-subtitle">Sulfur Operations Support</p>
+                        <p class="project-description">
+                            Designed and analyzed HP injection molds using scientific molding and RJG techniques, 
+                            achieving significant cost and quality improvements.
+                        </p>
+                        <div class="project-metrics">
+                            <div class="metric">
+                                <span class="metric-value">20%</span>
+                                <span class="metric-label">Cost Reduction</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-value">15%</span>
+                                <span class="metric-label">Scrap Reduction</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Certifications Section -->
+    <section class="certifications-section">
+        <div class="container">
+            <h2 class="section-title">Professional Credentials</h2>
+            <p class="section-subtitle">Continuous learning and industry-recognized expertise</p>
+            <div class="cert-grid">
+                <div class="cert-item">
+                    <div class="cert-icon">🎓</div>
+                    <div class="cert-name">B.S. Mechanical Engineering</div>
+                    <div class="cert-issuer">Louisiana Tech University</div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">🏆</div>
+                    <div class="cert-name">Lean Six Sigma</div>
+                    <div class="cert-issuer">Process Excellence</div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">⚙️</div>
+                    <div class="cert-name">SolidWorks Professional</div>
+                    <div class="cert-issuer">Dassault Systèmes</div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">🤖</div>
+                    <div class="cert-name">PLC Programming</div>
+                    <div class="cert-issuer">Allen-Bradley</div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">📊</div>
+                    <div class="cert-name">Machine Learning</div>
+                    <div class="cert-issuer">Python Certified</div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">🛡️</div>
+                    <div class="cert-name">ISO Standards</div>
+                    <div class="cert-issuer">Quality Assurance</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact-section">
+        <div class="container">
+            <h2 class="section-title">Let's Build Something Amazing</h2>
+            <p class="section-subtitle">Ready to bring engineering excellence to your team</p>
+            <div class="cta-buttons" style="margin-top: 40px;">
+                <a href="mailto:connordmcneely@gmail.com" class="btn btn-primary">Email Me</a>
+                <a href="tel:3375817113" class="btn btn-secondary">Call Me</a>
+            </div>
+            <div class="contact-info">
+                <div class="contact-item">
+                    📧 <a href="mailto:connordmcneely@gmail.com">connordmcneely@gmail.com</a>
+                </div>
+                <div class="contact-item">
+                    📱 <a href="tel:3375817113">(337) 581-7113</a>
+                </div>
+                <div class="contact-item">
+                    📍 Louisiana, USA
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Floating Action Button -->
+    <div class="fab" id="fab" onclick="scrollToTop()">
+        ↑
+    </div>
+
+    <script>
+        // Loading Screen
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loader').classList.add('hidden');
+            }, 1500);
+        });
+
+        // Scroll Progress Bar
+        window.addEventListener('scroll', () => {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            document.getElementById('progressBar').style.width = scrolled + '%';
+
+            // Show/hide FAB
+            const fab = document.getElementById('fab');
+            if (winScroll > 300) {
+                fab.classList.add('show');
+            } else {
+                fab.classList.remove('show');
+            }
+
+            // Navbar scroll effect
+            const navbar = document.getElementById('navbar');
+            if (winScroll > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Active navigation link
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').substring(1) === current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Scroll to top
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate');
+                    
+                    // Counter animation for stats
+                    if (entry.target.classList.contains('stat-card')) {
+                        const counter = entry.target.querySelector('.stat-number');
+                        const target = parseInt(counter.getAttribute('data-target'));
+                        let count = 0;
+                        const increment = target / 50;
+                        
+                        const updateCounter = () => {
+                            if (count < target) {
+                                count += increment;
+                                counter.textContent = Math.ceil(count);
+                                setTimeout(updateCounter, 30);
+                            } else {
+                                counter.textContent = target + (counter.parentElement.querySelector('.stat-label').textContent.includes('Million') ? 'M' : '');
+                            }
+                        };
+                        updateCounter();
+                    }
+                }
+            });
+        }, observerOptions);
+
+        // Observe elements
+        document.querySelectorAll('.stat-card, .timeline-item, .skill-category, .project-card').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Parallax effect for hero section
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const parallax = document.querySelector('.hero');
+            const speed = 0.5;
+            parallax.style.transform = `translateY(${scrolled * speed}px)`;
+        });
+
+        // Add typing effect to hero title
+        const heroTitle = document.querySelector('.hero h1');
+        const text = heroTitle.textContent;
+        heroTitle.textContent = '';
+        let index = 0;
+
+        function typeWriter() {
+            if (index < text.length) {
+                heroTitle.textContent += text.charAt(index);
+                index++;
+                setTimeout(typeWriter, 100);
+            }
+        }
+
+        setTimeout(typeWriter, 2000);
+    </script>
+</body>
+</html>

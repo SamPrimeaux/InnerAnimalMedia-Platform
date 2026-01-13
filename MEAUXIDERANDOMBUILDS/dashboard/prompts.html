@@ -1,15 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Prompts Library | InnerAnimalMedia</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="/shared/sidebar.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompts | InnerAnimal Media OS</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#ff6b00',
+                            red: '#dc2626',
+                            dark: '#050507',
+                            panel: '#0a0a0f',
+                            surface: '#171717'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Dashboard Container CSS -->
+    <link rel="stylesheet" href="/shared/dashboard-container.css">
+
+    <!-- Theme System CSS (if available) -->
     <link rel="stylesheet" href="/shared/themes/meaux-theme-library.css">
-  <style>
+
+    <!-- Custom Styles -->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: var(--dashboard-bg, #050507);
+            color: var(--dashboard-text-primary, rgba(255, 255, 255, 0.95));
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+    </style>
+    <style>
     /* Refined Glassmorphism */
     .glass {
       background: rgba(255, 255, 255, 0.06);
@@ -196,12 +245,21 @@
   </style>
 </head>
 
-<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white min-h-screen">
-  <!-- Sidebar will be injected by sidebar.js -->
-  <script src="/shared/sidebar.js"></script>
+<body>
+    <!-- Dashboard Layout Container -->
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
 
-  <main class="p-4 md:p-8 ml-0 transition-all duration-300" id="main-content">
-    <div class="max-w-7xl mx-auto">
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            <!-- Dashboard Header -->
+            <header class="dashboard-header" id="dashboard-header-container"></header>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-content custom-scrollbar">
+                <div class="dashboard-content-inner">
+                    <div class="max-w-7xl mx-auto">
       <!-- Header -->
       <div class="glass rounded-2xl p-6 md:p-8 mb-6 md:mb-8 shadow-xl">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
@@ -386,841 +444,72 @@
         </div>
       </div>
     </div>
-  </main>
-
-  <!-- Modal for Prompt Details/Edit -->
-  <div id="promptModal" class="fixed inset-0 modal-backdrop hidden items-center justify-center z-50 p-4">
-    <div class="modal-content glass rounded-2xl p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-      <div class="flex justify-between items-center mb-6 pb-4 border-b border-white/10">
-        <h2 class="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent"
-          id="modalTitle">Prompt Details</h2>
-        <button onclick="closeModal()"
-          class="text-3xl hover:text-purple-400 transition-colors p-2 rounded-lg hover:bg-white/10"
-          aria-label="Close modal">×</button>
-      </div>
-      <div id="modalContent">
-        <!-- Modal content will be loaded here -->
-      </div>
+                </div>
+            </div>
+        </main>
     </div>
-  </div>
 
-  <script>
-    let currentTab = 'prompts';
-    let allPrompts = [];
-    let searchTimeout;
+    <!-- Mobile Menu Button (will be injected by sidebar) -->
 
-    // Initialize
-    document.addEventListener('DOMContentLoaded', () => {
-      loadPrompts();
-      loadPipelines();
-      loadKnowledgeBase();
-      loadPromptSelect();
-    });
+    <!-- Shared Layout Scripts -->
+    <script src="/shared/layout.js"></script>
+    <script src="/shared/dashboard-layout.js"></script>
 
-    // Tab switching
-    function switchTab(tab) {
-      currentTab = tab;
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('[id^="tab-"]').forEach(el => {
-        el.classList.remove('border-purple-500');
-        el.classList.add('border-transparent');
-      });
-
-      document.getElementById(`content-${tab}`).classList.remove('hidden');
-      const tabBtn = document.getElementById(`tab-${tab}`);
-      if (tabBtn) {
-        tabBtn.classList.remove('border-transparent');
-        tabBtn.classList.add('border-purple-500');
-      }
-    }
-
-    // Load prompts
-    async function loadPrompts() {
-      const category = document.getElementById('categoryFilter').value;
-      const toolRole = document.getElementById('toolRoleFilter').value;
-      const stage = document.getElementById('stageFilter').value;
-      const search = document.getElementById('searchInput').value.toLowerCase();
-
-      let url = '/api/prompts?';
-      if (category) url += `category=${category}&`;
-      if (toolRole) url += `tool_role=${toolRole}&`;
-      if (stage) url += `stage=${stage}&`;
-
-      try {
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.success) {
-          allPrompts = data.data || [];
-          // Client-side search
-          let filtered = allPrompts;
-          if (search) {
-            filtered = allPrompts.filter(p =>
-              p.name.toLowerCase().includes(search) ||
-              p.description?.toLowerCase().includes(search) ||
-              p.category.toLowerCase().includes(search)
-            );
-          }
-          renderPrompts(filtered);
-        }
-      } catch (error) {
-        console.error('Error loading prompts:', error);
-      }
-    }
-
-    // Render prompts grid
-    function renderPrompts(prompts) {
-      const grid = document.getElementById('promptsGrid');
-      if (prompts.length === 0) {
-        grid.innerHTML = '<div class="col-span-full text-center py-12 text-slate-400">No prompts found</div>';
-        return;
-      }
-
-      grid.innerHTML = prompts.map(prompt => `
-        <div class="prompt-card glass rounded-xl p-6 cursor-pointer group" onclick="showPromptDetails('${prompt.name}')" role="button" tabindex="0" onkeypress="if(event.key==='Enter') showPromptDetails('${prompt.name}')">
-          <div class="flex items-start justify-between mb-4">
-            <div class="flex-1">
-              <h3 class="text-xl font-bold mb-2 group-hover:text-purple-400 transition-colors">${prompt.name}</h3>
-            <span class="px-2 py-1 text-xs glass rounded-full">${prompt.category}</span>
-          </div>
-          <p class="text-slate-300 text-sm mb-4 line-clamp-2">${prompt.description || 'No description'}</p>
-          <div class="flex flex-wrap gap-2 mb-4">
-            ${(prompt.variables || []).map(v => `<span class="variable-tag">{{${v}}}</span>`).join('')}
-          </div>
-          <div class="flex items-center justify-between text-xs text-slate-400">
-            <span>${prompt.tool_role || 'Any tool'}</span>
-            ${prompt.stage !== null ? `<span>Stage ${prompt.stage}</span>` : ''}
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // Show prompt details modal
-    async function showPromptDetails(promptName) {
-      try {
-        const response = await fetch(`/api/prompts/${promptName}`);
-        const data = await response.json();
-        if (data.success) {
-          const prompt = data.data;
-          document.getElementById('modalTitle').textContent = prompt.name;
-          document.getElementById('modalContent').innerHTML = `
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-semibold mb-2">Category</label>
-                <span class="px-3 py-1 glass rounded-full">${prompt.category}</span>
-              </div>
-              <div>
-                <label class="block text-sm font-semibold mb-2">Description</label>
-                <p class="text-slate-300">${prompt.description || 'No description'}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-semibold mb-2">Variables</label>
-                <div class="flex flex-wrap gap-2">
-                  ${(prompt.variables || []).map(v => `<span class="variable-tag">{{${v}}}</span>`).join('')}
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-semibold mb-2">Prompt Template</label>
-                <div class="code-block">${escapeHtml(prompt.prompt_template)}</div>
-              </div>
-              <div class="flex gap-4 pt-4">
-                <button onclick="executeThisPrompt('${prompt.name}')" class="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg">
-                  Execute
-                </button>
-                <button onclick="closeModal()" class="px-6 py-2 glass hover:bg-white/10 rounded-lg">
-                  Close
-                </button>
-              </div>
-            </div>
-          `;
-          document.getElementById('promptModal').classList.remove('hidden');
-          document.getElementById('promptModal').classList.add('flex');
-        }
-      } catch (error) {
-        console.error('Error loading prompt details:', error);
-      }
-    }
-
-    // Load pipelines
-    async function loadPipelines() {
-      try {
-        const response = await fetch('/api/pipelines?is_template=1');
-        const data = await response.json();
-        if (data.success) {
-          renderPipelines(data.data || []);
-        }
-      } catch (error) {
-        console.error('Error loading pipelines:', error);
-      }
-    }
-
-    function renderPipelines(pipelines) {
-      const container = document.getElementById('pipelinesList');
-      if (pipelines.length === 0) {
-        container.innerHTML = '<div class="text-center py-12 text-slate-400">No pipelines found</div>';
-        return;
-      }
-
-      container.innerHTML = pipelines.map(p => `
-        <div class="glass rounded-xl p-6 prompt-card">
-          <div class="flex items-start justify-between mb-4">
-            <div class="flex-1">
-              <h3 class="text-xl font-bold mb-2">${p.name}</h3>
-              <p class="text-slate-300 text-sm mb-3">${p.description || 'No description'}</p>
-              <div class="flex gap-2 items-center mb-3">
-                <span class="px-3 py-1 text-xs glass rounded-full">${p.category || 'general'}</span>
-                <span class="px-3 py-1 text-xs glass rounded-full">${p.status || 'draft'}</span>
-                ${p.execution_history && p.execution_history.length > 0 ? `
-                  <span class="px-3 py-1 text-xs glass rounded-full">
-                    ${p.execution_history.length} execution${p.execution_history.length !== 1 ? 's' : ''}
-                  </span>
-                ` : ''}
-              </div>
-            </div>
-          </div>
-          <div class="mb-4">
-            <label class="block text-sm font-semibold mb-2">Stages (${(p.stages || []).length})</label>
-            <div class="flex gap-2 flex-wrap">
-              ${(p.stages || []).map(s => `
-                <div class="px-3 py-2 text-xs glass rounded border border-white/10">
-                  <div class="font-semibold">Stage ${s.stage_number}: ${s.stage_name}</div>
-                  <div class="text-slate-400 mt-1">
-                    ${s.tool_role || 'Any tool'} • ${s.expected_duration_minutes || 'N/A'} min
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          <div class="flex gap-2">
-            <button onclick="executePipelineWithModal('${p.id}')" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm">
-              <i class="fas fa-play mr-2"></i> Execute Pipeline
-            </button>
-            ${p.status === 'running' ? `
-              <button onclick="viewPipelineStatus('${p.id}')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm">
-                <i class="fas fa-sync-alt mr-2"></i> View Status
-              </button>
-            ` : ''}
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // Execute pipeline with variable input modal
-    async function executePipelineWithModal(pipelineId) {
-      try {
-        const response = await fetch(`/api/pipelines/${pipelineId}`);
-        const data = await response.json();
-        if (data.success) {
-          const pipeline = data.data;
-          const variables = pipeline.variables?.default_variables || {};
-          const required = pipeline.variables?.required_variables || [];
-
-          document.getElementById('modalTitle').textContent = `Execute: ${pipeline.name}`;
-          document.getElementById('modalContent').innerHTML = `
-            <div class="space-y-4">
-              <p class="text-slate-300">${pipeline.description || ''}</p>
-              <div id="pipelineVariables" class="space-y-3">
-                ${Object.keys(variables).map(key => `
-                  <div>
-                    <label class="block text-sm font-semibold mb-2">
-                      ${key}${required.includes(key) ? ' *' : ''}
-                    </label>
-                    <input type="text" id="pipe-var-${key}" value="${variables[key] || ''}" 
-                      ${required.includes(key) ? 'required' : ''}
-                      class="w-full px-4 py-2 glass rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                  </div>
-                `).join('')}
-              </div>
-              <div class="flex gap-4 pt-4">
-                <button onclick="doExecutePipeline('${pipelineId}')" class="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg">
-                  <i class="fas fa-play mr-2"></i> Execute
-                </button>
-                <button onclick="closeModal()" class="px-6 py-2 glass hover:bg-white/10 rounded-lg">
-                  Cancel
-                </button>
-              </div>
-            </div>
-          `;
-          document.getElementById('promptModal').classList.remove('hidden');
-          document.getElementById('promptModal').classList.add('flex');
-        }
-      } catch (error) {
-        console.error('Error loading pipeline:', error);
-        alert('Error loading pipeline');
-      }
-    }
-
-    // Execute pipeline
-    async function doExecutePipeline(pipelineId) {
-      const variables = {};
-      document.querySelectorAll('[id^="pipe-var-"]').forEach(input => {
-        const key = input.id.replace('pipe-var-', '');
-        variables[key] = input.value;
-      });
-
-      try {
-        const response = await fetch(`/api/pipelines/${pipelineId}/execute`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variables })
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          const execId = data.data.execution_id;
-          showNotification(`✅ Pipeline execution started! Execution ID: ${execId.substring(0, 20)}...`, 'success');
-          closeModal();
-          // Start polling for status
-          pollPipelineStatus(pipelineId, execId);
-          loadPipelines(); // Refresh list
-        } else {
-          showNotification('❌ Error: ' + (data.error || 'Unknown error'), 'error');
-        }
-      } catch (error) {
-        console.error('Error executing pipeline:', error);
-        alert('Error executing pipeline');
-      }
-    }
-
-    // Poll pipeline execution status
-    async function pollPipelineStatus(pipelineId, executionId, interval = 2000, maxPolls = 60) {
-      let polls = 0;
-      const pollInterval = setInterval(async () => {
-        polls++;
-        try {
-          const response = await fetch(`/api/pipelines/${pipelineId}/executions/${executionId}/status`);
-          const data = await response.json();
-          if (data.success) {
-            const execution = data.data;
-            if (execution.status === 'completed' || execution.status === 'failed' || polls >= maxPolls) {
-              clearInterval(pollInterval);
-              if (execution.status === 'completed') {
-                showNotification(`✅ Pipeline completed successfully! Duration: ${execution.duration_seconds}s`, 'success');
-              } else if (execution.status === 'failed') {
-                showNotification(`❌ Pipeline failed: ${execution.error_message || 'Unknown error'}`, 'error');
-              }
-              loadPipelines(); // Refresh
-            } else {
-              // Update UI with current status (optional: show progress in modal/toast)
-              console.log(`Pipeline status: ${execution.status}, Stage: ${execution.stage_results?.length || 0}/${execution.stage_results?.length || '?'}`);
+    <!-- Load Sidebar and Header -->
+    <script>
+        async function loadDashboardComponents() {
+            // Load sidebar
+            try {
+                const sidebarRes = await fetch('/shared/sidebar.html');
+                if (sidebarRes.ok) {
+                    const sidebarHtml = await sidebarRes.text();
+                    const sidebarContainer = document.getElementById('sidebar-container');
+                    if (sidebarContainer) {
+                        sidebarContainer.innerHTML = sidebarHtml;
+                        // Reinitialize icons after sidebar loads
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading sidebar:', error);
             }
-          }
-        } catch (error) {
-          console.error('Error polling status:', error);
-          clearInterval(pollInterval);
-        }
-      }, interval);
-    }
 
-    // View pipeline execution status
-    async function viewPipelineStatus(pipelineId) {
-      // Get latest execution
-      try {
-        const response = await fetch(`/api/pipelines/${pipelineId}`);
-        const data = await response.json();
-        if (data.success && data.data.execution_history && data.data.execution_history.length > 0) {
-          const latestExec = data.data.execution_history[data.data.execution_history.length - 1];
-          // Show status modal with execution details
-          alert(`Latest execution: ${latestExec.status}\nStarted: ${new Date(latestExec.started_at * 1000).toLocaleString()}\nDuration: ${latestExec.duration_seconds || 'N/A'}s`);
+            // Load header
+            try {
+                const headerRes = await fetch('/shared/header.html');
+                if (headerRes.ok) {
+                    const headerHtml = await headerRes.text();
+                    const headerContainer = document.getElementById('dashboard-header-container');
+                    if (headerContainer) {
+                        headerContainer.innerHTML = headerHtml;
+                        // Update page title
+                        const pageTitle = document.getElementById('page-title');
+                        if (pageTitle) {
+                            pageTitle.textContent = 'Prompts';
+                        }
+                        // Reinitialize icons
+                        if (typeof lucide !== 'undefined') {
+                            setTimeout(() => lucide.createIcons(), 100);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading header:', error);
+            }
+        }
+
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadDashboardComponents);
         } else {
-          alert('No execution history found');
+            loadDashboardComponents();
         }
-      } catch (error) {
-        console.error('Error loading status:', error);
-        alert('Error loading status');
-      }
-    }
+    </script>
 
-    // Legacy function for compatibility
-    function executePipeline(pipelineId) {
-      executePipelineWithModal(pipelineId);
-    }
-
-    // Load knowledge base
-    async function loadKnowledgeBase() {
-      const category = document.getElementById('kbCategoryFilter')?.value || '';
-      const search = document.getElementById('kbSearchInput')?.value.toLowerCase() || '';
-
-      try {
-        let url = '/api/knowledge?';
-        if (category) url += `category=${category}&`;
-
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.success) {
-          let entries = data.data || [];
-          // Client-side search
-          if (search) {
-            entries = entries.filter(entry =>
-              entry.title.toLowerCase().includes(search) ||
-              entry.content?.toLowerCase().includes(search) ||
-              entry.category?.toLowerCase().includes(search)
-            );
-          }
-          renderKnowledgeBase(entries);
-        }
-      } catch (error) {
-        console.error('Error loading knowledge base:', error);
-      }
-    }
-
-    function renderKnowledgeBase(kb) {
-      const container = document.getElementById('knowledgeList');
-      if (kb.length === 0) {
-        container.innerHTML = '<div class="text-center py-12 text-slate-400">No knowledge base entries found</div>';
-        return;
-      }
-
-      container.innerHTML = kb.map(entry => `
-        <div class="glass rounded-xl p-6 prompt-card">
-          <div class="flex items-start justify-between mb-3">
-            <div class="flex-1">
-              <h3 class="text-xl font-bold mb-2">${entry.title}</h3>
-              <div class="flex gap-2 items-center mb-2">
-                <span class="px-2 py-1 text-xs glass rounded-full">${entry.category || 'general'}</span>
-                <span class="px-2 py-1 text-xs glass rounded-full">${entry.content_type || 'document'}</span>
-                ${entry.is_indexed ? '<span class="px-2 py-1 text-xs bg-green-500/20 text-green-400 rounded-full">Indexed</span>' : ''}
-              </div>
-            </div>
-          </div>
-          <p class="text-slate-300 text-sm mb-4 line-clamp-3">${entry.content.substring(0, 300)}${entry.content.length > 300 ? '...' : ''}</p>
-          <div class="flex items-center justify-between mb-4">
-            <div class="text-xs text-slate-400">
-              <span>${entry.chunk_count || 0} chunks</span>
-              ${entry.token_count ? ` • ${entry.token_count} tokens` : ''}
-            </div>
-            <div class="flex gap-2">
-              ${entry.chunk_count === 0 ? `
-                <button onclick="chunkKnowledgeEntry('${entry.id}')" class="px-3 py-1.5 text-xs bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg transition-all duration-300 shadow-md hover:shadow-purple-500/50">
-                  <i class="fas fa-cut mr-1"></i> Chunk
-                </button>
-              ` : ''}
-              <button onclick="showKnowledgeDetails('${entry.id}')" class="px-3 py-1.5 text-xs glass hover:bg-white/10 rounded-lg transition-all duration-300 border border-white/10 hover:border-purple-400/50">
-                <i class="fas fa-eye mr-1"></i> View
-              </button>
-              <button onclick="editKnowledgeEntry('${entry.id}')" class="px-3 py-1.5 text-xs glass hover:bg-white/10 rounded-lg transition-all duration-300 border border-white/10 hover:border-purple-400/50">
-                <i class="fas fa-edit mr-1"></i> Edit
-              </button>
-            </div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // Chunk knowledge entry with loading state
-    async function chunkKnowledgeEntry(kbId) {
-      if (!confirm('This will chunk the document and generate embeddings using Gemini. Continue?')) return;
-
-      const button = event?.target?.closest('button') || document.querySelector(`button[onclick*="${kbId}"]`);
-      const originalText = button?.innerHTML;
-
-      try {
-        if (button) {
-          button.disabled = true;
-          button.classList.add('loading');
-          button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Chunking...';
-        }
-
-        const response = await fetch(`/api/knowledge/${kbId}/chunk`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chunk_size: 2000,
-            overlap: 200,
-            generate_embeddings: true,
-            model: 'gemini' // Use Gemini for embeddings
-          })
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          const model = data.data.embedding_model || 'Gemini';
-          showNotification(`✅ Chunked into ${data.data.chunks_created} chunks with ${model} embeddings`, 'success');
-          loadKnowledgeBase();
-        } else {
-          showNotification('❌ Error: ' + (data.error || 'Unknown error'), 'error');
-        }
-      } catch (error) {
-        console.error('Error chunking:', error);
-        showNotification('❌ Error chunking document: ' + error.message, 'error');
-      } finally {
-        if (button) {
-          button.disabled = false;
-          button.classList.remove('loading');
-          button.innerHTML = originalText || '<i class="fas fa-cut mr-1"></i> Chunk';
-        }
-      }
-    }
-
-    // Show knowledge details
-    async function showKnowledgeDetails(kbId) {
-      try {
-        const response = await fetch(`/api/knowledge/${kbId}`);
-        const data = await response.json();
-        if (data.success) {
-          const entry = data.data;
-          document.getElementById('modalTitle').textContent = entry.title;
-          document.getElementById('modalContent').innerHTML = `
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-semibold mb-2">Category</label>
-                <span class="px-3 py-1 glass rounded-full">${entry.category || 'general'}</span>
-                <span class="px-3 py-1 glass rounded-full ml-2">${entry.content_type || 'document'}</span>
-              </div>
-              <div>
-                <label class="block text-sm font-semibold mb-2">Content</label>
-                <div class="code-block max-h-96 overflow-y-auto">${escapeHtml(entry.content)}</div>
-              </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-semibold mb-2">Stats</label>
-                  <p class="text-sm text-slate-300">Chunks: ${entry.chunk_count || 0}</p>
-                  <p class="text-sm text-slate-300">Tokens: ${entry.token_count || 0}</p>
-                  <p class="text-sm text-slate-300">Indexed: ${entry.is_indexed ? 'Yes' : 'No'}</p>
-                </div>
-                <div>
-                  <label class="block text-sm font-semibold mb-2">Metadata</label>
-                  <div class="code-block text-xs max-h-32 overflow-y-auto">${JSON.stringify(entry.metadata || {}, null, 2)}</div>
-                </div>
-              </div>
-              ${entry.chunks && entry.chunks.length > 0 ? `
-                <div>
-                  <label class="block text-sm font-semibold mb-2">Chunks (${entry.chunks.length})</label>
-                  <div class="space-y-2 max-h-64 overflow-y-auto">
-                    ${entry.chunks.map((chunk, i) => `
-                      <div class="glass rounded p-3 text-sm">
-                        <div class="flex justify-between mb-1">
-                          <span class="font-semibold">Chunk ${chunk.chunk_index}</span>
-                          ${chunk.has_embedding ? '<span class="text-xs text-green-400">✓ Embedded</span>' : ''}
-                        </div>
-                        <p class="text-slate-300 line-clamp-2">${escapeHtml(chunk.content.substring(0, 200))}...</p>
-                      </div>
-                    `).join('')}
-                  </div>
-                </div>
-              ` : ''}
-              <div class="flex gap-4 pt-4">
-                <button onclick="editKnowledgeEntry('${entry.id}')" class="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg">
-                  Edit
-                </button>
-                ${entry.chunk_count === 0 ? `
-                  <button onclick="chunkKnowledgeEntry('${entry.id}'); closeModal();" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg">
-                    Chunk Document
-                  </button>
-                ` : ''}
-                <button onclick="closeModal()" class="px-6 py-2 glass hover:bg-white/10 rounded-lg">
-                  Close
-                </button>
-              </div>
-            </div>
-          `;
-          document.getElementById('promptModal').classList.remove('hidden');
-          document.getElementById('promptModal').classList.add('flex');
-        }
-      } catch (error) {
-        console.error('Error loading knowledge details:', error);
-        alert('Error loading details');
-      }
-    }
-
-    // Edit knowledge entry
-    async function editKnowledgeEntry(kbId) {
-      try {
-        const response = await fetch(`/api/knowledge/${kbId}`);
-        const data = await response.json();
-        if (data.success) {
-          const entry = data.data;
-          showEditKnowledgeModal(entry);
-        }
-      } catch (error) {
-        console.error('Error loading entry for edit:', error);
-        alert('Error loading entry');
-      }
-    }
-
-    // Show edit/add knowledge modal
-    function showEditKnowledgeModal(entry = null) {
-      document.getElementById('modalTitle').textContent = entry ? 'Edit Knowledge Entry' : 'Add Knowledge Entry';
-      document.getElementById('modalContent').innerHTML = `
-        <form onsubmit="saveKnowledgeEntry(event, '${entry?.id || ''}')">
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-semibold mb-2">Title *</label>
-              <input type="text" id="kbTitle" value="${entry?.title || ''}" required
-                class="w-full px-4 py-2 glass rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500">
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-semibold mb-2">Category</label>
-                <select id="kbCategory" class="w-full px-4 py-2 glass rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                  <option value="">Select category</option>
-                  <option value="workflow" ${entry?.category === 'workflow' ? 'selected' : ''}>Workflow</option>
-                  <option value="best_practices" ${entry?.category === 'best_practices' ? 'selected' : ''}>Best Practices</option>
-                  <option value="deployment" ${entry?.category === 'deployment' ? 'selected' : ''}>Deployment</option>
-                  <option value="design" ${entry?.category === 'design' ? 'selected' : ''}>Design</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-semibold mb-2">Content Type</label>
-                <select id="kbContentType" class="w-full px-4 py-2 glass rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                  <option value="document" ${entry?.content_type === 'document' ? 'selected' : ''}>Document</option>
-                  <option value="article" ${entry?.content_type === 'article' ? 'selected' : ''}>Article</option>
-                  <option value="workflow" ${entry?.content_type === 'workflow' ? 'selected' : ''}>Workflow</option>
-                  <option value="code" ${entry?.content_type === 'code' ? 'selected' : ''}>Code</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-semibold mb-2">Content *</label>
-              <textarea id="kbContent" rows="12" required
-                class="w-full px-4 py-2 glass rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm">${entry?.content || ''}</textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-semibold mb-2">Metadata (JSON)</label>
-              <textarea id="kbMetadata" rows="4"
-                class="w-full px-4 py-2 glass rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm">${entry?.metadata ? JSON.stringify(entry.metadata, null, 2) : '{}'}</textarea>
-            </div>
-            <div class="flex gap-4 pt-4">
-              <button type="submit" class="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg">
-                ${entry ? 'Update' : 'Create'}
-              </button>
-              <button type="button" onclick="closeModal()" class="px-6 py-2 glass hover:bg-white/10 rounded-lg">
-                Cancel
-              </button>
-            </div>
-          </div>
-        </form>
-      `;
-      document.getElementById('promptModal').classList.remove('hidden');
-      document.getElementById('promptModal').classList.add('flex');
-    }
-
-    // Save knowledge entry
-    async function saveKnowledgeEntry(event, kbId) {
-      event.preventDefault();
-
-      const title = document.getElementById('kbTitle').value;
-      const content = document.getElementById('kbContent').value;
-      const category = document.getElementById('kbCategory').value;
-      const contentType = document.getElementById('kbContentType').value;
-      let metadata = {};
-      try {
-        metadata = JSON.parse(document.getElementById('kbMetadata').value || '{}');
-      } catch (e) {
-        alert('Invalid JSON in metadata field');
-        return;
-      }
-
-      try {
-        const url = kbId ? `/api/knowledge/${kbId}` : '/api/knowledge';
-        const method = kbId ? 'PUT' : 'POST';
-
-        const response = await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            content,
-            category: category || null,
-            content_type: contentType,
-            metadata
-          })
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          showNotification(kbId ? '✅ Entry updated successfully' : '✅ Entry created successfully', 'success');
-          closeModal();
-          loadKnowledgeBase();
-        } else {
-          showNotification('❌ Error: ' + (data.error || 'Unknown error'), 'error');
-        }
-      } catch (error) {
-        console.error('Error saving entry:', error);
-        showNotification('❌ Error saving entry: ' + error.message, 'error');
-      }
-    }
-
-    // Show add knowledge modal
-    function showAddKnowledgeModal() {
-      showEditKnowledgeModal();
-    }
-
-    function debounceKBSearch() {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(loadKnowledgeBase, 300);
-    }
-
-    // Load prompt select for execution
-    async function loadPromptSelect() {
-      try {
-        const response = await fetch('/api/prompts');
-        const data = await response.json();
-        if (data.success) {
-          const select = document.getElementById('executePromptSelect');
-          select.innerHTML = '<option value="">Choose a prompt...</option>' +
-            (data.data || []).map(p => `<option value="${p.name}">${p.name} (${p.category})</option>`).join('');
-        }
-      } catch (error) {
-        console.error('Error loading prompts for select:', error);
-      }
-    }
-
-    // Load prompt variables for execution
-    async function loadPromptVariables() {
-      const promptName = document.getElementById('executePromptSelect').value;
-      if (!promptName) {
-        document.getElementById('variablesContainer').innerHTML = '';
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/prompts/${promptName}`);
-        const data = await response.json();
-        if (data.success) {
-          const variables = data.data.variables || [];
-          const container = document.getElementById('variablesContainer');
-          container.innerHTML = variables.map(v => `
-            <div>
-              <label class="block text-sm font-semibold mb-2">{{${v}}}</label>
-              <input type="text" id="var-${v}" placeholder="Enter value for ${v}..." class="w-full px-4 py-2 glass rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500">
-            </div>
-          `).join('');
-        }
-      } catch (error) {
-        console.error('Error loading prompt variables:', error);
-      }
-    }
-
-    // Execute prompt
-    async function executePrompt() {
-      const promptName = document.getElementById('executePromptSelect').value;
-      if (!promptName) {
-        alert('Please select a prompt');
-        return;
-      }
-
-      const variables = {};
-      document.querySelectorAll('[id^="var-"]').forEach(input => {
-        const varName = input.id.replace('var-', '');
-        variables[varName] = input.value;
-      });
-
-      const useRAG = document.getElementById('useRAG').checked;
-      const ragQuery = document.getElementById('ragQuery').value || null;
-
-      try {
-        const response = await fetch(`/api/prompts/${promptName}/execute`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variables, use_rag: useRAG, rag_query: ragQuery })
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          document.getElementById('executedOutput').textContent = data.data.executed_template;
-          document.getElementById('executeResult').classList.remove('hidden');
-        } else {
-          alert('Error: ' + data.error);
-        }
-      } catch (error) {
-        console.error('Error executing prompt:', error);
-        alert('Error executing prompt');
-      }
-    }
-
-    // Execute specific prompt (from modal)
-    function executeThisPrompt(promptName) {
-      document.getElementById('executePromptSelect').value = promptName;
-      loadPromptVariables();
-      switchTab('execute');
-      closeModal();
-    }
-
-    // Copy executed prompt
-    function copyExecutedPrompt() {
-      const text = document.getElementById('executedOutput').textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        alert('Copied to clipboard!');
-      });
-    }
-
-    // Utilities
-    function closeModal() {
-      document.getElementById('promptModal').classList.add('hidden');
-      document.getElementById('promptModal').classList.remove('flex');
-    }
-
-    function debounceSearch() {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(loadPrompts, 300);
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    // Notification system for better UX
-    function showNotification(message, type = 'info') {
-      const notification = document.createElement('div');
-      notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-2xl transform transition-all duration-300 animate-slide-in`;
-      notification.style.cssText = `
-        background: ${type === 'success' ? 'linear-gradient(135deg, #10b981, #059669)' : type === 'error' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #3b82f6, #2563eb)'};
-        color: white;
-        font-weight: 500;
-        animation: slideIn 0.3s ease-out;
-      `;
-      notification.innerHTML = `
-        <div class="flex items-center gap-3">
-          <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-          <span>${message}</span>
-          <button onclick="this.parentElement.parentElement.remove()" class="ml-4 hover:opacity-70">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-      `;
-      document.body.appendChild(notification);
-      setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease-in';
-        setTimeout(() => notification.remove(), 300);
-      }, 4000);
-    }
-
-    // Add notification animations
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes slideIn {
-        from {
-          transform: translateX(400px);
-          opacity: 0;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
-      }
-      @keyframes slideOut {
-        from {
-          transform: translateX(0);
-          opacity: 1;
-        }
-        to {
-          transform: translateX(400px);
-          opacity: 0;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-
-    function showAddPromptModal() {
-      alert('Add prompt functionality coming soon!');
-    }
-
-    function executePipeline(pipelineId) {
-      alert(`Pipeline execution for ${pipelineId} coming soon!`);
-    }
-  </script>
+    <!-- Page-specific scripts -->
+    
 </body>
 
 </html>

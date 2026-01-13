@@ -1,117 +1,223 @@
-<!-- Seamless Sidebar Navigation with App Dock -->
-<aside id="sidebar" class="sidebar-container">
+<!-- Unified Dashboard Sidebar - Theme-Aware, Mobile-Optimized -->
+<aside id="sidebar" class="sidebar-container" data-theme="default">
+    <!-- Mobile Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
     <!-- Sidebar Header -->
     <div class="sidebar-header">
-        <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar"
-            alt="InnerAnimalMedia" class="sidebar-logo" />
-        <div class="sidebar-brand">
-            <h1 class="sidebar-brand-title">InnerAnimal</h1>
-            <span class="sidebar-brand-subtitle">MEDIA OS v5.1</span>
+        <div class="sidebar-logo-section">
+            <img src="https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/17535395-1501-490a-ff3d-e43d7c16a000/avatar?w=48&h=48&fit=cover&format=webp&quality=90"
+                alt="InnerAnimal Media" class="sidebar-logo" />
+            <div class="sidebar-brand">
+                <h1 class="sidebar-brand-title">InnerAnimal</h1>
+                <span class="sidebar-brand-subtitle">MEDIA OS v5.1</span>
+            </div>
         </div>
         <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="Toggle sidebar">
             <i data-lucide="panel-left-close" class="w-4 h-4"></i>
         </button>
     </div>
 
-    <!-- Main Navigation -->
-    <nav class="sidebar-nav custom-scrollbar">
-        <!-- Hub Section -->
-        <div class="nav-section">
-            <div class="nav-section-label">Hub</div>
-            <div class="nav-section-items">
-                <a href="/dashboard" class="nav-item" data-page="overview">
-                    <i data-lucide="home" class="nav-icon"></i>
-                    <span class="nav-text">Dashboard</span>
-                </a>
-                <a href="/dashboard/projects" class="nav-item" data-page="projects">
-                    <i data-lucide="briefcase" class="nav-icon"></i>
-                    <span class="nav-text">Projects</span>
-                </a>
-                <a href="/dashboard/clients" class="nav-item" data-page="clients">
-                    <i data-lucide="users" class="nav-icon"></i>
-                    <span class="nav-text">Clients</span>
-                </a>
-            </div>
+    <!-- Search Bar -->
+    <div class="sidebar-search">
+        <div class="search-input-wrapper">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" id="sidebar-search-input" class="search-input" placeholder="Search tools..." />
+            <button id="search-clear" class="search-clear" style="display: none;">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
         </div>
+    </div>
 
-        <!-- Work Section -->
-        <div class="nav-section">
-            <div class="nav-section-label">Work</div>
-            <div class="nav-section-items">
-                <a href="/dashboard/calendar" class="nav-item" data-page="calendar">
-                    <i data-lucide="calendar" class="nav-icon"></i>
-                    <span class="nav-text">Calendar</span>
-                </a>
-                <a href="/dashboard/tasks" class="nav-item" data-page="tasks">
-                    <i data-lucide="check-square" class="nav-icon"></i>
-                    <span class="nav-text">InnerWork</span>
-                </a>
-                <a href="/dashboard/messages" class="nav-item" data-page="messages">
-                    <i data-lucide="message-square" class="nav-icon"></i>
-                    <span class="nav-text">Messages</span>
-                </a>
-                <a href="/dashboard/video" class="nav-item" data-page="video">
-                    <i data-lucide="video" class="nav-icon"></i>
-                    <span class="nav-text">Video Calls</span>
-                </a>
-                <a href="/dashboard/workflows" class="nav-item" data-page="workflows">
-                    <i data-lucide="zap" class="nav-icon"></i>
-                    <span class="nav-text">Automation</span>
-                </a>
+    <!-- Navigation Sections -->
+    <nav class="sidebar-nav custom-scrollbar" id="sidebar-nav">
+        <!-- Tools will be loaded dynamically from API -->
+        <div id="nav-sections-container">
+            <!-- Hub Section -->
+            <div class="nav-section" data-category="hub">
+                <button class="nav-section-toggle" data-section="hub">
+                    <span class="nav-section-label">Hub</span>
+                    <i data-lucide="chevron-down" class="nav-section-icon"></i>
+                </button>
+                <div class="nav-section-items" data-section="hub">
+                    <a href="/dashboard" class="nav-item" data-page="overview" data-name="dashboard">
+                        <i data-lucide="home" class="nav-icon"></i>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                    <a href="/dashboard/projects" class="nav-item" data-page="projects" data-name="projects">
+                        <i data-lucide="briefcase" class="nav-icon"></i>
+                        <span class="nav-text">Projects</span>
+                    </a>
+                    <a href="/dashboard/clients" class="nav-item" data-page="clients" data-name="clients">
+                        <i data-lucide="users" class="nav-icon"></i>
+                        <span class="nav-text">Clients</span>
+                    </a>
+                    <a href="/dashboard/team" class="nav-item" data-page="team" data-name="team">
+                        <i data-lucide="user-plus" class="nav-icon"></i>
+                        <span class="nav-text">Team</span>
+                    </a>
+                </div>
             </div>
-        </div>
 
-        <!-- Engine Section -->
-        <div class="nav-section">
-            <div class="nav-section-label">Engine</div>
-            <div class="nav-section-items">
-                <a href="/dashboard/meauxmcp" class="nav-item" data-page="meauxmcp">
-                    <i data-lucide="server" class="nav-icon"></i>
-                    <span class="nav-text">MeauxMCP</span>
-                </a>
-                <a href="/dashboard/meauxsql" class="nav-item" data-page="meauxsql">
-                    <i data-lucide="database" class="nav-icon"></i>
-                    <span class="nav-text">MeauxSQL</span>
-                </a>
-                <a href="/dashboard/meauxcad" class="nav-item" data-page="meauxcad">
-                    <i data-lucide="pen-tool" class="nav-icon"></i>
-                    <span class="nav-text">MeauxCAD</span>
-                </a>
+            <!-- Work Section -->
+            <div class="nav-section" data-category="work">
+                <button class="nav-section-toggle" data-section="work">
+                    <span class="nav-section-label">Work</span>
+                    <i data-lucide="chevron-down" class="nav-section-icon"></i>
+                </button>
+                <div class="nav-section-items" data-section="work">
+                    <a href="/dashboard/tasks" class="nav-item" data-page="tasks" data-name="tasks">
+                        <i data-lucide="check-square" class="nav-icon"></i>
+                        <span class="nav-text">InnerWork</span>
+                    </a>
+                    <a href="/dashboard/calendar" class="nav-item" data-page="calendar" data-name="calendar">
+                        <i data-lucide="calendar" class="nav-icon"></i>
+                        <span class="nav-text">Calendar</span>
+                    </a>
+                    <a href="/dashboard/messages" class="nav-item" data-page="messages" data-name="messages">
+                        <i data-lucide="message-square" class="nav-icon"></i>
+                        <span class="nav-text">Messages</span>
+                    </a>
+                    <a href="/dashboard/video" class="nav-item" data-page="video" data-name="video">
+                        <i data-lucide="video" class="nav-icon"></i>
+                        <span class="nav-text">Video Calls</span>
+                    </a>
+                    <a href="/dashboard/workflows" class="nav-item" data-page="workflows" data-name="workflows">
+                        <i data-lucide="zap" class="nav-icon"></i>
+                        <span class="nav-text">Automation</span>
+                    </a>
+                </div>
             </div>
-        </div>
 
-        <!-- Assets Section -->
-        <div class="nav-section">
-            <div class="nav-section-label">Assets</div>
-            <div class="nav-section-items">
-                <a href="/dashboard/library" class="nav-item" data-page="library">
-                    <i data-lucide="layout-grid" class="nav-icon"></i>
-                    <span class="nav-text">CMS</span>
-                </a>
-                <a href="/dashboard/analytics" class="nav-item" data-page="analytics">
-                    <i data-lucide="palette" class="nav-icon"></i>
-                    <span class="nav-text">Brand Central</span>
-                </a>
-                <a href="/dashboard/workers" class="nav-item" data-page="workers">
-                    <i data-lucide="image" class="nav-icon"></i>
-                    <span class="nav-text">Gallery</span>
-                </a>
+            <!-- Engine Section -->
+            <div class="nav-section" data-category="engine">
+                <button class="nav-section-toggle" data-section="engine">
+                    <span class="nav-section-label">Engine</span>
+                    <i data-lucide="chevron-down" class="nav-section-icon"></i>
+                </button>
+                <div class="nav-section-items" data-section="engine" id="engine-tools">
+                    <a href="/dashboard/meauxmcp" class="nav-item" data-page="meauxmcp" data-name="meauxmcp">
+                        <i data-lucide="server" class="nav-icon"></i>
+                        <span class="nav-text">MeauxMCP</span>
+                    </a>
+                    <a href="/dashboard/meauxsql" class="nav-item" data-page="meauxsql" data-name="meauxsql">
+                        <i data-lucide="database" class="nav-icon"></i>
+                        <span class="nav-text">MeauxSQL</span>
+                    </a>
+                    <a href="/dashboard/meauxide" class="nav-item" data-page="meauxide" data-name="meauxide">
+                        <i data-lucide="code" class="nav-icon"></i>
+                        <span class="nav-text">MeauxIDE</span>
+                    </a>
+                </div>
             </div>
-        </div>
 
-        <!-- System Section -->
-        <div class="nav-section">
-            <div class="nav-section-label">System</div>
-            <div class="nav-section-items">
-                <a href="/dashboard/settings" class="nav-item" data-page="settings">
-                    <i data-lucide="settings" class="nav-icon"></i>
-                    <span class="nav-text">Settings</span>
-                </a>
+            <!-- Assets Section -->
+            <div class="nav-section" data-category="assets">
+                <button class="nav-section-toggle" data-section="assets">
+                    <span class="nav-section-label">Assets</span>
+                    <i data-lucide="chevron-down" class="nav-section-icon"></i>
+                </button>
+                <div class="nav-section-items" data-section="assets">
+                    <a href="/dashboard/meauxcad" class="nav-item" data-page="meauxcad" data-name="meauxcad">
+                        <i data-lucide="pen-tool" class="nav-icon"></i>
+                        <span class="nav-text">MeauxCAD</span>
+                    </a>
+                    <a href="/dashboard/library" class="nav-item" data-page="library" data-name="library">
+                        <i data-lucide="layout-grid" class="nav-icon"></i>
+                        <span class="nav-text">CMS</span>
+                    </a>
+                    <a href="/dashboard/gallery" class="nav-item" data-page="gallery" data-name="gallery">
+                        <i data-lucide="image" class="nav-icon"></i>
+                        <span class="nav-text">Gallery</span>
+                    </a>
+                    <a href="/dashboard/templates" class="nav-item" data-page="templates" data-name="templates">
+                        <i data-lucide="file-text" class="nav-icon"></i>
+                        <span class="nav-text">Templates</span>
+                    </a>
+                    <a href="/dashboard/brand" class="nav-item" data-page="brand" data-name="brand">
+                        <i data-lucide="palette" class="nav-icon"></i>
+                        <span class="nav-text">Brand Central</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Infrastructure Section -->
+            <div class="nav-section" data-category="infrastructure">
+                <button class="nav-section-toggle" data-section="infrastructure">
+                    <span class="nav-section-label">Infrastructure</span>
+                    <i data-lucide="chevron-down" class="nav-section-icon"></i>
+                </button>
+                <div class="nav-section-items" data-section="infrastructure">
+                    <a href="/dashboard/deployments" class="nav-item" data-page="deployments" data-name="deployments">
+                        <i data-lucide="rocket" class="nav-icon"></i>
+                        <span class="nav-text">Deployments</span>
+                    </a>
+                    <a href="/dashboard/workers" class="nav-item" data-page="workers" data-name="workers">
+                        <i data-lucide="cloud" class="nav-icon"></i>
+                        <span class="nav-text">Workers</span>
+                    </a>
+                    <a href="/dashboard/databases" class="nav-item" data-page="databases" data-name="databases">
+                        <i data-lucide="database" class="nav-icon"></i>
+                        <span class="nav-text">Databases</span>
+                    </a>
+                    <a href="/dashboard/api-gateway" class="nav-item" data-page="api-gateway" data-name="api-gateway">
+                        <i data-lucide="network" class="nav-icon"></i>
+                        <span class="nav-text">API Gateway</span>
+                    </a>
+                    <a href="/dashboard/cloudflare" class="nav-item" data-page="cloudflare" data-name="cloudflare">
+                        <i data-lucide="globe" class="nav-icon"></i>
+                        <span class="nav-text">Cloudflare</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Analytics & Intelligence Section -->
+            <div class="nav-section" data-category="analytics">
+                <button class="nav-section-toggle" data-section="analytics">
+                    <span class="nav-section-label">Analytics</span>
+                    <i data-lucide="chevron-down" class="nav-section-icon"></i>
+                </button>
+                <div class="nav-section-items" data-section="analytics">
+                    <a href="/dashboard/analytics" class="nav-item" data-page="analytics" data-name="analytics">
+                        <i data-lucide="bar-chart-3" class="nav-icon"></i>
+                        <span class="nav-text">Analytics</span>
+                    </a>
+                    <a href="/dashboard/prompts" class="nav-item" data-page="prompts" data-name="prompts">
+                        <i data-lucide="sparkles" class="nav-icon"></i>
+                        <span class="nav-text">AI Prompts</span>
+                    </a>
+                    <a href="/dashboard/ai-services" class="nav-item" data-page="ai-services" data-name="ai-services">
+                        <i data-lucide="brain" class="nav-icon"></i>
+                        <span class="nav-text">AI Services</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- System Section -->
+            <div class="nav-section" data-category="system">
+                <button class="nav-section-toggle" data-section="system">
+                    <span class="nav-section-label">System</span>
+                    <i data-lucide="chevron-down" class="nav-section-icon"></i>
+                </button>
+                <div class="nav-section-items" data-section="system">
+                    <a href="/dashboard/tenants" class="nav-item" data-page="tenants" data-name="tenants">
+                        <i data-lucide="layers" class="nav-icon"></i>
+                        <span class="nav-text">Tenants</span>
+                    </a>
+                    <a href="/dashboard/settings" class="nav-item" data-page="settings" data-name="settings">
+                        <i data-lucide="settings" class="nav-icon"></i>
+                        <span class="nav-text">Settings</span>
+                    </a>
+                    <a href="/dashboard/support" class="nav-item" data-page="support" data-name="support">
+                        <i data-lucide="help-circle" class="nav-icon"></i>
+                        <span class="nav-text">Support</span>
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
 
-    <!-- User Profile Footer -->
+    <!-- Sidebar Footer -->
     <div class="sidebar-footer">
         <div class="user-profile">
             <div class="user-avatar">SP</div>
@@ -119,88 +225,66 @@
                 <div class="user-name">Sam Primeaux</div>
                 <div class="user-email">sam@inneranimal.com</div>
             </div>
+            <button class="user-menu-btn" id="user-menu-btn">
+                <i data-lucide="more-vertical" class="w-4 h-4"></i>
+            </button>
         </div>
     </div>
 </aside>
 
-<!-- App Dock (macOS-style) -->
-<div id="app-dock" class="app-dock">
-    <div class="app-dock-container">
-        <!-- Favorite Apps -->
-        <div class="dock-item" data-tooltip="Dashboard" data-page="overview">
-            <a href="/dashboard" class="dock-icon">
-                <i data-lucide="home"></i>
-            </a>
-        </div>
-        <div class="dock-item" data-tooltip="Projects" data-page="projects">
-            <a href="/dashboard/projects" class="dock-icon">
-                <i data-lucide="briefcase"></i>
-            </a>
-        </div>
-        <div class="dock-item" data-tooltip="InnerWork" data-page="tasks">
-            <a href="/dashboard/tasks" class="dock-icon">
-                <i data-lucide="check-square"></i>
-            </a>
-        </div>
-        <div class="dock-item" data-tooltip="Messages" data-page="messages">
-            <a href="/dashboard/messages" class="dock-icon">
-                <i data-lucide="message-square"></i>
-            </a>
-        </div>
-        <div class="dock-item" data-tooltip="Video Calls" data-page="video">
-            <a href="/dashboard/video" class="dock-icon">
-                <i data-lucide="video"></i>
-            </a>
-        </div>
-        <div class="dock-item dock-divider"></div>
-        <div class="dock-item" data-tooltip="Calendar" data-page="calendar">
-            <a href="/dashboard/calendar" class="dock-icon">
-                <i data-lucide="calendar"></i>
-            </a>
-        </div>
-        <div class="dock-item" data-tooltip="Automation" data-page="workflows">
-            <a href="/dashboard/workflows" class="dock-icon">
-                <i data-lucide="zap"></i>
-            </a>
-        </div>
-        <div class="dock-item" data-tooltip="CMS" data-page="library">
-            <a href="/dashboard/library" class="dock-icon">
-                <i data-lucide="layout-grid"></i>
-            </a>
-        </div>
-        <div class="dock-item" data-tooltip="Settings" data-page="settings">
-            <a href="/dashboard/settings" class="dock-icon">
-                <i data-lucide="settings"></i>
-            </a>
-        </div>
-    </div>
-</div>
+<!-- Mobile Menu Button -->
+<button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Toggle menu">
+    <i data-lucide="menu" class="w-6 h-6"></i>
+</button>
 
+<!-- Styles -->
 <style>
+    :root {
+        /* Theme Variables - Default Dark Theme */
+        --sidebar-bg: linear-gradient(180deg, rgba(10, 10, 15, 0.98) 0%, rgba(23, 23, 23, 0.95) 100%);
+        --sidebar-border: rgba(255, 255, 255, 0.08);
+        --sidebar-width: 280px;
+        --sidebar-width-collapsed: 72px;
+        --brand-color: #ff6b00;
+        --brand-hover: #ff8533;
+        --text-primary: rgba(255, 255, 255, 0.95);
+        --text-secondary: rgba(161, 161, 170, 0.9);
+        --text-tertiary: rgba(161, 161, 170, 0.6);
+        --bg-hover: rgba(255, 255, 255, 0.05);
+        --bg-active: linear-gradient(90deg, rgba(255, 107, 0, 0.15) 0%, rgba(255, 107, 0, 0.05) 100%);
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+        --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     /* Sidebar Container */
     .sidebar-container {
-        width: 280px;
+        width: var(--sidebar-width);
         height: 100vh;
-        background: linear-gradient(180deg, rgba(10, 10, 15, 0.98) 0%, rgba(23, 23, 23, 0.95) 100%);
+        background: var(--sidebar-bg);
         backdrop-filter: blur(20px) saturate(180%);
         -webkit-backdrop-filter: blur(20px) saturate(180%);
-        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        border-right: 1px solid var(--sidebar-border);
         display: flex;
         flex-direction: column;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        z-index: 100;
-        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1000;
+        transition: var(--transition);
+        box-shadow: var(--shadow-lg);
     }
 
     .sidebar-container.collapsed {
-        width: 72px;
+        width: var(--sidebar-width-collapsed);
     }
 
     .sidebar-container.collapsed .nav-text,
     .sidebar-container.collapsed .sidebar-brand,
     .sidebar-container.collapsed .user-info,
-    .sidebar-container.collapsed .nav-section-label {
+    .sidebar-container.collapsed .nav-section-label,
+    .sidebar-container.collapsed .sidebar-search {
         opacity: 0;
         width: 0;
         overflow: hidden;
@@ -208,11 +292,7 @@
         padding: 0;
     }
 
-    .sidebar-container.collapsed .nav-item {
-        justify-content: center;
-        padding: 10px;
-    }
-
+    .sidebar-container.collapsed .nav-item,
     .sidebar-container.collapsed .user-profile {
         justify-content: center;
         padding: 10px;
@@ -224,22 +304,42 @@
         padding: 0 20px;
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: 12px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-        position: relative;
+        border-bottom: 1px solid var(--sidebar-border);
+        flex-shrink: 0;
+    }
+
+    .sidebar-logo-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
     }
 
     .sidebar-logo {
-        width: 40px;
-        height: 40px;
+        width: 48px;
+        height: 48px;
         border-radius: 12px;
         object-fit: cover;
         box-shadow: 0 4px 12px rgba(255, 107, 0, 0.2);
-        transition: transform 0.2s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        flex-shrink: 0;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        /* Optimize image rendering for WebP */
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+        display: block;
+        /* Prevent layout shift */
+        aspect-ratio: 1;
     }
 
     .sidebar-logo:hover {
         transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(255, 107, 0, 0.3);
+        border-color: rgba(255, 107, 0, 0.3);
     }
 
     .sidebar-brand {
@@ -251,7 +351,7 @@
     .sidebar-brand-title {
         font-size: 16px;
         font-weight: 700;
-        color: #ffffff;
+        color: var(--text-primary);
         letter-spacing: -0.5px;
         line-height: 1.2;
         margin: 0;
@@ -259,7 +359,7 @@
 
     .sidebar-brand-subtitle {
         font-size: 9px;
-        color: rgba(161, 161, 170, 0.8);
+        color: var(--text-tertiary);
         font-family: 'JetBrains Mono', monospace;
         letter-spacing: 1px;
         text-transform: uppercase;
@@ -271,19 +371,85 @@
         height: 32px;
         border-radius: 8px;
         border: none;
-        background: rgba(255, 255, 255, 0.05);
-        color: rgba(255, 255, 255, 0.6);
+        background: var(--bg-hover);
+        color: var(--text-secondary);
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s ease;
-        margin-left: auto;
+        transition: var(--transition);
+        flex-shrink: 0;
     }
 
     .sidebar-toggle-btn:hover {
         background: rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--text-primary);
+    }
+
+    /* Search */
+    .sidebar-search {
+        padding: 16px 12px;
+        border-bottom: 1px solid var(--sidebar-border);
+        transition: opacity 0.3s ease;
+    }
+
+    .search-input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 12px;
+        width: 16px;
+        height: 16px;
+        color: var(--text-tertiary);
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 10px 36px 10px 36px;
+        background: var(--bg-hover);
+        border: 1px solid var(--sidebar-border);
+        border-radius: 10px;
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: var(--transition);
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--brand-color);
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+    }
+
+    .search-input::placeholder {
+        color: var(--text-tertiary);
+    }
+
+    .search-clear {
+        position: absolute;
+        right: 8px;
+        width: 24px;
+        height: 24px;
+        border: none;
+        background: transparent;
+        color: var(--text-tertiary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: var(--transition);
+    }
+
+    .search-clear:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
     }
 
     /* Navigation */
@@ -299,23 +465,56 @@
     .nav-section {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 4px;
+    }
+
+    .nav-section-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: transparent;
+        border: none;
+        color: var(--text-tertiary);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        cursor: pointer;
+        transition: var(--transition);
+        border-radius: 8px;
+    }
+
+    .nav-section-toggle:hover {
+        background: var(--bg-hover);
+        color: var(--text-secondary);
     }
 
     .nav-section-label {
-        padding: 0 12px 8px;
-        font-size: 10px;
-        font-weight: 700;
-        color: rgba(161, 161, 170, 0.6);
-        text-transform: uppercase;
-        letter-spacing: 1.2px;
         transition: opacity 0.3s ease;
+    }
+
+    .nav-section-icon {
+        width: 14px;
+        height: 14px;
+        transition: transform 0.3s ease;
+    }
+
+    .nav-section.collapsed .nav-section-icon {
+        transform: rotate(-90deg);
     }
 
     .nav-section-items {
         display: flex;
         flex-direction: column;
         gap: 4px;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+
+    .nav-section.collapsed .nav-section-items {
+        max-height: 0;
+        opacity: 0;
     }
 
     .nav-item {
@@ -324,11 +523,11 @@
         gap: 12px;
         padding: 10px 12px;
         border-radius: 10px;
-        color: rgba(161, 161, 170, 0.9);
+        color: var(--text-secondary);
         text-decoration: none;
         font-size: 14px;
         font-weight: 500;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: var(--transition);
         position: relative;
         overflow: hidden;
     }
@@ -341,25 +540,29 @@
         transform: translateY(-50%);
         width: 3px;
         height: 0;
-        background: #ff6b00;
+        background: var(--brand-color);
         border-radius: 0 2px 2px 0;
         transition: height 0.2s ease;
     }
 
     .nav-item:hover {
-        background: rgba(255, 255, 255, 0.05);
-        color: rgba(255, 255, 255, 0.95);
+        background: var(--bg-hover);
+        color: var(--text-primary);
         transform: translateX(2px);
     }
 
     .nav-item.active {
-        background: linear-gradient(90deg, rgba(255, 107, 0, 0.15) 0%, rgba(255, 107, 0, 0.05) 100%);
-        color: #ff6b00;
+        background: var(--bg-active);
+        color: var(--brand-color);
         font-weight: 600;
     }
 
     .nav-item.active::before {
         height: 60%;
+    }
+
+    .nav-item.hidden {
+        display: none;
     }
 
     .nav-icon {
@@ -377,7 +580,8 @@
     /* Sidebar Footer */
     .sidebar-footer {
         padding: 16px 12px;
-        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        border-top: 1px solid var(--sidebar-border);
+        flex-shrink: 0;
     }
 
     .user-profile {
@@ -387,8 +591,9 @@
         padding: 10px 12px;
         border-radius: 10px;
         background: rgba(255, 255, 255, 0.03);
-        transition: all 0.2s ease;
+        transition: var(--transition);
         cursor: pointer;
+        position: relative;
     }
 
     .user-profile:hover {
@@ -399,7 +604,7 @@
         width: 36px;
         height: 36px;
         border-radius: 10px;
-        background: linear-gradient(135deg, #ff6b00 0%, #dc2626 100%);
+        background: linear-gradient(135deg, var(--brand-color) 0%, #dc2626 100%);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -419,147 +624,82 @@
     .user-name {
         font-size: 13px;
         font-weight: 600;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--text-primary);
         line-height: 1.3;
     }
 
     .user-email {
         font-size: 11px;
-        color: rgba(161, 161, 170, 0.7);
+        color: var(--text-tertiary);
         line-height: 1.3;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    /* App Dock */
-    .app-dock {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 999;
-        pointer-events: none;
-    }
-
-    .app-dock-container {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 12px 20px;
-        background: linear-gradient(180deg, rgba(10, 10, 15, 0.85) 0%, rgba(23, 23, 23, 0.95) 100%);
-        backdrop-filter: blur(30px) saturate(180%);
-        -webkit-backdrop-filter: blur(30px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 24px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-        pointer-events: auto;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .app-dock-container:hover {
-        transform: scale(1.02);
-        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
-    }
-
-    .dock-item {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    .dock-item:hover {
-        transform: translateY(-12px) scale(1.15);
-    }
-
-    .dock-item::after {
-        content: attr(data-tooltip);
-        position: absolute;
-        bottom: calc(100% + 12px);
-        left: 50%;
-        transform: translateX(-50%);
-        padding: 6px 12px;
-        background: rgba(10, 10, 15, 0.95);
-        color: rgba(255, 255, 255, 0.9);
-        font-size: 11px;
-        font-weight: 500;
-        border-radius: 6px;
-        white-space: nowrap;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.2s ease;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-
-    .dock-item:hover::after {
-        opacity: 1;
-    }
-
-    .dock-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: rgba(255, 255, 255, 0.7);
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        text-decoration: none;
+    .user-menu-btn {
+        width: 28px;
+        height: 28px;
+        border: none;
+        background: transparent;
+        color: var(--text-tertiary);
         cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: var(--transition);
+        flex-shrink: 0;
     }
 
-    .dock-icon i {
-        width: 22px;
-        height: 22px;
-        stroke-width: 2;
+    .user-menu-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
     }
 
-    .dock-icon:hover {
-        background: rgba(255, 107, 0, 0.15);
-        border-color: rgba(255, 107, 0, 0.3);
-        color: #ff6b00;
-        box-shadow: 0 4px 16px rgba(255, 107, 0, 0.2);
+    /* Mobile Menu Button */
+    .mobile-menu-btn {
+        display: none;
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: rgba(10, 10, 15, 0.95);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--sidebar-border);
+        color: var(--text-primary);
+        cursor: pointer;
+        z-index: 1001;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-md);
+        transition: var(--transition);
     }
 
-    .dock-item.active .dock-icon {
-        background: linear-gradient(135deg, rgba(255, 107, 0, 0.2) 0%, rgba(255, 107, 0, 0.1) 100%);
-        border-color: rgba(255, 107, 0, 0.4);
-        color: #ff6b00;
+    .mobile-menu-btn:hover {
+        background: rgba(23, 23, 23, 0.95);
+        transform: scale(1.05);
     }
 
-    .dock-divider {
-        width: 1px;
-        height: 32px;
-        background: rgba(255, 255, 255, 0.1);
-        margin: 0 4px;
-        cursor: default;
+    /* Sidebar Overlay for Mobile */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 999;
+        opacity: 0;
+        transition: opacity 0.3s ease;
     }
 
-    .dock-divider:hover {
-        transform: none;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .sidebar-container {
-            position: fixed;
-            left: -280px;
-            z-index: 1000;
-        }
-
-        .sidebar-container.open {
-            left: 0;
-        }
-
-        .app-dock {
-            bottom: 12px;
-            transform: translateX(-50%) scale(0.9);
-        }
+    .sidebar-overlay.active {
+        opacity: 1;
     }
 
     /* Scrollbar */
@@ -579,18 +719,48 @@
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: rgba(255, 107, 0, 0.3);
     }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .sidebar-container {
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-container.open {
+            transform: translateX(0);
+        }
+
+        .mobile-menu-btn {
+            display: flex;
+        }
+
+        .sidebar-overlay {
+            display: block;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+        }
+    }
 </style>
 
+<!-- Script -->
 <script>
-    // Sidebar functionality
     (function () {
-        // Initialize Lucide icons
+        'use strict';
+
+        // Initialize
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
 
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('sidebar-toggle');
+        const mobileBtn = document.getElementById('mobile-menu-btn');
+        const overlay = document.getElementById('sidebar-overlay');
+        const searchInput = document.getElementById('sidebar-search-input');
+        const searchClear = document.getElementById('search-clear');
         const currentPage = window.location.pathname.split('/').pop() || 'overview';
 
         // Toggle sidebar
@@ -602,12 +772,27 @@
                     icon.setAttribute('data-lucide',
                         sidebar.classList.contains('collapsed') ? 'panel-left-open' : 'panel-left-close'
                     );
-                    if (typeof lucide !== 'undefined') {
-                        lucide.createIcons();
-                    }
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
                 }
-                // Save state
                 localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            });
+        }
+
+        // Mobile menu toggle
+        if (mobileBtn) {
+            mobileBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                if (overlay) overlay.classList.toggle('active');
+                document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+            });
+        }
+
+        // Close sidebar when clicking overlay
+        if (overlay) {
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
             });
         }
 
@@ -624,28 +809,125 @@
             }
         });
 
-        // Set active dock items
-        document.querySelectorAll('.dock-item[data-page]').forEach(item => {
-            const page = item.getAttribute('data-page');
-            if (currentPage === page || (currentPage === '' && page === 'overview')) {
-                item.classList.add('active');
-            }
-        });
-
-        // Reinitialize icons on navigation
-        document.querySelectorAll('.nav-item, .dock-icon').forEach(item => {
-            item.addEventListener('click', () => {
-                setTimeout(() => {
-                    if (typeof lucide !== 'undefined') {
-                        lucide.createIcons();
-                    }
-                }, 100);
+        // Section toggle
+        document.querySelectorAll('.nav-section-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const section = btn.getAttribute('data-section');
+                const navSection = btn.closest('.nav-section');
+                navSection.classList.toggle('collapsed');
             });
         });
+
+        // Search functionality
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+
+                if (query) {
+                    if (searchClear) searchClear.style.display = 'flex';
+
+                    // Filter nav items
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        const name = item.getAttribute('data-name') || '';
+                        const text = item.textContent.toLowerCase();
+
+                        if (name.includes(query) || text.includes(query)) {
+                            item.classList.remove('hidden');
+                        } else {
+                            item.classList.add('hidden');
+                        }
+                    });
+
+                    // Expand sections with visible items
+                    document.querySelectorAll('.nav-section').forEach(section => {
+                        const hasVisible = section.querySelector('.nav-item:not(.hidden)');
+                        if (hasVisible && section.classList.contains('collapsed')) {
+                            section.classList.remove('collapsed');
+                        }
+                    });
+                } else {
+                    if (searchClear) searchClear.style.display = 'none';
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('hidden');
+                    });
+                }
+            });
+        }
+
+        // Clear search
+        if (searchClear) {
+            searchClear.addEventListener('click', () => {
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.dispatchEvent(new Event('input'));
+                    searchInput.focus();
+                }
+            });
+        }
+
+        // Load tools from API dynamically
+        async function loadTools() {
+            try {
+                const response = await fetch('/api/tools');
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    const engineTools = document.getElementById('engine-tools');
+                    if (!engineTools) return;
+
+                    // Filter tools by category and can_use
+                    const engineToolsList = data.data.filter(t =>
+                        t.category === 'engine' && t.can_use
+                    );
+
+                    engineToolsList.forEach(tool => {
+                        // Check if tool already exists
+                        if (document.querySelector(`[data-page="${tool.name}"]`)) return;
+
+                        const iconMap = {
+                            'meauxmcp': 'server',
+                            'meauxsql': 'database',
+                            'meauxide': 'code',
+                            'meauxcad': 'pen-tool'
+                        };
+
+                        const toolLink = document.createElement('a');
+                        toolLink.href = `/dashboard/${tool.name}`;
+                        toolLink.className = 'nav-item';
+                        toolLink.setAttribute('data-page', tool.name);
+                        toolLink.setAttribute('data-name', tool.name);
+                        toolLink.innerHTML = `
+                        <i data-lucide="${iconMap[tool.name] || tool.icon || 'box'}" class="nav-icon"></i>
+                        <span class="nav-text">${tool.display_name || tool.name}</span>
+                    `;
+
+                        engineTools.appendChild(toolLink);
+                    });
+
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
+            } catch (error) {
+                console.error('Error loading tools:', error);
+            }
+        }
+
+        // Load tools on mount
+        loadTools();
 
         // Update icons after dynamic content loads
         if (typeof lucide !== 'undefined') {
             setTimeout(() => lucide.createIcons(), 100);
         }
+
+        // Close mobile menu on navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('open');
+                    if (overlay) overlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+        });
     })();
 </script>

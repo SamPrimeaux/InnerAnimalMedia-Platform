@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API | Inner Animal Media</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <script src="/shared/header.js"></script>
+    <link rel="stylesheet" href="/shared/footer.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(180deg, #0A0E1A 0%, #0F1419 100%);
+            color: #F9FAFB;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding-top: 80px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 80px 40px;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 24px;
+            letter-spacing: -1.5px;
+        }
+
+        h2 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-top: 48px;
+            margin-bottom: 16px;
+        }
+
+        h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 32px;
+            margin-bottom: 12px;
+        }
+
+        p {
+            font-size: 18px;
+            color: rgba(249, 250, 251, 0.7);
+            margin-bottom: 16px;
+            line-height: 1.7;
+        }
+
+        a {
+            color: #4A9FFF;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .api-card {
+            background: rgba(17, 24, 39, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .integration-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-top: 32px;
+        }
+
+        .integration-card {
+            background: rgba(17, 24, 39, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .integration-card:hover {
+            border-color: #4A9FFF;
+            transform: translateY(-4px);
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 16px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <header role="banner"></header>
+    <div class="container">
+        <h1>API Documentation</h1>
+        <p>Integrate with Inner Animal Media using our powerful REST API. Built for enterprise-scale applications.</p>
+
+        <div class="api-card">
+            <h2>Fortune 500 API Integrations</h2>
+            <p>We integrate with industry-leading APIs used by Fortune 500 companies worldwide.</p>
+
+            <div class="integration-grid">
+                <div class="integration-card">
+                    <h3>Salesforce</h3>
+                    <p>Customer relationship management and business automation. Used by Amazon, Walmart, Toyota, IBM,
+                        and more.</p>
+                    <div class="code-block">
+                        GET /api/integrations/salesforce
+                        Authorization: Bearer {token}
+                    </div>
+                </div>
+
+                <div class="integration-card">
+                    <h3>Microsoft Azure</h3>
+                    <p>Cloud computing services and enterprise solutions. Powering Fortune 500 infrastructure worldwide.
+                    </p>
+                    <div class="code-block">
+                        GET /api/integrations/azure
+                        Authorization: Bearer {token}
+                    </div>
+                </div>
+
+                <div class="integration-card">
+                    <h3>AWS</h3>
+                    <p>Amazon Web Services integration for scalable cloud infrastructure and services.</p>
+                    <div class="code-block">
+                        GET /api/integrations/aws
+                        Authorization: Bearer {token}
+                    </div>
+                </div>
+
+                <div class="integration-card">
+                    <h3>Google Cloud</h3>
+                    <p>Google Cloud Platform APIs for data, analytics, and machine learning services.</p>
+                    <div class="code-block">
+                        GET /api/integrations/google-cloud
+                        Authorization: Bearer {token}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="api-card">
+            <h2>Getting Started</h2>
+            <h3>1. Authentication</h3>
+            <p>All API requests require authentication. Use OAuth 2.0 or API keys.</p>
+            <div class="code-block">
+                curl https://inneranimalmedia.com/api/auth/token \
+                -H "Content-Type: application/json" \
+                -d '{"email": "user@example.com", "password": "password"}'
+            </div>
+
+            <h3>2. Making Requests</h3>
+            <p>Include your authentication token in the Authorization header:</p>
+            <div class="code-block">
+                curl https://inneranimalmedia.com/api/tools \
+                -H "Authorization: Bearer YOUR_TOKEN_HERE"
+            </div>
+
+            <h3>3. Response Format</h3>
+            <p>All responses are JSON formatted with a consistent structure:</p>
+            <div class="code-block">
+                {
+                "success": true,
+                "data": { ... },
+                "pagination": { ... }
+                }
+            </div>
+        </div>
+
+        <div class="api-card">
+            <h2>Available Endpoints</h2>
+            <p>Our API provides access to:</p>
+            <ul style="color: rgba(249, 250, 251, 0.7); margin-left: 24px; line-height: 2;">
+                <li><code>/api/tools</code> - Available tools and services</li>
+                <li><code>/api/themes</code> - UI themes and customization</li>
+                <li><code>/api/workflows</code> - Workflow automation</li>
+                <li><code>/api/deployments</code> - Deployment management</li>
+                <li><code>/api/workers</code> - Cloudflare Workers</li>
+                <li><code>/api/stats</code> - Platform statistics</li>
+                <li><code>/api/tenants</code> - Multi-tenant management</li>
+            </ul>
+        </div>
+
+        <div class="api-card">
+            <h2>Rate Limits</h2>
+            <p>API requests are rate-limited to ensure fair usage:</p>
+            <ul style="color: rgba(249, 250, 251, 0.7); margin-left: 24px; line-height: 2;">
+                <li>Free tier: 1,000 requests/hour</li>
+                <li>Pro tier: 10,000 requests/hour</li>
+                <li>Enterprise: Custom limits</li>
+            </ul>
+        </div>
+    </div>
+    <div id="footer-container-global"></div>
+    <script src="/shared/footer.js"></script>
+</body>
+
+</html>

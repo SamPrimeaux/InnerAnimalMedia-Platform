@@ -1,0 +1,207 @@
+/* Glassmorphic Footer - Global Styles with Light/Dark Theme Support */
+.footer-global {
+    width: 100%;
+    margin-top: 80px;
+    padding: 160px 0 80px;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    background: rgba(10, 14, 26, 0.4);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    transition: background 0.3s ease, border-color 0.3s ease;
+    min-height: 480px;
+}
+
+/* Light theme support */
+[data-theme="light"] .footer-global,
+.light .footer-global,
+body:not(.dark) .footer-global {
+    background: rgba(255, 255, 255, 0.7);
+    border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Dark theme (default) */
+[data-theme="dark"] .footer-global,
+.dark .footer-global,
+body.dark .footer-global {
+    background: rgba(10, 14, 26, 0.4);
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 3D Model Background Container */
+.footer-model-bg {
+    position: absolute;
+    top: 50%;
+    right: 5%;
+    transform: translateY(-50%);
+    width: clamp(300px, 40vw, 600px);
+    height: clamp(300px, 40vw, 600px);
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(2px);
+}
+
+.footer-model-bg .spline-scene-wrapper {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+}
+
+.footer-model-bg .spline-scene-canvas {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+}
+
+.footer-content-global {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 40px;
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 32px;
+}
+
+.footer-logo-global {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.footer-logo-icon-global {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(17, 24, 39, 0.5);
+    border-radius: 12px;
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    transition: background 0.3s ease, border-color 0.3s ease;
+    overflow: hidden;
+}
+
+.footer-logo-img-global {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+[data-theme="light"] .footer-logo-icon-global,
+.light .footer-logo-icon-global,
+body:not(.dark) .footer-logo-icon-global {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.footer-logo-icon-global svg {
+    width: 28px;
+    height: 28px;
+    color: #4A9FFF;
+}
+
+.footer-logo-text-global {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.footer-logo-title-global {
+    font-size: 18px;
+    font-weight: 800;
+    color: #F9FAFB;
+    letter-spacing: -0.8px;
+    transition: color 0.3s ease;
+}
+
+[data-theme="light"] .footer-logo-title-global,
+.light .footer-logo-title-global,
+body:not(.dark) .footer-logo-title-global {
+    color: #0F1419;
+}
+
+.footer-logo-subtitle-global {
+    font-size: 10px;
+    font-weight: 600;
+    color: #4A9FFF;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.footer-text-global {
+    font-size: 14px;
+    color: rgba(249, 250, 251, 0.7);
+    text-align: center;
+    transition: color 0.3s ease;
+}
+
+[data-theme="light"] .footer-text-global,
+.light .footer-text-global,
+body:not(.dark) .footer-text-global {
+    color: rgba(15, 20, 25, 0.7);
+}
+
+.footer-social-global {
+    display: flex;
+    gap: 12px;
+}
+
+.social-link-global {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(17, 24, 39, 0.5);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #F9FAFB;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .social-link-global,
+.light .social-link-global,
+body:not(.dark) .social-link-global {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: #0F1419;
+}
+
+.social-link-global svg {
+    width: 20px;
+    height: 20px;
+}
+
+.social-link-global:hover {
+    background: #4A9FFF;
+    border-color: #4A9FFF;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(74, 159, 255, 0.35);
+    color: #fff;
+}
+
+@media (max-width: 768px) {
+    .footer-content-global {
+        flex-direction: column;
+        text-align: center;
+        padding: 0 20px;
+    }
+
+    .footer-model-bg {
+        width: clamp(200px, 50vw, 400px);
+        height: clamp(200px, 50vw, 400px);
+        opacity: 0.1;
+        right: 50%;
+        transform: translate(50%, -50%);
+    }
+}

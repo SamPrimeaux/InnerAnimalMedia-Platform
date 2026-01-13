@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InnerAnimal Media OS | Features</title>
+  <meta name="description"
+    content="The complete operating system for modern media teams. Manage infrastructure, workflows, and tools with unparalleled ease and reliability.">
+
+  <!-- Fonts - Google/Material Design inspired -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Monaco', 'monospace'],
+          },
+          colors: {
+            brand: {
+              orange: '#ff6b00',
+              red: '#dc2626',
+              dark: '#050507',
+              panel: '#0a0a0f',
+              surface: '#171717',
+            }
+          },
+          spacing: {
+            '18': '4.5rem',
+            '88': '22rem',
+            '128': '32rem',
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.6s ease-out',
+            'fade-in-up': 'fadeInUp 0.8s ease-out',
+            'slide-in': 'slideIn 0.5s ease-out',
+            'scale-in': 'scaleIn 0.4s ease-out',
+            'float': 'float 6s ease-in-out infinite',
+            'glow': 'glow 2s ease-in-out infinite',
+          },
+          backdropBlur: {
+            xs: '2px',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* Google/iOS inspired colors */
+      --color-bg-primary: #ffffff;
+      --color-bg-secondary: #f8f9fa;
+      --color-bg-dark: #050507;
+      --color-bg-surface: #ffffff;
+      --color-text-primary: #202124;
+      --color-text-secondary: #5f6368;
+      --color-text-tertiary: #80868b;
+      --color-border: rgba(0, 0, 0, 0.08);
+      --color-border-strong: rgba(0, 0, 0, 0.12);
+      --color-accent: #ff6b00;
+      --color-accent-hover: #ff8533;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--color-bg-primary);
+      color: var(--color-text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+      font-size: 16px;
+    }
+
+    /* Clay/Google inspired navigation */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--color-border);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    nav.scrolled {
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Smooth animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-20px);
+      }
+    }
+
+    @keyframes glow {
+
+      0%,
+      100% {
+        opacity: 0.8;
+      }
+
+      50% {
+        opacity: 1;
+      }
+    }
+
+    /* iOS-style button */
+    .btn-primary {
+      background: var(--color-accent);
+      color: white;
+      padding: 12px 32px;
+      border-radius: 24px;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px 0 rgba(255, 107, 0, 0.25);
+    }
+
+    .btn-primary:hover {
+      background: var(--color-accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px 0 rgba(255, 107, 0, 0.35);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--color-text-primary);
+      padding: 12px 32px;
+      border-radius: 24px;
+      font-weight: 500;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid var(--color-border-strong);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      background: var(--color-bg-secondary);
+      border-color: var(--color-text-secondary);
+    }
+
+    /* Glassmorphism cards */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-xl);
+      border-color: rgba(255, 107, 0, 0.3);
+    }
+
+    /* Typography - Google/Material Design inspired */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    h1 {
+      font-size: clamp(3rem, 8vw, 5.5rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    h2 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    /* Grid background - Clay.global inspired */
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* Smooth scroll reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, #ff6b00 0%, #dc2626 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Feature icon */
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(255, 107, 0, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+      border: 1px solid rgba(255, 107, 0, 0.2);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .feature-card:hover .feature-icon {
+      transform: scale(1.1) rotate(5deg);
+      background: linear-gradient(135deg, rgba(255, 107, 0, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%);
+    }
+
+    /* Stats counter animation */
+    .stat-number {
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+    }
+
+    /* Custom scrollbar - iOS inspired */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    /* Responsive typography */
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2.5rem;
+      }
+
+      h2 {
+        font-size: 2rem;
+      }
+    }
+
+    /* Loading states */
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+  </style>
+
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+    <link rel="stylesheet" href="/shared/footer.css">
+</head>
+<body class="bg-white text-gray-900">
+<!-- Navigation - Google/iOS inspired -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        <!-- Logo -->
+        <a href="/" class="flex items-center gap-3 group">
+          <div
+            class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center text-white font-bold shadow-lg shadow-orange-900/20 group-hover:scale-105 transition-transform">
+            IA
+          </div>
+          <span class="text-xl font-bold text-gray-900 tracking-tight">InnerAnimal</span>
+        </a>
+
+        <!-- Desktop Navigation -->
+        <div class="hidden md:flex items-center gap-8">
+          <a href="/features.html"
+            class="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">Features</a>
+          <a href="/tools.html" class="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">Tools</a>
+          <a href="/workflows.html"
+            class="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">Workflows</a>
+          <a href="/pricing.html" class="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">Pricing</a>
+          <a href="/dashboard/index.html" class="btn-secondary text-sm">Dashboard</a>
+          <a href="/dashboard/index.html" class="btn-primary text-sm">Get Started</a>
+        </div>
+
+        <!-- Mobile Menu Button -->
+        <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+          <i data-lucide="menu" class="w-6 h-6 text-gray-700"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+<section class="pt-32 pb-20">
+  <div class="max-w-7xl mx-auto px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h1 class="text-5xl font-bold mb-4">Features</h1>
+      <p class="text-xl text-gray-600">Built for scale, designed for excellence</p>
+    </div>
+<!-- Features Section - iOS/Google inspired (REMOVED - moved to features.html) -->
+  <!-- <section  class="py-16 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="text-center mb-20 reveal">
+        <h2 class="mb-4">Built for Scale. Designed for Excellence.</h2>
+        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+          Everything you need to manage infrastructure at scale with confidence.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- Feature 1 -->
+        <div
+          class="bg-white rounded-2xl p-8 border border-gray-200 hover:border-brand-orange/50 hover:shadow-xl transition-all duration-300 reveal">
+          <div class="feature-icon mb-6">
+            <i data-lucide="layers" class="w-7 h-7 text-brand-orange"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">Multi-Tenant Architecture</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Complete tenant isolation with secure data segregation. Support for hundreds of tenants with independent
+            configurations and settings.
+          </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div
+          class="bg-white rounded-2xl p-8 border border-gray-200 hover:border-brand-orange/50 hover:shadow-xl transition-all duration-300 reveal">
+          <div class="feature-icon mb-6">
+            <i data-lucide="activity" class="w-7 h-7 text-blue-500"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">Real-Time Analytics</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Monitor deployments, workflows, and infrastructure metrics in real-time. Beautiful dashboards with
+            customizable views and insights.
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div
+          class="bg-white rounded-2xl p-8 border border-gray-200 hover:border-brand-orange/50 hover:shadow-xl transition-all duration-300 reveal">
+          <div class="feature-icon mb-6">
+            <i data-lucide="zap" class="w-7 h-7 text-yellow-500"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">Workflow Automation</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Orchestrate complex workflows with visual builders. Support for hundreds of concurrent workflows per tenant
+            with scheduling and triggers.
+          </p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div
+          class="bg-white rounded-2xl p-8 border border-gray-200 hover:border-brand-orange/50 hover:shadow-xl transition-all duration-300 reveal">
+          <div class="feature-icon mb-6">
+            <i data-lucide="shield-check" class="w-7 h-7 text-green-500"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">Enterprise Security</h3>
+          <p class="text-gray-600 leading-relaxed">
+            JWT authentication, role-based access control, and comprehensive audit logging. SOC 2 compliant
+            infrastructure with end-to-end encryption.
+          </p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div
+          class="bg-white rounded-2xl p-8 border border-gray-200 hover:border-brand-orange/50 hover:shadow-xl transition-all duration-300 reveal">
+          <div class="feature-icon mb-6">
+            <i data-lucide="cloud" class="w-7 h-7 text-purple-500"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">Global Edge Network</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Built on Cloudflare Workers for global edge deployment. Sub-200ms response times with 99.9% uptime SLA
+            across 300+ locations.
+          </p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div
+          class="bg-white rounded-2xl p-8 border border-gray-200 hover:border-brand-orange/50 hover:shadow-xl transition-all duration-300 reveal">
+          <div class="feature-icon mb-6">
+            <i data-lucide="palette" class="w-7 h-7 text-pink-500"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">Customizable Themes</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Fully customizable dashboard with drag-and-drop widgets and theme support. Tailor your workspace to your
+            exact workflow preferences.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+  </div>
+</section>
+<!-- Footer - Clay.global inspired -->
+  <footer class="bg-white border-t border-gray-200">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 py-16">
+      <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
+        <!-- Brand -->
+        <div class="lg:col-span-2">
+          <a href="/" class="flex items-center gap-3 mb-4">
+            <div
+              class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center text-white font-bold">
+              IA
+            </div>
+            <span class="text-xl font-bold text-gray-900">InnerAnimal</span>
+          </a>
+          <p class="text-gray-600 text-sm leading-relaxed max-w-sm">
+            The complete operating system for modern media teams. Built for scale, designed for excellence.
+          </p>
+        </div>
+
+        <!-- Product -->
+        <div>
+          <h3 class="font-semibold text-gray-900 mb-4">Product</h3>
+          <ul class="space-y-3">
+            <li><a href="/features.html" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Features</a>
+            </li>
+            <li><a href="/tools.html" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Tools</a></li>
+            <li><a href="/workflows.html" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Workflows</a>
+            </li>
+            <li><a href="/pricing.html" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Pricing</a></li>
+            <li><a href="/dashboard/index.html"
+                class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Dashboard</a></li>
+          </ul>
+        </div>
+
+        <!-- Resources -->
+        <div>
+          <h3 class="font-semibold text-gray-900 mb-4">Resources</h3>
+          <ul class="space-y-3">
+            <li><a href="/docs" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Documentation</a>
+            </li>
+            <li><a href="/api" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">API Reference</a>
+            </li>
+            <li><a href="/status" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Status</a></li>
+            <li><a href="/support" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Support</a></li>
+          </ul>
+        </div>
+
+        <!-- Company -->
+        <div>
+          <h3 class="font-semibold text-gray-900 mb-4">Company</h3>
+          <ul class="space-y-3">
+            <li><a href="/about" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">About</a></li>
+            <li><a href="/blog" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Blog</a></li>
+            <li><a href="/careers" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Careers</a></li>
+            <li><a href="/contact" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Contact</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+        <p class="text-sm text-gray-600">© 2025 InnerAnimal Media. All rights reserved.</p>
+        <div class="flex items-center gap-6">
+          <a href="/terms" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Terms</a>
+          <a href="/privacy" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Privacy</a>
+          <a href="/security" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Security</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Monaco', 'monospace'],
+          },
+          colors: {
+            brand: {
+              orange: '#ff6b00',
+              red: '#dc2626',
+              dark: '#050507',
+              panel: '#0a0a0f',
+              surface: '#171717',
+            }
+          },
+          spacing: {
+            '18': '4.5rem',
+            '88': '22rem',
+            '128': '32rem',
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.6s ease-out',
+            'fade-in-up': 'fadeInUp 0.8s ease-out',
+            'slide-in': 'slideIn 0.5s ease-out',
+            'scale-in': 'scaleIn 0.4s ease-out',
+            'float': 'float 6s ease-in-out infinite',
+            'glow': 'glow 2s ease-in-out infinite',
+          },
+          backdropBlur: {
+            xs: '2px',
+          }
+        }
+      }
+    }
+  </script>
+
+    
+
+
+    <div id="footer-container-global"></div>
+    <script src="/shared/footer.js"></script>
+</body>
+</html>
