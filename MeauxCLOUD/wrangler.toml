@@ -1,0 +1,59 @@
+name = "meauxcloud"
+compatibility_date = "2025-11-17"
+main = "./build/server/index.js" # Standard RR7 server build output usually, or via adapter
+
+# Domains & Routes
+workers_dev = true
+routes = [
+  { pattern = "meauxcloud.org/*", zone_name = "meauxcloud.org" },
+  { pattern = "www.meauxcloud.org/*", zone_name = "meauxcloud.org" },
+  { pattern = "dev.meauxcloud.org/*", zone_name = "meauxcloud.org" },
+  { pattern = "admin.meauxcloud.org/*", zone_name = "meauxcloud.org" },
+  { pattern = "fred.meauxcloud.org/*", zone_name = "meauxcloud.org" },
+  { pattern = "connor.meauxcloud.org/*", zone_name = "meauxcloud.org" }
+]
+
+# Observability
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+
+[observability.traces]
+enabled = true
+
+# Bindings
+
+# Workers AI
+[ai]
+binding = "AI"
+
+# Durable Objects
+[[durable_objects.bindings]]
+name = "CHAT_ROOM"
+class_name = "meauxcloud_ChatRoom"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["meauxcloud_ChatRoom"]
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "meauxos"
+database_id = "d8261777-9384-44f7-924d-c92247d55b46"
+
+# Hyperdrive
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "9108dd6499bb44c286e4eb298c6ffafb"
+
+# R2 Bucket
+[[r2_buckets]]
+binding = "R2_ASSETS"
+bucket_name = "meauxcloud"
+
+# Vars (Secrets are not stored here but defined in dashboard)
+[vars]
+# Add non-secret vars here if any
