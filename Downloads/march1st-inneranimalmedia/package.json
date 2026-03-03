@@ -1,0 +1,13 @@
+{
+  "name": "inneranimalmedia",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy --config wrangler.production.toml",
+    "wrangler": "wrangler"
+  },
+  "devDependencies": {
+    "@cloudflare/puppeteer": "^1.0.6",
+    "wrangler": "4.69.0"
+  }
+}
