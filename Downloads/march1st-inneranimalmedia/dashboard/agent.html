@@ -97,10 +97,10 @@
             color: var(--text-primary);
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden;
+            overflow: hidden;
             max-width: 100vw;
         }
 
@@ -111,7 +111,8 @@
             flex: 1;
             min-height: 0;
             min-width: 0;
-            overflow-x: hidden;
+            height: 100%;
+            overflow: hidden;
             max-width: 100%;
         }
 
@@ -119,7 +120,7 @@
         .topbar {
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: 2000;
             background: var(--bg-nav);
             border-bottom: 1px solid var(--border-nav);
             height: 60px;
@@ -169,7 +170,7 @@
         .search-wrap .search-input::placeholder { color: var(--text-nav-muted); }
         .search-wrap .search-input:focus { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.35); }
         .search-wrap .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-nav-muted); }
-        .search-dropdown { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; max-height: 280px; overflow-y: auto; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); z-index: 110; display: none; }
+        .search-dropdown { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; max-height: 280px; overflow-y: auto; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); z-index: 2100; display: none; }
         .search-dropdown.open { display: block; }
         .search-dropdown .item { padding: 10px 12px; font-size: 13px; color: var(--text-primary); cursor: pointer; border-bottom: 1px solid var(--border); }
         .search-dropdown .item:hover { background: var(--bg-canvas); }
@@ -178,7 +179,7 @@
         .topbar-right { position: relative; }
         .profile-wrap { position: relative; }
         .agent-sam-avatar { cursor: pointer; }
-        .profile-dropdown { position: absolute; right: 0; top: 100%; margin-top: 8px; min-width: 200px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); z-index: 115; display: none; padding: 6px 0; }
+        .profile-dropdown { position: absolute; right: 0; top: 100%; margin-top: 8px; min-width: 200px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); z-index: 2100; display: none; padding: 6px 0; }
         .profile-dropdown.open { display: block; }
         .profile-dropdown a, .profile-dropdown button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 16px; font-size: 14px; color: var(--text-primary); background: none; border: none; cursor: pointer; text-align: left; font-family: inherit; }
         .profile-dropdown a:hover, .profile-dropdown button:hover { background: var(--bg-canvas); }
@@ -207,7 +208,7 @@
         .agent-drawer-input-row { padding: 10px 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
         .agent-drawer-input-row textarea { flex: 1; min-height: 40px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-canvas); color: var(--text-primary); font-size: 13px; resize: none; font-family: inherit; }
         .agent-drawer-input-row button { padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 13px; border: none; background: var(--accent); color: #fff; cursor: pointer; }
-        .agent-drawer-model-popup { position: absolute; top: 100%; right: 0; margin-top: 4px; width: 260px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 210; padding: 8px 0; display: none; }
+        .agent-drawer-model-popup { position: absolute; top: 100%; right: 0; margin-top: 4px; width: 260px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 2100; padding: 8px 0; display: none; }
         .agent-drawer-model-popup.open { display: block; }
         .agent-drawer-model-popup .item { padding: 10px 14px; font-size: 13px; color: var(--text-primary); cursor: pointer; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid var(--border); }
         .agent-drawer-model-popup .item:hover { background: var(--bg-canvas); }
@@ -256,6 +257,9 @@
         /* === SIDENAV === */
         .sidenav {
             width: 260px;
+            height: 100%;
+            overflow-y: auto;
+            flex-shrink: 0;
             background: var(--bg-nav);
             color: var(--text-nav);
             display: flex;
@@ -361,8 +365,8 @@
         /* === MAIN CONTENT === */
         .main-content {
             flex: 1;
-            overflow-x: hidden;
-            overflow-y: auto;
+            height: 100%;
+            overflow: hidden;
             padding: 24px;
             min-height: 0;
             min-width: 0;
@@ -374,10 +378,13 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            height: calc(100vh - 60px);
+            max-height: calc(100vh - 60px);
         }
         .main-content.agent-page-main #agent-dashboard-root {
             flex: 1;
             min-height: 0;
+            height: 100%;
         }
         /* Hide old footer chat bar and mobile footer on agent page (React app has its own input row) */
         body.agent-dashboard-page #agent-footer-chat,
@@ -525,7 +532,7 @@
                 <button type="button" id="clock-btn" class="nav-icon-btn" aria-label="Time &amp; tracking" title="Time &amp; tracking" style="border: none; background: transparent; cursor: pointer; padding: 6px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; color: inherit;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                 </button>
-                <div id="clock-dropdown" style="position: absolute; right: 0; top: 100%; margin-top: 8px; width: 280px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 18px 45px rgba(0,0,0,0.15); padding: 16px; display: none; z-index: 130;">
+                <div id="clock-dropdown" style="position: absolute; right: 0; top: 100%; margin-top: 8px; width: 280px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 18px 45px rgba(0,0,0,0.15); padding: 16px; display: none; z-index: 2100;">
                     <div id="clock-time" style="font-size: 24px; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums;">--:--:--</div>
                     <div id="clock-date" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">--</div>
                     <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 6px;">
@@ -543,7 +550,7 @@
                 </svg>
                 <span id="notifications-badge" style="position:absolute; top:4px; right:4px; min-width:14px; height:14px; border-radius:999px; background:#f97316; color:white; font-size:10px; line-height:14px; text-align:center; padding:0 3px; display:none;"></span>
             </button>
-            <div id="notifications-dropdown" style="position:absolute; right:0; top:100%; margin-top:8px; width:320px; max-height:420px; overflow-y:auto; background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px; box-shadow:0 18px 45px rgba(0,0,0,0.15); padding:8px 0; display:none; z-index:120;">
+            <div id="notifications-dropdown" style="position:absolute; right:0; top:100%; margin-top:8px; width:320px; max-height:420px; overflow-y:auto; background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px; box-shadow:0 18px 45px rgba(0,0,0,0.15); padding:8px 0; display:none; z-index:2100;">
                 <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 16px 6px 16px;">
                     <span style="font-size:13px; font-weight:600; color: var(--text-primary);">Notifications</span>
                     <button id="notifications-mark-all" style="border:none; background:none; color: var(--text-secondary); font-size:11px; cursor:pointer;">Mark all read</button>
@@ -752,8 +759,8 @@
 <script>document.body.classList.add('agent-dashboard-page');</script>
 <div id="agent-dashboard-root" style="width:100%;height:100%;overflow:hidden;"></div>
 
-<link rel="stylesheet" href="/static/dashboard/agent/agent-dashboard.css?v=5">
-<script type="module" src="/static/dashboard/agent/agent-dashboard.js?v=5"></script>
+<link rel="stylesheet" href="/static/dashboard/agent/agent-dashboard.css?v=36">
+    <script type="module" src="/static/dashboard/agent/agent-dashboard.js?v=36"></script>
         </main>
     </div>
 
@@ -996,7 +1003,7 @@
             updateHeaderLogo();
             if (BUILTIN_THEMES.indexOf(savedTheme) === -1) {
                 fetch('/api/settings/theme').then(function(r) { return r.json(); }).then(function(d) {
-                    if (d.theme === savedTheme && d.theme_data) applyDynamicTheme(savedTheme, d.theme_data);
+                    if (d.theme === savedTheme && d.variables) applyDynamicTheme(savedTheme, { css_vars: d.variables });
                 }).catch(function() {});
             }
         }
@@ -1046,7 +1053,7 @@
             }
         })();
 
-        // Search: dropdown on focus, history from localStorage, mobile magnifier
+        // Search: dropdown on focus, RAG knowledge search (debounced), history from localStorage, mobile magnifier
         (function () {
             const wrap = document.getElementById('searchWrap');
             const input = document.getElementById('searchInput');
@@ -1054,6 +1061,9 @@
             const mobileBtn = document.getElementById('searchMobileBtn');
             const SEARCH_HISTORY_KEY = 'dashboard-search-history';
             const maxHistory = 10;
+            var ragResults = [];
+            var ragLoading = false;
+            var ragDebounceTimer = null;
 
             function getHistory() {
                 try { return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || '[]'); } catch { return []; }
@@ -1063,13 +1073,61 @@
                 h.unshift({ label: label || url, url: url });
                 localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(h.slice(0, maxHistory)));
             }
+            function insertRagIntoChat(content) {
+                var text = 'Context from knowledge base:\n\n' + (content || '').slice(0, 2000) + '\n\nBased on this, ';
+                var footerInput = document.getElementById('agent-footer-chat-input');
+                var drawerInput = document.getElementById('agentDrawerInput');
+                if (footerInput) {
+                    footerInput.value = text;
+                    footerInput.focus();
+                    var pane = document.getElementById('agent-footer-pane');
+                    var bar = document.getElementById('agent-footer-chat');
+                    if (bar && bar.classList.contains('collapsed')) {
+                        var expandBtn = document.getElementById('agent-footer-expand-btn');
+                        if (expandBtn) expandBtn.click();
+                    }
+                } else if (drawerInput) {
+                    drawerInput.value = text;
+                    drawerInput.focus();
+                }
+            }
+            function fetchRag(query, cb) {
+                if (ragLoading || !query || query.length < 3) { cb([]); return; }
+                ragLoading = true;
+                fetch(window.location.origin + '/api/agent/rag/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ query: query.trim() })
+                }).then(function (r) { return r.json(); }).then(function (d) {
+                    ragLoading = false;
+                    var matches = (d && d.matches) ? d.matches : [];
+                    cb(Array.isArray(matches) ? matches : []);
+                }).catch(function () { ragLoading = false; cb([]); });
+            }
             function renderSuggestions() {
+                var q = (input && input.value) ? input.value.trim() : '';
+                var showRag = q.length >= 3 && (ragResults.length > 0 || ragLoading);
                 const h = getHistory();
                 const navItems = ['Overview', 'Finance', 'Billing', 'Clients', 'Calendar', 'Dev Tools', 'MCP', 'Cloud', 'Images', 'Draw', 'Meet', 'Kanban', 'Time Tracking', 'CMS', 'Mail', 'Pipelines', 'User Settings', 'Onboarding', 'Agent'];
                 const urls = ['/dashboard/overview', '/dashboard/finance', '/dashboard/billing', '/dashboard/clients', '/dashboard/calendar', '/dashboard/tools', '/dashboard/mcp', '/dashboard/cloud', '/dashboard/images', '/dashboard/draw', '/dashboard/meet', '/dashboard/kanban', '/dashboard/time-tracking', '/dashboard/cms', '/dashboard/mail', '/dashboard/pipelines', '/dashboard/user-settings', '/dashboard/onboarding', '/dashboard/agent', '/dashboard/chats'];
-                let html = '';
+                var html = '';
+                if (showRag) {
+                    html += '<div class="search-dropdown-header" style="padding:8px 12px; font-size:11px; color: var(--text-secondary); text-transform: uppercase;">Knowledge</div>';
+                    if (ragLoading) {
+                        html += '<div class="item search-rag-item" style="color: var(--text-secondary);">Searching...</div>';
+                    } else {
+                        ragResults.slice(0, 8).forEach(function (text) {
+                            var raw = typeof text === 'string' ? text : '';
+                            var snippet = raw.slice(0, 120);
+                            if (raw.length > 120) snippet += '...';
+                            var esc = snippet.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            html += '<div class="item search-rag-item" data-rag-content="' + esc + '">' + esc + '</div>';
+                        });
+                    }
+                }
+                if (h.length) html += '<div class="search-dropdown-header" style="padding:8px 12px; font-size:11px; color: var(--text-secondary); text-transform: uppercase;">Recent</div>';
                 h.forEach(function (x) { html += '<div class="item" data-url="' + (x.url || '') + '">' + (x.label || x.url) + '</div>'; });
-                if (html) html = '<div class="search-dropdown-header" style="padding:8px 12px; font-size:11px; color: var(--text-secondary);">Recent</div>' + html;
                 navItems.forEach(function (label, i) { if (!h.some(function (x) { return x.url === urls[i]; })) html += '<div class="item" data-url="' + urls[i] + '">' + label + '</div>'; });
                 if (dropdown) dropdown.innerHTML = html || '<div class="item" style="color: var(--text-secondary);">No history yet</div>';
                 dropdown.querySelectorAll('.item[data-url]').forEach(function (el) {
@@ -1078,10 +1136,32 @@
                         if (u) { addToHistory(el.textContent.trim(), u); window.location.href = u; }
                     });
                 });
+                dropdown.querySelectorAll('.item.search-rag-item[data-rag-content]').forEach(function (el) {
+                    el.addEventListener('click', function () {
+                        var content = el.getAttribute('data-rag-content');
+                        if (content) insertRagIntoChat(content);
+                        dropdown.classList.remove('open');
+                    });
+                });
             }
             if (input) {
                 input.addEventListener('focus', function () { dropdown.classList.add('open'); renderSuggestions(); });
                 input.addEventListener('blur', function () { setTimeout(function () { dropdown.classList.remove('open'); }, 150); });
+                input.addEventListener('input', function () {
+                    var q = input.value.trim();
+                    if (ragDebounceTimer) clearTimeout(ragDebounceTimer);
+                    if (q.length >= 3) {
+                        ragDebounceTimer = setTimeout(function () {
+                            fetchRag(q, function (matches) {
+                                ragResults = matches;
+                                if (dropdown.classList.contains('open')) renderSuggestions();
+                            });
+                        }, 300);
+                    } else {
+                        ragResults = [];
+                    }
+                    if (dropdown.classList.contains('open')) renderSuggestions();
+                });
                 input.addEventListener('keydown', function (e) {
                     if (e.key === 'Enter') {
                         const v = input.value.trim();

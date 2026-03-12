@@ -7,7 +7,8 @@
  */
 
 import { DurableObject } from "cloudflare:workers";
-import { launch as playwrightLaunch } from "@cloudflare/playwright";
+// @cloudflare/playwright loaded dynamically at runtime
+let playwrightLaunch = null;
 
 const SUPERADMIN_EMAILS = ['info@inneranimals.com', 'sam@inneranimalmedia.com', 'inneranimalclothing@gmail.com'];
 
@@ -77,6 +78,31 @@ const worker = {
           headers: { 'Content-Type': 'application/json' },
           status: ok ? 200 : 503,
         });
+      }
+
+      // ----- API: Internal post-deploy (knowledge sync to R2) -----
+      if ((request.method || 'GET').toUpperCase() === 'POST' && pathLower === '/api/internal/post-deploy') {
+        const secret = env.INTERNAL_API_SECRET;
+        if (!secret) {
+          return jsonResponse({ error: 'post-deploy not configured (INTERNAL_API_SECRET)' }, 501);
+        }
+        const authHeader = request.headers.get('Authorization') || request.headers.get('X-Internal-Secret') || '';
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : authHeader.trim();
+        if (token !== secret) {
+          return jsonResponse({ error: 'Unauthorized' }, 401);
+        }
+        let body = {};
+        try {
+          const raw = await request.text();
+          if (raw) body = JSON.parse(raw);
+        } catch (_) {}
+        try {
+          const keys = await writeKnowledgePostDeploy(env, body);
+          return jsonResponse({ ok: true, keys });
+        } catch (e) {
+          console.error('[post-deploy]', e?.message ?? e);
+          return jsonResponse({ error: String(e?.message || e) }, 500);
+        }
       }
 
       // ----- API: OTLP telemetry ingest (traces) -----
@@ -957,6 +983,10 @@ async function handleBrowserRequest(request, url, env) {
       } catch (_) {}
     }
     try {
+      if (!playwrightLaunch) {
+        const pw = await import("@cloudflare/playwright");
+        playwrightLaunch = pw.launch;
+      }
       const browser = await playwrightLaunch(env.MYBROWSER);
       const page = await browser.newPage();
       await page.setViewportSize({ width: 1280, height: 800 });
@@ -984,6 +1014,10 @@ async function handleBrowserRequest(request, url, env) {
   const targetUrl = url.searchParams.get('url') || 'https://example.com';
 
   try {
+    if (!playwrightLaunch) {
+      const pw = await import("@cloudflare/playwright");
+      playwrightLaunch = pw.launch;
+    }
     const browser = await playwrightLaunch(env.MYBROWSER);
     const page = await browser.newPage();
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
@@ -1066,6 +1100,38 @@ function getSpendRates(provider, modelKey) {
   return { rateIn: 0, rateOut: 0 };
 }
 
+/** Write one row to agent_audit_log. Fire-and-forget; never throw. */
+async function writeAuditLog(env, { event_type, message, run_id = null, metadata = {} }) {
+  if (!env?.DB) return;
+  try {
+    await env.DB.prepare(
+      `INSERT INTO agent_audit_log (id, tenant_id, actor_role_id, run_id, event_type, message, metadata_json, created_at)
+       VALUES (?, 'tenant_sam_primeaux', 'agent_sam', ?, ?, ?, ?, datetime('now'))`
+    ).bind(crypto.randomUUID(), run_id, event_type, message, JSON.stringify(metadata)).run();
+  } catch (e) {
+    console.warn('[writeAuditLog]', e?.message ?? e);
+  }
+}
+
+/** Use Workers AI to generate a short conversation name and UPDATE agent_conversations. Call from waitUntil so chat response is not blocked. */
+async function generateConversationName(env, conversationId, firstUserMessage) {
+  if (!env.AI || !conversationId || !firstUserMessage || typeof firstUserMessage !== 'string') return;
+  const text = firstUserMessage.trim().slice(0, 500);
+  if (!text) return;
+  try {
+    const out = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+      messages: [{ role: 'user', content: `Summarize this message as a short chat title, max 6 words, no quotes: ${text}` }],
+      max_tokens: 20,
+    });
+    const name = (out?.result?.response ?? out?.response ?? (typeof out === 'string' ? out : '')).trim().slice(0, 80);
+    if (name) {
+      await env.DB.prepare('UPDATE agent_conversations SET name=? WHERE id=?').bind(name, conversationId).run();
+    }
+  } catch (e) {
+    console.warn('[agent/chat] generateConversationName failed:', e?.message ?? e);
+  }
+}
+
 /** Shared: insert agent_messages (assistant), agent_telemetry, spend_ledger and return payload for done event. ctx optional for non-blocking spend_ledger. */
 async function streamDoneDbWrites(env, conversationId, modelRow, fullText, inputTokens, outputTokens, costUsd, agent_id, ctx) {
   const safeText = (fullText != null && typeof fullText === 'string') ? fullText : '';
@@ -1130,7 +1196,8 @@ async function classifyIntent(env, lastMessageText) {
   if (!lastMessageText || !env.ANTHROPIC_API_KEY) return null;
   const haikuKey = resolveAnthropicModelKey('claude_haiku_4_5');
   const system = `You classify the user message into a single intent. Reply with JSON only, no markdown.
-- "sql" = user wants to run a SQL query (SELECT).
+- "sql" = user wants to run a SQL query (SELECT, INSERT, UPDATE, DELETE, CREATE, DROP VIEW, ALTER TABLE, or any database operation).
+- "write" is not a separate intent — all DB operations including writes are classified as "sql".
 - "shell" = user wants to run a shell/terminal command.
 - "question" = general question, no tool needed; answer directly.
 - "mixed" = message contains more than one of the above (e.g. "run ls then show me the users table").
@@ -1253,9 +1320,9 @@ async function runMixedTasks(env, request, provider, modelKey, systemWithBlurb, 
         resultText = 'Terminal error: ' + (e?.message ?? e);
       }
     } else if (type === 'sql') {
-      const normalized = content.replace(/\/\*[\s\S]*?\*\//g, '').replace(/--[^\n]*/g, '').trim().toUpperCase();
-      if (!normalized.startsWith('SELECT')) {
-        resultText = 'Only SELECT allowed';
+      const blocked = /\bdrop\s+table\b|\btruncate\b/i;
+      if (blocked.test(content)) {
+        resultText = 'Blocked: DROP TABLE and TRUNCATE require manual approval';
       } else {
         try {
           const rows = await env.DB.prepare(content).all();
@@ -1290,16 +1357,30 @@ async function runMixedTasks(env, request, provider, modelKey, systemWithBlurb, 
 async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, apiMessages, toolDefinitions, modelRow, agent_id, conversationId) {
   let messages = [...apiMessages];
   let finalText = '';
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let classification = null;
   const MAX_ROUNDS = 8;
   console.log('[runToolLoop] provider:', provider, 'model:', modelKey, 'tools:', toolDefinitions.length);
 
   // Before any tool calls, classify intent of the last user message (cheap Haiku).
   const lastUserText = getLastUserMessageText(messages);
   if (lastUserText && provider === 'anthropic') {
-    let classification = null;
     try {
       classification = await classifyIntent(env, lastUserText);
-      if (classification) console.log('[runToolLoop] intent:', classification.intent, 'tasks:', classification.tasks?.length ?? 0);
+      if (classification) {
+        console.log('[runToolLoop] intent:', classification.intent, 'tasks:', classification.tasks?.length ?? 0);
+        const patternRow = await env.DB.prepare('SELECT id FROM agent_intent_patterns LIMIT 1').first();
+        const intentPatternId = patternRow?.id ?? 1;
+        if (intentPatternId != null) {
+          try {
+            await env.DB.prepare(
+              `INSERT INTO agent_intent_execution_log (tenant_id, intent_pattern_id, user_input, intent_detected, confidence_score, created_at)
+               VALUES ('tenant_sam_primeaux', ?, ?, ?, 0.9, unixepoch())`
+            ).bind(intentPatternId, lastUserText.slice(0, 4000), classification.intent).run();
+          } catch (e) { console.warn('[runToolLoop] agent_intent_execution_log', e?.message ?? e); }
+        }
+      }
     } catch (e) {
       console.log('[runToolLoop] intent classification failed:', e?.message ?? e);
     }
@@ -1384,6 +1465,8 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
     let textContent = '';
 
     if (provider === 'anthropic') {
+      if (data.usage?.input_tokens != null) totalInputTokens += data.usage.input_tokens;
+      if (data.usage?.output_tokens != null) totalOutputTokens += data.usage.output_tokens;
       const content = data.content ?? [];
       textContent = content.filter(b => b.type === 'text').map(b => b.text).join('');
       toolCalls = content.filter(b => b.type === 'tool_use');
@@ -1395,6 +1478,8 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
       messages.push({ role: 'assistant', content });
     } else if (provider === 'openai') {
       const choice = data.choices?.[0];
+      if (data.usage?.prompt_tokens != null) totalInputTokens += data.usage.prompt_tokens;
+      if (data.usage?.completion_tokens != null) totalOutputTokens += data.usage.completion_tokens;
       textContent = choice?.message?.content ?? '';
       toolCalls = choice?.message?.tool_calls ?? [];
       if (!toolCalls.length) {
@@ -1404,6 +1489,8 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
       messages.push(choice.message);
     } else if (provider === 'google') {
       const parts = data.candidates?.[0]?.content?.parts ?? [];
+      if (data.usageMetadata?.promptTokenCount != null) totalInputTokens += data.usageMetadata.promptTokenCount;
+      if (data.usageMetadata?.candidatesTokenCount != null) totalOutputTokens += data.usageMetadata.candidatesTokenCount;
       textContent = parts.filter(p => p.text).map(p => p.text).join('');
       toolCalls = parts.filter(p => p.functionCall);
       if (!toolCalls.length) {
@@ -1428,6 +1515,7 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
         try {
           const termResult = await runTerminalCommand(env, request, command, conversationId ?? null);
           resultText = termResult.output ?? 'No output';
+          void writeAuditLog(env, { event_type: 'terminal_execute', message: `Command: ${command.slice(0, 200)}`, metadata: { conversationId: conversationId ?? null } }).catch(() => {});
         } catch (e) {
           resultText = `Terminal error: ${e.message}`;
         }
@@ -1447,15 +1535,16 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
       } else if (toolName === 'd1_write') {
         const sql = (params.sql ?? '').trim();
         const bindParams = Array.isArray(params.params) ? params.params : [];
-        const blocked = /drop\s+table|truncate|delete\s+from\s+(?!agent_tasks|ai_knowledge)/i;
+        const blocked = /\bdrop\s+table\b|\btruncate\b/i;
         if (blocked.test(sql)) {
-          resultText = 'Blocked: destructive operation requires manual approval';
+          resultText = 'Blocked: DROP TABLE and TRUNCATE require manual approval';
         } else {
           try {
             const stmt = env.DB.prepare(sql);
             const result = bindParams.length ? await stmt.bind(...bindParams).run() : await stmt.run();
             const changes = result.meta?.changes ?? result.changes ?? 0;
             resultText = JSON.stringify({ changes, success: true });
+            void writeAuditLog(env, { event_type: 'd1_write', message: 'D1 write executed', metadata: { changes } }).catch(() => {});
           } catch (e) {
             resultText = `D1 error: ${e.message}`;
           }
@@ -1476,6 +1565,38 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
         } catch (e) {
           resultText = `R2 error: ${e.message}`;
         }
+      } else if (toolName === 'knowledge_search' && env.AI) {
+        const query = params.query ?? '';
+        const max_results = Math.min(Math.max(1, Number(params.max_results) || 5), 10);
+        try {
+          const searchResult = await env.AI.autorag('inneranimalmedia-aisearch').search({
+            query: query,
+            max_num_results: max_results,
+          });
+          resultText = JSON.stringify({
+            query: searchResult.search_query ?? query,
+            results: (searchResult.data ?? []).map(item => ({
+              content: item.content ?? item.text,
+              source: item.source ?? item.metadata?.source ?? 'unknown',
+              score: item.score,
+            })),
+          });
+        } catch (e) {
+          resultText = JSON.stringify({ error: e?.message ?? String(e) });
+        }
+      }
+
+      const BUILTIN_TOOLS = new Set(['terminal_execute', 'd1_query', 'd1_write', 'r2_read', 'r2_list', 'knowledge_search']);
+      if (!BUILTIN_TOOLS.has(toolName) && env.DB) {
+        try {
+          const toolRow = await env.DB.prepare('SELECT tool_category FROM mcp_registered_tools WHERE tool_name = ? AND enabled = 1').bind(toolName).first();
+          const category = toolRow?.tool_category ?? 'execute';
+          const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+          await env.DB.prepare(
+            `INSERT INTO mcp_tool_calls (id, tenant_id, session_id, tool_name, tool_category, input_schema, output, status, invoked_by, invoked_at, completed_at, created_at, updated_at)
+             VALUES (?, 'tenant_sam_primeaux', ?, ?, ?, ?, ?, 'completed', 'agent_sam', ?, ?, ?, ?)`
+          ).bind(crypto.randomUUID(), conversationId ?? '', toolName, category, JSON.stringify(params), resultText.slice(0, 50000), now, now, now, now).run();
+        } catch (e) { console.warn('[runToolLoop] mcp_tool_calls INSERT', e?.message ?? e); }
       }
 
       if (provider === 'anthropic') {
@@ -1500,6 +1621,14 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
     finalText = await singleRoundNoTools(env, provider, modelKey, systemWithBlurb, messages);
     if (!finalText) finalText = 'Command executed. See terminal for output.';
   }
+  try {
+    const taskType = classification?.intent ?? 'tool_loop';
+    const costUsd = calculateCost(modelRow, totalInputTokens, totalOutputTokens);
+    await env.DB.prepare(
+      `INSERT INTO agent_costs (model_used, tokens_in, tokens_out, cost_usd, task_type, user_id, created_at)
+       VALUES (?, ?, ?, ?, ?, 'agent_sam', datetime('now'))`
+    ).bind(modelRow?.model_key ?? modelKey, totalInputTokens, totalOutputTokens, costUsd, taskType).run();
+  } catch (e) { console.warn('[runToolLoop] agent_costs INSERT', e?.message ?? e); }
   return finalText;
 }
 
@@ -1545,7 +1674,33 @@ async function runTerminalCommand(env, request, command, sessionId = null) {
     })
     .join('\n')
     .trim();
-  return { output: cleanOutput, command: cmd };
+  const out = { output: cleanOutput, command: cmd };
+  if (env.DB) {
+    const conversationIdForHistory = sessionId;
+    void (async () => {
+      try {
+        let termSessionId = (await env.DB.prepare("SELECT id FROM terminal_sessions WHERE label = 'agent_sam_chat' AND tenant_id = 'tenant_sam_primeaux' LIMIT 1").first())?.id;
+        if (!termSessionId) {
+          await env.DB.prepare(
+            "INSERT INTO terminal_sessions (id, tenant_id, user_id, status, auth_token_hash, label, created_at, updated_at) VALUES ('term_agent_sam_chat', 'tenant_sam_primeaux', 'agent_sam', 'active', 'n/a', 'agent_sam_chat', unixepoch(), unixepoch())"
+          ).run();
+          termSessionId = 'term_agent_sam_chat';
+        }
+        const seqRow = await env.DB.prepare('SELECT COALESCE(MAX(sequence), 0) + 1 AS seq FROM terminal_history WHERE terminal_session_id = ?').bind(termSessionId).first();
+        const seq = seqRow?.seq ?? 1;
+        const now = Math.floor(Date.now() / 1000);
+        await env.DB.prepare(
+          `INSERT INTO terminal_history (id, terminal_session_id, tenant_id, sequence, direction, content, triggered_by, agent_session_id, recorded_at)
+           VALUES (?, ?, 'tenant_sam_primeaux', ?, 'input', ?, 'agent', ?, ?)`
+        ).bind('th_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16), termSessionId, seq, cmd.slice(0, 50000), conversationIdForHistory ?? null, now).run();
+        await env.DB.prepare(
+          `INSERT INTO terminal_history (id, terminal_session_id, tenant_id, sequence, direction, content, triggered_by, agent_session_id, recorded_at)
+           VALUES (?, ?, 'tenant_sam_primeaux', ?, 'output', ?, 'agent', ?, ?)`
+        ).bind('th_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16), termSessionId, seq + 1, cleanOutput.slice(0, 100000), conversationIdForHistory ?? null, now).run();
+      } catch (e) { console.warn('[runTerminalCommand] terminal_history', e?.message ?? e); }
+    })().catch(() => {});
+  }
+  return out;
 }
 
 /**
@@ -2452,6 +2607,11 @@ async function handleAgentApi(request, url, env, ctx) {
         prompts = batch[4]?.results ?? [];
       } catch (_) {}
       console.log('[agent/boot] providers/models shown:', models.length, models.map(m => `${m.provider}:${m.model_key}`).join(', '));
+      let default_model_id = null;
+      try {
+        const configRow = await env.DB.prepare('SELECT default_model_id FROM agent_configs WHERE id = ?').bind('agent-sam-primary').first();
+        default_model_id = configRow?.default_model_id ?? null;
+      } catch (_) {}
       let integrations = {};
       try {
         const session = await getSession(env, request);
@@ -2463,7 +2623,7 @@ async function handleAgentApi(request, url, env, ctx) {
           for (const row of tokRows.results) integrations[row.provider] = true;
         }
       } catch (_) {}
-      const payload = { agents, mcp_services, models, sessions, prompts, cidi: [], integrations };
+      const payload = { agents, mcp_services, models, sessions, prompts, cidi: [], integrations, default_model_id };
       return jsonResponse(payload);
     }
 
@@ -2662,6 +2822,33 @@ async function handleAgentApi(request, url, env, ctx) {
       return jsonResponse({ ok: true });
     }
 
+    const sessionIdMatch = pathLower.match(/^\/api\/agent\/sessions\/([^/]+)$/);
+    if (sessionIdMatch && !pathLower.endsWith('/messages')) {
+      const sessionId = sessionIdMatch[1];
+      if (method === 'PATCH') {
+        const body = await request.json().catch(() => ({}));
+        const name = body.name != null ? String(body.name).trim().slice(0, 200) : null;
+        if (name === null || name === '') return jsonResponse({ error: 'name required' }, 400);
+        try {
+          await env.DB.prepare('UPDATE agent_conversations SET name=? WHERE id=?').bind(name, sessionId).run();
+        } catch (e) {
+          return jsonResponse({ error: 'Update failed', detail: e?.message ?? String(e) }, 500);
+        }
+        return jsonResponse({ ok: true });
+      }
+      if (method === 'GET') {
+        try {
+          const row = await env.DB.prepare('SELECT id, name, title FROM agent_conversations WHERE id=?').bind(sessionId).first();
+          if (!row) return jsonResponse({ error: 'Not found' }, 404);
+          return jsonResponse({ id: row.id, name: row.name ?? row.title ?? 'New Conversation' });
+        } catch (e) {
+          const row = await env.DB.prepare('SELECT id, title FROM agent_conversations WHERE id=?').bind(sessionId).first();
+          if (!row) return jsonResponse({ error: 'Not found' }, 404);
+          return jsonResponse({ id: row.id, name: row.title ?? 'New Conversation' });
+        }
+      }
+    }
+
     const sessionMsgMatch = pathLower.match(/^\/api\/agent\/sessions\/([^/]+)\/messages$/);
     if (sessionMsgMatch) {
       const convId = sessionMsgMatch[1];
@@ -2798,10 +2985,29 @@ async function handleAgentApi(request, url, env, ctx) {
         ).bind(...ids).all();
         (artifacts.results || []).forEach((row) => { artifactFlags[row.conversation_id] = row.has_artifacts === 1; });
       }
+      let namesById = {};
+      if (ids.length > 0) {
+        try {
+          const placeholders = ids.map(() => '?').join(',');
+          const namesResult = await env.DB.prepare(
+            `SELECT id, name, title FROM agent_conversations WHERE id IN (${placeholders})`
+          ).bind(...ids).all();
+          (namesResult.results || []).forEach((row) => { namesById[row.id] = row.name ?? row.title ?? 'New Conversation'; });
+        } catch (_) {
+          try {
+            const placeholders = ids.map(() => '?').join(',');
+            const namesResult = await env.DB.prepare(
+              `SELECT id, title FROM agent_conversations WHERE id IN (${placeholders})`
+            ).bind(...ids).all();
+            (namesResult.results || []).forEach((row) => { namesById[row.id] = row.title ?? 'New Conversation'; });
+          } catch (__) {}
+        }
+      }
       const enriched = (results || []).map((s) => ({
         ...s,
         message_count: messageCounts[s.id] ?? 0,
         has_artifacts: !!artifactFlags[s.id],
+        name: namesById[s.id] ?? 'New Conversation',
       }));
       return jsonResponse(enriched);
     }
@@ -3049,10 +3255,14 @@ async function handleAgentApi(request, url, env, ctx) {
             } catch (e) {
               console.error('[agent/chat] agent_conversations INSERT failed:', e?.message ?? e);
             }
+            if (ctx && typeof ctx.waitUntil === 'function') {
+              ctx.waitUntil(generateConversationName(env, conversationId, lastUserContent || '').catch(e => console.warn('[agent/chat] generateConversationName', e?.message)));
+            }
           } catch (e) {
             console.error('[agent/chat] agent_sessions INSERT failed:', e?.message ?? e);
           }
         }
+        conversationId = conversationId || crypto.randomUUID();
         try {
           const userContent = lastUserContent || msgList[msgList.length - 1]?.content || '';
           await env.DB.prepare(
@@ -3060,6 +3270,15 @@ async function handleAgentApi(request, url, env, ctx) {
           ).bind(crypto.randomUUID(), conversationId, 'user', userContent.slice(0, 50000), null).run();
         } catch (e) {
           console.error('[agent/chat] agent_messages INSERT failed:', e?.message ?? e);
+        }
+        if (ctx && typeof ctx.waitUntil === 'function' && env.DB) {
+          env.DB.prepare('SELECT COUNT(*) as c FROM agent_messages WHERE conversation_id = ?').bind(conversationId).first()
+            .then((row) => {
+              if (row && row.c > 50) {
+                ctx.waitUntil(compactConversationToKnowledge(env, conversationId));
+              }
+            })
+            .catch(() => {});
         }
 
         if (canStreamOpenAI) {
@@ -3223,6 +3442,9 @@ async function handleAgentApi(request, url, env, ctx) {
             } catch (e) {
               console.error('[agent/chat] agent_conversations INSERT failed:', e?.message ?? e);
             }
+            if (ctx && typeof ctx.waitUntil === 'function') {
+              ctx.waitUntil(generateConversationName(env, conversationId, lastUserContent || '').catch(e => console.warn('[agent/chat] generateConversationName', e?.message)));
+            }
           } catch (e) {
             console.error('[agent/chat] agent_sessions INSERT failed:', e?.message ?? e);
           }
@@ -3244,7 +3466,7 @@ async function handleAgentApi(request, url, env, ctx) {
         } catch (e) {
           console.error('[agent/chat] streamDoneDbWrites (tool loop) failed:', e?.message ?? e);
         }
-        return jsonResponse({ content: finalText, role: 'assistant' });
+        return jsonResponse({ content: finalText, role: 'assistant', conversation_id: conversationId });
       }
 
       let result;
@@ -3346,11 +3568,15 @@ async function handleAgentApi(request, url, env, ctx) {
         } catch (e) {
           console.error('[agent/chat] agent_conversations INSERT failed:', e?.message ?? e);
         }
+        if (ctx && typeof ctx.waitUntil === 'function') {
+          ctx.waitUntil(generateConversationName(env, conversationId, lastUserContent || '').catch(e => console.warn('[agent/chat] generateConversationName', e?.message)));
+        }
         } catch (e) {
           console.error('[agent/chat] agent_sessions INSERT failed:', e?.message ?? e);
         }
       }
       const assistantContent = result?.content?.[0]?.text ?? result?.choices?.[0]?.message?.content ?? result?.candidates?.[0]?.content?.parts?.[0]?.text ?? (typeof result?.message === 'string' ? result.message : '');
+      conversationId = conversationId || crypto.randomUUID();
       try {
         const convId = conversationId;
         if (convId) {
@@ -3906,6 +4132,27 @@ async function invokeMcpToolFromChat(env, tool_name, params) {
       return { error: String(err?.message || err) };
     }
   }
+  if (tool_name === 'knowledge_search' && env.AI) {
+    const query = params.query ?? '';
+    const max_results = Math.min(Math.max(1, Number(params.max_results) || 5), 10);
+    try {
+      const searchResult = await env.AI.autorag('inneranimalmedia-aisearch').search({
+        query: query,
+        max_num_results: max_results,
+      });
+      const resultText = JSON.stringify({
+        query: searchResult.search_query ?? query,
+        results: (searchResult.data ?? []).map(item => ({
+          content: item.content ?? item.text,
+          source: item.source ?? item.metadata?.source ?? 'unknown',
+          score: item.score,
+        })),
+      });
+      return { result: resultText };
+    } catch (e) {
+      return { result: JSON.stringify({ error: e?.message ?? String(e) }) };
+    }
+  }
   const toolRow = await env.DB.prepare('SELECT * FROM mcp_registered_tools WHERE tool_name = ? AND enabled = 1').bind(tool_name).first();
   if (!toolRow) return { error: 'Tool not found' };
   if (toolRow.requires_approval === 1) return { error: 'Tool requires approval' };
@@ -4091,7 +4338,11 @@ worker.scheduled = async function scheduled(event, env, ctx) {
       compactAgentChatsToR2(env)
         .then((r) => {
           if (r.error) console.error('[cron] RAG compact-chats failed:', r.error);
-          else console.log('[cron] RAG compact-chats:', r.conversations, 'conversations,', r.messages, 'messages →', r.key);
+          else console.log('[cron] RAG compact-chats:', r.conversations, 'conversations,', r.messages, 'messages ->', r.key);
+        })
+        .then(() => runKnowledgeDailySync(env))
+        .then((r) => {
+          if (r.memory_key || r.priorities_key) console.log('[cron] knowledge sync:', r.memory_key, r.priorities_key);
         })
         .then(() => indexMemoryMarkdownToVectorize(env))
         .then((r) => {
@@ -4199,6 +4450,180 @@ function chunkMarkdown(text, maxChars = RAG_CHUNK_MAX_CHARS, overlap = RAG_CHUNK
 }
 
 /**
+ * D1-compatible schema extraction: use sql from sqlite_master (no PRAGMA).
+ */
+async function extractSchema(env) {
+  const tables = await env.DB.prepare(
+    "SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+  ).all();
+  const results = tables.results || [];
+  const schemaDoc = results.map(t => `### ${t.name}\n\`\`\`sql\n${t.sql || ''}\n\`\`\`\n`).join('\n');
+  return `# D1 Database Schema\n\n**Database**: inneranimalmedia-business\n**Tables**: ${results.length}\n**Generated**: ${new Date().toISOString()}\n\n---\n\n${schemaDoc}`;
+}
+
+/**
+ * Post-deploy: write worker structure, D1 schema, and optional cursor rules to R2 knowledge/.
+ * Call from deploy script: curl -X POST .../api/internal/post-deploy -H "X-Internal-Secret: $INTERNAL_API_SECRET" [-d '{"cursor_rules_md":"..."}']
+ * Returns array of R2 keys written.
+ */
+async function writeKnowledgePostDeploy(env, body = {}) {
+  const keys = [];
+  if (!env.R2) return keys;
+
+  const routes = [
+    'GET /api/health', 'POST /api/telemetry/v1/traces', 'GET /api/overview/stats', 'GET /api/overview/recent-activity',
+    'GET /api/overview/checkpoints', 'GET /api/overview/activity-strip', 'GET /api/overview/deployments',
+    'GET /api/colors/all', 'GET /api/clients', 'GET /api/projects', 'GET /api/billing/summary',
+    'GET /api/oauth/google/start', 'GET /api/oauth/google/callback', 'GET /api/oauth/github/start', 'GET /api/oauth/github/callback',
+    'POST /api/auth/login', 'POST /api/auth/logout', 'POST /api/admin/overnight/validate', 'POST /api/admin/overnight/start',
+    'POST /api/admin/vectorize-kb', 'GET /api/integrations/status', 'GET /api/integrations/gdrive/files', 'GET /api/integrations/github/repos',
+    'GET /api/git/status', 'POST /api/agent/chat', 'GET /api/agent/context', 'GET /api/agent/bootstrap', 'POST /api/agent/rag/query',
+    'GET /api/agent/sessions/:id/messages', 'POST /api/agent/sessions/:id/messages', 'POST /api/agent/run',
+    'POST /api/internal/post-deploy',
+  ];
+  let toolsList = [];
+  if (env.DB) {
+    try {
+      const r = await env.DB.prepare('SELECT tool_name, tool_category FROM mcp_registered_tools WHERE enabled = 1 ORDER BY tool_name').all();
+      toolsList = (r.results || []).map(t => `${t.tool_name} (${t.tool_category || 'execute'})`);
+    } catch (_) {}
+  }
+  const workerMd = `# Worker structure\n\nGenerated: ${new Date().toISOString()}\n\n## Routes\n${routes.map(route => `- ${route}`).join('\n')}\n\n## Tools (mcp_registered_tools)\n${toolsList.length ? toolsList.map(t => `- ${t}`).join('\n') : '- (none)'}\n`;
+  await env.R2.put('knowledge/architecture/worker-structure.md', workerMd, { httpMetadata: { contentType: 'text/markdown' } });
+  keys.push('knowledge/architecture/worker-structure.md');
+
+  if (env.DB) {
+    try {
+      const schemaMd = await extractSchema(env);
+      await env.R2.put('knowledge/database/schema.md', schemaMd, { httpMetadata: { contentType: 'text/markdown' } });
+      keys.push('knowledge/database/schema.md');
+    } catch (e) {
+      console.warn('[post-deploy] schema', e?.message);
+    }
+  }
+
+  if (body.cursor_rules_md && typeof body.cursor_rules_md === 'string') {
+    await env.R2.put('knowledge/rules/cursor-rules.md', body.cursor_rules_md, { httpMetadata: { contentType: 'text/markdown' } });
+    keys.push('knowledge/rules/cursor-rules.md');
+  }
+
+  return keys;
+}
+
+/**
+ * Daily knowledge sync: write agent_memory_index (score >= 7) and active roadmap_steps to R2 knowledge/.
+ * Called from cron 0 6 * * *.
+ */
+async function runKnowledgeDailySync(env) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (!env.R2) return { memory_key: '', priorities_key: '' };
+
+  let memoryMd = `# Agent memory (high importance) -- ${today}\n\n`;
+  if (env.DB) {
+    try {
+      const r = await env.DB.prepare(
+        "SELECT key, value, importance_score FROM agent_memory_index WHERE importance_score >= 7 AND tenant_id = 'tenant_sam_primeaux' ORDER BY importance_score DESC"
+      ).all();
+      for (const row of (r.results || [])) {
+        memoryMd += `## ${row.key} (score: ${row.importance_score})\n${(row.value || '').trim()}\n\n`;
+      }
+      await env.R2.put(`knowledge/memory/daily-${today}.md`, memoryMd, { httpMetadata: { contentType: 'text/markdown' } });
+    } catch (e) {
+      console.warn('[knowledge/daily] memory', e?.message);
+    }
+  }
+
+  let prioritiesMd = `# Current priorities (active roadmap steps) -- ${today}\n\n`;
+  if (env.DB) {
+    try {
+      const r = await env.DB.prepare(
+        "SELECT id, title, status, order_index, description FROM roadmap_steps WHERE plan_id = 'plan_iam_dashboard_v1' AND status IN ('in_progress', 'not_started') ORDER BY order_index"
+      ).all();
+      for (const row of (r.results || [])) {
+        prioritiesMd += `- **${(row.title || row.id || '').replace(/\*\*/g, '')}** (${row.status}) ${(row.description || '').slice(0, 200)}\n`;
+      }
+      await env.R2.put('knowledge/priorities/current.md', prioritiesMd, { httpMetadata: { contentType: 'text/markdown' } });
+    } catch (e) {
+      console.warn('[knowledge/priorities]', e?.message);
+    }
+  }
+
+  return { memory_key: `knowledge/memory/daily-${today}.md`, priorities_key: 'knowledge/priorities/current.md' };
+}
+
+/** Auto-compact: when a conversation has > 50 messages, summarize with AI, save to R2 knowledge/conversations/{id}-summary.md, then delete oldest messages (keep last 50). */
+async function compactConversationToKnowledge(env, conversationId) {
+  if (!env.DB || !env.R2 || !conversationId) return;
+  let rows = [];
+  try {
+    const r = await env.DB.prepare(
+      'SELECT id, role, content, created_at FROM agent_messages WHERE conversation_id = ? ORDER BY created_at ASC'
+    ).bind(conversationId).all();
+    rows = r.results || [];
+  } catch (e) {
+    console.warn('[compactConversation]', e?.message);
+    return;
+  }
+  if (rows.length <= 50) return;
+
+  const blob = rows.map((m) => `${m.role}: ${(m.content || '').slice(0, 2000)}`).join('\n');
+  let summary = '';
+  if (env.ANTHROPIC_API_KEY && blob.length > 100) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-3-5-haiku-20241022',
+          max_tokens: 1024,
+          messages: [{ role: 'user', content: `Summarize this conversation in 1-2 paragraphs: key topics, decisions, and outcomes. Be concise.\n\n${blob.slice(0, 30000)}` }],
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.content?.find(c => c.type === 'text')?.text;
+        if (text) summary = text.trim();
+      }
+    } catch (e) {
+      console.warn('[compactConversation] Claude summary failed', e?.message);
+    }
+  }
+  if (!summary && env.AI && blob.length > 100) {
+    try {
+      const out = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+        messages: [{ role: 'user', content: `Summarize this conversation in 1-2 paragraphs: key topics, decisions, outcomes.\n\n${blob.slice(0, 8000)}` }],
+        max_tokens: 512,
+      });
+      summary = (out?.result?.response ?? out?.response ?? (typeof out === 'string' ? out : '')).trim();
+    } catch (e) {
+      console.warn('[compactConversation] Workers AI summary failed', e?.message);
+    }
+  }
+  const markdown = `# Conversation summary: ${conversationId}\n\nGenerated: ${new Date().toISOString()}\n\n${summary || '(Summary unavailable.)'}\n\n## Message count at compact: ${rows.length}\n`;
+  try {
+    await env.R2.put(`knowledge/conversations/${conversationId}-summary.md`, markdown, { httpMetadata: { contentType: 'text/markdown' } });
+  } catch (e) {
+    console.warn('[compactConversation] R2 put failed', e?.message);
+    return;
+  }
+
+  const keepIds = rows.slice(-50).map((r) => r.id);
+  if (keepIds.length === 0) return;
+  const placeholders = keepIds.map(() => '?').join(',');
+  try {
+    await env.DB.prepare(
+      `DELETE FROM agent_messages WHERE conversation_id = ? AND id NOT IN (${placeholders})`
+    ).bind(conversationId, ...keepIds).run();
+  } catch (e) {
+    console.warn('[compactConversation] DELETE failed', e?.message);
+  }
+}
+
+/**
  * Compact recent agent_messages from D1 into a single markdown file and upload to R2.
  * Used so RAG can search over recent chat context without manual sync. Writes to memory/compacted-chats/YYYY-MM-DD.md.
  * Returns { conversations: number, messages: number, key: string, error?: string }.
@@ -4287,7 +4712,7 @@ async function compactAgentChatsToR2(env) {
 async function indexMemoryMarkdownToVectorize(env) {
   const keys = [];
   if (env.R2.list) {
-    for (const prefix of ['memory/daily/', 'memory/compacted-chats/']) {
+    for (const prefix of ['memory/daily/', 'memory/compacted-chats/', 'knowledge/']) {
       let cursor;
       do {
         const list = await env.R2.list({ prefix, limit: 200, cursor });
@@ -4514,6 +4939,7 @@ async function sendDailyPlanEmail(env) {
       env.DB.prepare(`SELECT workflow_name, implementation_status
         FROM cidi WHERE implementation_status='pending' LIMIT 5`).all(),
     ]);
+    console.log('[daily-plan] D1 queries complete', tasks?.results?.length);
 
     const prompt = `You are Agent Sam, a context-aware AI assistant for Sam Primeaux
 at Inner Animal Media. Write a concise daily plan email for 8:30am.
@@ -4546,6 +4972,7 @@ Format as a clean plain-text email:
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 600
     });
+    console.log('[daily-plan] AI response length', ai?.response?.length ?? ai?.result?.response?.length ?? 0);
     const emailBody = (ai?.result?.response ?? ai?.response ?? (typeof ai === 'string' ? ai : '')).trim() || 'Daily plan could not be generated.';
 
     const subject = `Daily Plan — ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`;
@@ -4562,13 +4989,14 @@ Format as a clean plain-text email:
         text: emailBody
       })
     });
+    console.log('[daily-plan] Resend status', res.status);
     if (!res.ok) {
       const err = await res.text();
       throw new Error(`Resend: ${res.status} ${err}`);
     }
     console.log('[cron] daily-plan email sent');
-  } catch (e) {
-    console.error('[cron] daily-plan email failed:', e?.message ?? e);
+  } catch (err) {
+    console.error('[daily-plan] FATAL:', err?.message, err?.stack);
   }
 }
 
@@ -5860,6 +6288,10 @@ async function handleOvernightValidate(env, baseUrl) {
   if (env.MYBROWSER && env.DASHBOARD) {
     for (const page of OVERNIGHT_EVERY_PAGE) {
       try {
+        if (!playwrightLaunch) {
+          const pw = await import("@cloudflare/playwright");
+          playwrightLaunch = pw.launch;
+        }
         const browser = await playwrightLaunch(env.MYBROWSER);
         const pageObj = await browser.newPage();
         await pageObj.setViewportSize({ width: 1280, height: 800 });
@@ -5921,6 +6353,10 @@ async function handleOvernightStart(env, baseUrl) {
   if (env.MYBROWSER && env.DASHBOARD) {
     for (const page of OVERNIGHT_EVERY_PAGE) {
       try {
+        if (!playwrightLaunch) {
+          const pw = await import("@cloudflare/playwright");
+          playwrightLaunch = pw.launch;
+        }
         const browser = await playwrightLaunch(env.MYBROWSER);
         const pageObj = await browser.newPage();
         await pageObj.setViewportSize({ width: 1280, height: 800 });

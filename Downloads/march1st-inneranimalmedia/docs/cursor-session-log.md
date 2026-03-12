@@ -627,3 +627,195 @@ Ensure GitHub repo is up to date, all updates/improvements live, and document: (
 - Re-index memory (or cron 0 6 * * *) will pick up memory/daily/2026-03-12.md for Vectorize. Tomorrow: start with TASK 0 (chat history), read TOMORROW.md.
 
 - After deploy: run verification tests 1–6 from the repair plan (terminal WS, Run in terminal, tool loop Anthropic/OpenAI/Google, RAG).
+
+---
+
+## [2026-03-12] Chat history INSERT fix + auto-name and rename conversations
+
+### What was asked
+(1) Fix: /api/agent/chat must save every message turn to agent_messages; ensure conversation_id returned so React can persist. (2) Feature: agent_conversations name column; auto-name via Workers AI; PATCH /api/agent/sessions/:id; editable name in AgentDashboard; name in sessions list.
+
+### Files changed
+- worker.js: Tools path returns conversation_id; conversationId fallback in streaming/non-streaming; generateConversationName helper + waitUntil in all three create-conversation blocks; PATCH/GET /api/agent/sessions/:id; sessions list enriched with name from agent_conversations.
+- migrations/125_agent_conversations_name.sql: ADD COLUMN name TEXT.
+- agent-dashboard/src/AgentDashboard.jsx: sessionName state, fetch on currentSessionId, saveSessionName PATCH, editable name in icon bar.
+
+### Deploy status
+Built: no. R2: no. Worker: no. Run migration 125 before deploy.
+
+---
+
+## [2026-03-12] Migration 125 + daily-plan debug logging + deploy (v36)
+
+### What was asked
+Run migration 125; add temporary error logging to sendDailyPlanEmail (try/catch with full stack, checkpoints after D1, AI, Resend); bump agent.html to ?v=36; rebuild React, upload R2, deploy worker. Deploy approved.
+
+### Files changed
+- worker.js sendDailyPlanEmail: wrapped body in try/catch with console.error('[daily-plan] FATAL:', err?.message, err?.stack). Added console.log('[daily-plan] D1 queries complete', tasks?.results?.length); console.log('[daily-plan] AI response length', ...); console.log('[daily-plan] Resend status', res.status).
+- dashboard/agent.html: ?v=34/35 -> ?v=36 for agent-dashboard.css and agent-dashboard.js.
+
+### Deploy status
+- Migration: run successfully (125_agent_conversations_name.sql, ADD COLUMN name to agent_conversations).
+- Built: yes (agent-dashboard).
+- R2 uploaded: agent-dashboard.js, agent-dashboard.css, agent.html (v=36). Bucket agent-sam, keys static/dashboard/agent/agent-dashboard.js, static/dashboard/agent/agent-dashboard.css, static/dashboard/agent.html.
+- Worker deployed: yes. Version ID: 948b8fdd-05c6-4cb7-825e-26058f374ddf.
+- Deploy approved by Sam: yes.
+
+### What is live now
+Agent dashboard with chat naming (v36). Worker with sendDailyPlanEmail debug logging. agent_conversations has name column. Next cron 30 13 * * * (8:30am CST): tail logs for [daily-plan] checkpoints or FATAL to see where email fails.
+
+---
+
+## [2026-03-12] runMixedTasks SQL: remove SELECT-only, keep DROP/TRUNCATE block only
+
+### What was asked
+Remove the SELECT-only check from the sql task handler in runMixedTasks (worker.js ~1286). Leave only DROP TABLE / TRUNCATE blocking. Confirm d1_write in runToolLoop has no SELECT check. Deploy after fix. Deploy approved.
+
+### Files changed
+- worker.js lines 1284-1295 (runMixedTasks, type === 'sql'): removed normalized + if (!normalized.startsWith('SELECT')) { resultText = 'Only SELECT allowed'; } else { ... }. Replaced with const blocked = /\bdrop\s+table\b|\btruncate\b/i; if (blocked.test(content)) { resultText = 'Blocked: DROP TABLE and TRUNCATE require manual approval'; } else { try { prepare(content).all() ... } }. d1_query (runToolLoop ~1466-1467) unchanged — still SELECT-only.
+
+### Files NOT changed (and why)
+- d1_write handler (~1476): already had only DROP/TRUNCATE block; no SELECT check there. Not modified.
+- agent.html, FloatingPreviewPanel.jsx, wrangler.production.toml: not touched per rules.
+
+### Deploy status
+- Built: no (worker only).
+- R2 uploaded: no (no dashboard changes).
+- Worker deployed: yes. Version ID: d899ab90-b98a-4ae4-af5a-4e64d5ac9327.
+- Deploy approved by Sam: yes.
+
+### What is live now
+Worker allows non-SELECT SQL in runMixedTasks sql tasks (INSERT/UPDATE/DELETE etc.); only DROP TABLE and TRUNCATE are blocked. d1_query remains SELECT-only.
+
+---
+
+## [2026-03-12] Option A D1 writes: rules, memory, KPI, cursor rollup
+
+### What was asked
+Execute Option A from today's to-do list: 6 batches of SQL (rules, memory importance, new memory entries, kpi_definitions seed, cursor_costs_daily rollup, KB index — last rejected). Batch-by-batch approval; Batch 2 held for importance_score clarification; Batch 6 rejected (do not mark docs indexed until R2 write implemented).
+
+### Files changed
+- None (D1 only).
+
+### D1 executed (remote inneranimalmedia-business)
+- **Batch 1 approved:** INSERT into agent_cursor_rules: rule_009 (sync-to-agentsam-clean-after-every-change), rule_010 (write-to-tracking-tables-every-session). 2 rows.
+- **Batch 2 on hold:** UPDATE importance_score for 5 memory keys (platform_summary, active_priorities, clients_active, cost_awareness, what_works_today). Clarification provided: worker uses importance_score >= 0.9 for chat context inclusion and ORDER BY importance_score DESC for ordering; scale is real, 0.9 is threshold; 7–9 vs 0.9/0.95 options described. Awaiting Sam approval to run.
+- **Batch 3 approved:** Verified no UNIQUE on agent_memory_index.key (only non-unique index on (tenant_id, key)); confirmed keys db_zero_tables, pipeline_system, kpi_targets did not exist. INSERT 3 rows into agent_memory_index.
+- **Batch 4 approved:** INSERT 6 rows into kpi_definitions (MRR, AI spend, active clients, open issues, deploys/week, agent tool calls/day).
+- **Batch 5 approved:** INSERT OR REPLACE into cursor_costs_daily from cursor_usage_log rollup by date; 2 date rows written.
+- **Batch 6 rejected:** Not run. Defer until R2 write to iam-platform/knowledge/{doc_id}.md is implemented; do not set is_indexed=1 before actual indexing.
+
+### Files NOT changed (and why)
+- worker.js, agent.html, dashboard: not touched. Option B (items 7–11) next; 12–14 held for next session.
+
+### Deploy status
+- Built: no.
+- R2 uploaded: no.
+- Worker deployed: no.
+- Deploy approved by Sam: N/A.
+
+### What is live now
+D1: rule_009 and rule_010 active; 3 new memory entries (db_zero_tables, pipeline_system, kpi_targets); 6 kpi_definitions; cursor_costs_daily populated from cursor_usage_log. Batch 2 (importance_score updates) pending approval. Batch 6 deferred.
+
+### Known issues / next steps
+- Batch 2: approve 7–9 scale or request 0.9/0.95 variant and then run UPDATE.
+- Option B: present single worker.js diff for items 7–11 (writeAuditLog, agent_costs, agent_intent_execution_log, terminal_history, mcp_tool_calls) before any code edit.
+- Batch 6: implement R2 write for unindexed KB docs then run UPDATE is_indexed=1.
+
+---
+
+## [2026-03-12] Batch 2 executed; Option B (items 7–11) applied to worker.js
+
+### What was asked
+Run Batch 2 (importance_score 7–9 updates); apply Option B diff with two tweaks: (1) intent log only when intent_pattern_id exists (skip INSERT if agent_intent_patterns empty); (2) terminal_history block fire-and-forget so it does not block terminal response. Do not deploy until "deploy approved".
+
+### Files changed
+- worker.js: Added writeAuditLog helper; agent_intent_execution_log after classifyIntent (with patternRow?.id check); token accumulation and agent_costs before return in runToolLoop; writeAuditLog after terminal_execute and d1_write; terminal_history in runTerminalCommand (fire-and-forget); mcp_tool_calls for non-builtin tools in tool loop.
+
+### Files NOT changed (and why)
+- agent.html, FloatingPreviewPanel.jsx, wrangler.production.toml: not touched per rules.
+
+### Deploy status
+- Built: no (worker only).
+- R2 uploaded: no.
+- Worker deployed: yes. Version ID: 4a7fc105-84b3-4ccb-9d30-1234de7312b6.
+- Deploy approved by Sam: yes.
+
+### What is live now
+Worker with Option B tracking (writeAuditLog, agent_costs, agent_intent_execution_log, terminal_history, mcp_tool_calls, agent_audit_log) deployed.
+
+### Post-deploy verification (first D1 check)
+- agent_costs: 0 (written only at end of runToolLoop; early returns for question/mixed skip it).
+- terminal_history: 0 (no terminal command in sample yet).
+- agent_intent_execution_log: 1 (classifier ran).
+- agent_audit_log: 0 (no d1_write or terminal_execute in sample yet).
+- mcp_tool_calls: 0 (no MCP tool from chat loop yet).
+Re-check after 2–3 interactions (tool-using chat, terminal command) to confirm agent_costs, terminal_history, agent_audit_log populate.
+
+### Known issues / next steps
+- Items 12–14 held for next session. Batch 6 deferred.
+- Optional: write agent_costs on early returns (question/mixed) with 0 tokens.
+
+---
+
+## [2026-03-12] Item 13: knowledge_search tool + autonomous knowledge sync
+
+### What was asked
+Part A: Add knowledge_search tool to Agent Sam (tool definition + handler in runToolLoop and invokeMcpToolFromChat). Part B: Auto-write knowledge to R2 (knowledge/): (1) POST /api/internal/post-deploy to write worker-structure, D1 schema, cursor-rules; (2) daily cron to write agent_memory_index (score >= 7) and active roadmap_steps; (3) auto-compact in /api/agent/chat when session > 50 messages (summarize, save to R2, archive old messages).
+
+### Files changed
+- `migrations/126_knowledge_search_tool.sql`: New migration inserting knowledge_search into mcp_registered_tools (builtin, query category, input_schema with query + max_results).
+- `worker.js`: runToolLoop - added case for toolName === 'knowledge_search' calling env.AI.autorag('inneranimalmedia-aisearch').search({ query, max_num_results }), and added knowledge_search to BUILTIN_TOOLS. invokeMcpToolFromChat - added branch for tool_name === 'knowledge_search' with same search + return result. POST /api/internal/post-deploy - new route (auth: X-Internal-Secret or Bearer INTERNAL_API_SECRET); writeKnowledgePostDeploy(env, body) writes knowledge/architecture/worker-structure.md, knowledge/database/schema.md, and optional knowledge/rules/cursor-rules.md from body.cursor_rules_md. runKnowledgeDailySync(env) - writes knowledge/memory/daily-YYYY-MM-DD.md (agent_memory_index importance_score >= 7) and knowledge/priorities/current.md (roadmap_steps active). compactConversationToKnowledge(env, conversationId) - loads messages, summarizes with Claude or Workers AI, puts knowledge/conversations/{id}-summary.md, deletes messages keeping last 50. Cron 0 6 * * * - added runKnowledgeDailySync before indexMemoryMarkdownToVectorize. indexMemoryMarkdownToVectorize - added prefix knowledge/ to R2 list. /api/agent/chat (stream path) - after inserting user message, if message count > 50, ctx.waitUntil(compactConversationToKnowledge(env, conversationId)).
+
+### Files NOT changed (and why)
+- agent.html, FloatingPreviewPanel.jsx, wrangler.production.toml, worker.js OAuth handlers: not touched per rules.
+
+### Deploy status
+- Built: no (worker only; no dashboard changes).
+- R2 uploaded: no.
+- Worker deployed: yes. Version ID: db38f4df-9933-47eb-8b2f-3807341253ad (2026-03-12 deploy approved).
+- Deploy approved by Sam: yes.
+
+### Post-deploy steps (2026-03-12)
+- Migration 126: run successfully (1 query, 3 rows written).
+- POST /api/internal/post-deploy: 200, keys: [knowledge/architecture/worker-structure.md]. Schema/cursor-rules not in response (schema may have failed in worker; cursor_rules_md not sent in body).
+- R2 list knowledge/: 1 object (knowledge/architecture/worker-structure.md).
+- knowledge_search: user to test in Agent Sam with message "Search knowledge for database schema".
+
+### What is live now
+Nothing deployed. After deploy: run migration 126 to add knowledge_search tool; set INTERNAL_API_SECRET (wrangler secret) to call POST /api/internal/post-deploy. Optional: call post-deploy after deploy with body { cursor_rules_md: "..." } (e.g. cat .cursor/rules/*.mdc).
+
+### Known issues / next steps
+- Run migration: npx wrangler d1 execute inneranimalmedia-business --remote -c wrangler.production.toml --file=./migrations/126_knowledge_search_tool.sql
+- Add INTERNAL_API_SECRET to production if using post-deploy from scripts.
+- AI Search indexes R2; knowledge/ is now included in 0 6 * * * indexMemoryMarkdownToVectorize so knowledge/ markdown is vectorized.
+
+---
+
+## [2026-03-12] Phase 1: Model config, header z-index, RAG search (Steps 1-3)
+
+### What was asked
+Execute plan: Phase 1 (Steps 1-3) quick wins: (1) Model configuration — Sonnet 4.6 default, all models in selector; (2) Dashboard header z-index so dropdowns render above content; (3) AI Search integration for global header search and agent "Search knowledge base".
+
+### Files changed
+- `migrations/127_agent_configs_default_model.sql`: New. CREATE TABLE agent_configs (id, default_model_id, updated_at); INSERT agent-sam-primary with claude-sonnet-4-6.
+- `migrations/127_agent_configs_add_columns.sql`: New. ALTER agent_configs ADD default_model_id; UPDATE/INSERT for existing DBs (no updated_at ALTER to avoid duplicate column).
+- `worker.js` (~2607-2625): After boot batch, read default_model_id from agent_configs for 'agent-sam-primary'; add default_model_id to payload.
+- `agent-dashboard/src/AgentDashboard.jsx`: Boot handler — set activeModel from data.default_model_id match in data.models, else data.models[0]; model list unchanged (all models). New state knowledgeSearchOpen, knowledgeSearchQuery, knowledgeSearchResults, knowledgeSearchLoading; "Search knowledge base" in connector popup; debounced RAG fetch; knowledge search panel with input and result list; click result inserts into chat input. Close-on-outside-click for knowledge panel.
+- `dashboard/agent.html`: .topbar z-index 100 -> 2000; .search-dropdown 110 -> 2100; .profile-dropdown 115 -> 2100; #clock-dropdown and #notifications-dropdown inline z-index -> 2100; .agent-drawer-model-popup 210 -> 2100. Search script: RAG debounce 300ms, POST /api/agent/rag/query when length >= 3; Knowledge section in dropdown; insertRagIntoChat into footer or drawer input.
+
+### Files NOT changed (and why)
+- worker.js OAuth handlers, FloatingPreviewPanel.jsx, agent.html structure beyond header/search: not touched per rules.
+
+### Deploy status
+- Built: yes (agent-dashboard npm run build succeeded).
+- R2 uploaded: no (per rules: no deploy without "deploy approved").
+- Worker deployed: no.
+- Migration 127: 127_agent_configs_default_model.sql failed on remote (table agent_configs already exists, no default_model_id column). 127_agent_configs_add_columns.sql run failed: duplicate column updated_at (so updated_at already exists). Migration file updated to only ADD default_model_id and UPDATE/INSERT without updated_at. User may need to run add_columns again; if default_model_id was already added, run only: UPDATE agent_configs SET default_model_id = 'claude-sonnet-4-6' WHERE id = 'agent-sam-primary'; INSERT OR IGNORE INTO agent_configs (id, default_model_id) VALUES ('agent-sam-primary', 'claude-sonnet-4-6');
+
+### What is live now
+Nothing deployed. After migration 127 applied and deploy: boot returns default_model_id; Agent page selects Sonnet 4.6 by default with all models in dropdown; header dropdowns above content; header search shows Knowledge results when typing 3+ chars; Agent "Search knowledge base" opens panel, results insert into chat.
+
+### Known issues / next steps
+- Apply D1: run 127_agent_configs_add_columns.sql (or just UPDATE/INSERT if default_model_id already present).
+- Phase 2 (Steps 4-11) and Steps 12-13 pending; pause after Phase 1 for verification per user request.
