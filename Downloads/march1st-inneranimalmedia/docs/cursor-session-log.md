@@ -1051,3 +1051,39 @@ Remove CodePreviewWindow; implement Option B: inline code blocks in chat (max 15
 
 ### Result
 Code in chat is inline only (max 15 lines, 300px); "Open in Monaco" opens panel in code tab with diff (original from R2 if exists, modified = full generated code); Keep Changes saves to R2 and exits diff; Undo discards. No floating code windows.
+
+---
+
+## [2026-03-12] Phase 2.6: Playwright tools, BUILTIN_TOOLS, tracking verification, test checklist
+
+### What was asked
+Phase 2.6: (1) Create migration 131 for Playwright tools in mcp_registered_tools. (2) Add playwright_screenshot and browser_screenshot to BUILTIN_TOOLS in worker.js. (3) Verify agent_costs, mcp_tool_calls, agent_audit_log. (4) Build, cache v=42, document R2/deploy (no deploy without approval). (5) Create test checklist for user to run after deploy.
+
+### Files changed
+- `migrations/131_playwright_tools.sql`: Created. INSERT OR IGNORE for playwright_screenshot and browser_screenshot (tool_category browser, mcp_service_url BUILTIN).
+- `worker.js` lines 1586-1615: After generate_execution_plan block, added else-if for playwright_screenshot/browser_screenshot: call runInternalPlaywrightTool(env, toolName, params), set resultText to JSON.stringify(out), writeAuditLog for event_type toolName. Extended BUILTIN_TOOLS Set to include 'playwright_screenshot', 'browser_screenshot'.
+- `dashboard/agent.html` lines 762-763: Cache version ?v=41 -> ?v=42 for agent-dashboard.css and agent-dashboard.js.
+- `docs/PHASE_2_6_TEST_CHECKLIST.md`: Created. Tests 1-8 (file creation, screenshot, DB query, terminal, queue, mode switch, multi-source search, source control).
+- `docs/cursor-session-log.md`: This entry.
+
+### Files NOT changed (and why)
+- FloatingPreviewPanel.jsx, worker.js OAuth handlers, agent.html (beyond cache bump): not touched per rules. r2_write and worker_deploy have no handler in runToolLoop so no agent_audit_log added for them.
+
+### Tracking verification (Step 3)
+- agent_costs: INSERT after runToolLoop (model_used, tokens_in, tokens_out, cost_usd, task_type, user_id) — already present.
+- mcp_tool_calls: INSERT for non-BUILTIN tools — already present; Playwright is BUILTIN so not logged here.
+- agent_audit_log: terminal_execute and d1_write already present; added for playwright_screenshot and browser_screenshot in new branch.
+
+### Deploy status
+- Built: yes (agent-dashboard). R2 uploaded: no — pending "deploy approved". Worker deployed: no — pending "deploy approved".
+- Commands to run after deploy approved (from repo root, with ./scripts/with-cloudflare-env.sh for wrangler):
+  1. ./scripts/with-cloudflare-env.sh npx wrangler r2 object put agent-sam/static/dashboard/agent.html --file=dashboard/agent.html --content-type=text/html --remote -c wrangler.production.toml
+  2. ./scripts/with-cloudflare-env.sh npx wrangler r2 object put agent-sam/static/dashboard/agent/agent-dashboard.js --file=agent-dashboard/dist/agent-dashboard.js --content-type=application/javascript --remote -c wrangler.production.toml
+  3. ./scripts/with-cloudflare-env.sh npx wrangler r2 object put agent-sam/static/dashboard/agent/agent-dashboard.css --file=agent-dashboard/dist/agent-dashboard.css --content-type=text/css --remote -c wrangler.production.toml
+  4. npm run deploy
+
+### What is live now
+Migration 131 applied (remote D1). Worker and R2 not updated until deploy approved.
+
+### Known issues / next steps
+- User to run Tests 1-8 from docs/PHASE_2_6_TEST_CHECKLIST.md after deploy.

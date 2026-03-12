@@ -85,3 +85,22 @@ select option {
     transform: scale(1);
   }
 }
+
+/* Chat input container (Cursor-style) */
+.agent-input-container {
+  transition: border-color 200ms ease;
+}
+.agent-input-container:focus-within {
+  border-color: var(--mode-color);
+}
+.agent-input-container textarea {
+  font-family: inherit;
+  line-height: 1.4;
+}
+.agent-input-container textarea::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+.add-files-btn:hover {
+  background: var(--bg-canvas);
+}

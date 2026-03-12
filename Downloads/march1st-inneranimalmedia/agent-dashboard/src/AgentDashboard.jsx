@@ -240,11 +240,35 @@ export default function AgentDashboard() {
 
   const [recentFiles, setRecentFiles] = useState([]);
 
+  // ── Source Control panel (multi bucket / multi repo) ───────────────────────
+  const [showSourcePanel, setShowSourcePanel] = useState(false);
+  const [selectedSource, setSelectedSource] = useState("");
+  const [sourceTab, setSourceTab] = useState("Recent Files");
+  const [r2Buckets, setR2Buckets] = useState([]);
+  const [githubRepos, setGithubRepos] = useState([]);
+  const [sourceRecentFiles, setSourceRecentFiles] = useState([]);
+  const [gitChanges, setGitChanges] = useState(null);
+  const [gitInfo, setGitInfo] = useState(null);
+  const [bucketInfo, setBucketInfo] = useState(null);
+  const defaultBucketForMonacoRef = useRef(null);
+
   // ── Refs ──────────────────────────────────────────────────────────────────
   const messagesEndRef = useRef(null);
   const abortControllerRef = useRef(null);
   const textareaRef = useRef(null);
   const runCommandRunnerRef = useRef(null);
+
+  // ── Default R2 bucket for Open in Monaco (no hardcoded bucket) ─────────────
+  useEffect(() => {
+    if (defaultBucketForMonacoRef.current) return;
+    fetch("/api/r2/buckets", { credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((data) => {
+        const names = data.bound_bucket_names || (data.buckets || []).map((b) => b.bucket_name || b.name);
+        if (names && names.length > 0) defaultBucketForMonacoRef.current = names[0];
+      })
+      .catch(() => {});
+  }, []);
 
   // ── Persist panel width ───────────────────────────────────────────────────
   useEffect(() => {
@@ -290,30 +314,126 @@ export default function AgentDashboard() {
       .catch(() => {});
   }, []);
 
-  // ── Knowledge search (RAG) debounced fetch ─────────────────────────────────
+  // ── Multi-source search (R2 all buckets + RAG + conversations) ─────────────
   useEffect(() => {
-    if (!knowledgeSearchOpen || knowledgeSearchQuery.trim().length < 3) {
+    if (!knowledgeSearchOpen || knowledgeSearchQuery.trim().length < 2) {
       setKnowledgeSearchResults([]);
       return;
     }
-    const t = setTimeout(() => {
+    const query = knowledgeSearchQuery.trim();
+    const t = setTimeout(async () => {
       setKnowledgeSearchLoading(true);
-      fetch("/api/agent/rag/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({ query: knowledgeSearchQuery.trim() }),
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          const matches = (d && d.matches) ? d.matches : [];
-          setKnowledgeSearchResults(Array.isArray(matches) ? matches : []);
-        })
-        .catch(() => setKnowledgeSearchResults([]))
-        .finally(() => setKnowledgeSearchLoading(false));
+      const results = [];
+      try {
+        const [bucketsResp, kbResp, chatResp] = await Promise.all([
+          fetch("/api/r2/buckets", { credentials: "same-origin" }),
+          fetch("/api/agent/rag/query", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ query }),
+          }),
+          fetch(`/api/agent/conversations/search?q=${encodeURIComponent(query)}`, { credentials: "same-origin" }),
+        ]);
+        const bucketsData = await bucketsResp.json().catch(() => ({}));
+        const bucketNames = (bucketsData.bound_bucket_names || (bucketsData.buckets || []).map((b) => b.bucket_name || b.name)).filter(Boolean);
+        for (const bucketName of bucketNames) {
+          try {
+            const searchResp = await fetch(
+              `/api/r2/search?bucket=${encodeURIComponent(bucketName)}&q=${encodeURIComponent(query)}`,
+              { credentials: "same-origin" }
+            );
+            const files = await searchResp.json().catch(() => []);
+            if (Array.isArray(files)) {
+              files.forEach((f) =>
+                results.push({
+                  type: "file",
+                  title: f.name || f.key,
+                  path: f.path || f.key,
+                  bucket: bucketName,
+                  id: `${bucketName}/${f.key}`,
+                })
+              );
+            }
+          } catch (_) {}
+        }
+        const kbData = await kbResp.json().catch(() => ({}));
+        const matches = (kbData && kbData.matches) ? kbData.matches : [];
+        (Array.isArray(matches) ? matches : []).forEach((m, i) =>
+          results.push({
+            type: "knowledge",
+            title: typeof m === "string" ? m.slice(0, 60) + (m.length > 60 ? "..." : "") : "Knowledge",
+            source: typeof m === "string" ? m : "",
+            id: `kb-${i}`,
+          })
+        );
+        const chats = await chatResp.json().catch(() => []);
+        (Array.isArray(chats) ? chats : []).forEach((c) =>
+          results.push({
+            type: "chat",
+            title: c.title || "Chat",
+            path: `/dashboard/agent?session=${c.id}`,
+            id: c.id,
+          })
+        );
+      } catch (_) {}
+      setKnowledgeSearchResults(results);
+      setKnowledgeSearchLoading(false);
     }, 300);
     return () => clearTimeout(t);
   }, [knowledgeSearchOpen, knowledgeSearchQuery]);
+
+  // ── Load all sources (R2 buckets + GitHub repos) for Source Control ───────
+  useEffect(() => {
+    if (!showSourcePanel) return;
+    Promise.all([
+      fetch("/api/r2/buckets", { credentials: "same-origin" }).then((r) => r.json()),
+      fetch("/api/integrations/github/repos", { credentials: "same-origin" }).then((r) => r.json()).catch(() => []),
+    ]).then(([bucketsData, reposData]) => {
+      const boundNames = bucketsData.bound_bucket_names;
+      const bucketList = boundNames && Array.isArray(boundNames)
+        ? boundNames.map((n) => ({ name: n }))
+        : (bucketsData.buckets || []).map((b) => ({ name: b.bucket_name || b.name })).filter((b) => b.name);
+      setR2Buckets(bucketList);
+      const repos = Array.isArray(reposData) ? reposData : (reposData && reposData.repos) ? reposData.repos : [];
+      setGithubRepos(repos.map((r) => ({ name: r.full_name || r.name || r.repo })).filter((r) => r.name));
+      if (bucketList.length > 0 && !selectedSource) setSelectedSource(`r2:${bucketList[0].name}`);
+      else if (repos.length > 0 && !selectedSource) setSelectedSource(`git:${repos[0].name}`);
+      if (bucketList.length > 0 && !defaultBucketForMonacoRef.current) defaultBucketForMonacoRef.current = bucketList[0].name;
+    });
+  }, [showSourcePanel]);
+
+  useEffect(() => {
+    if (!selectedSource) return;
+    if (selectedSource.startsWith("r2:")) {
+      const bucketName = selectedSource.replace("r2:", "");
+      fetch(`/api/r2/list?bucket=${encodeURIComponent(bucketName)}&prefix=&recursive=1`, { credentials: "same-origin" })
+        .then((r) => r.json())
+        .then((d) => {
+          const objects = (d && d.objects) ? d.objects : [];
+          const sorted = objects.slice().sort((a, b) => (b.last_modified || "").localeCompare(a.last_modified || ""));
+          setSourceRecentFiles(sorted.slice(0, 20).map((o) => ({ name: (o.key || "").split("/").pop(), path: o.key, updated_at: o.last_modified })));
+        })
+        .catch(() => setSourceRecentFiles([]));
+      setBucketInfo({ object_count: 0 });
+      fetch("/api/r2/buckets", { credentials: "same-origin" })
+        .then((r) => r.json())
+        .then((data) => {
+          const b = (data.buckets || []).find((x) => (x.bucket_name || x.name) === bucketName);
+          if (b) setBucketInfo({ object_count: b.object_count ?? 0, size: b.size_bytes ?? 0 });
+        })
+        .catch(() => {});
+    } else if (selectedSource.startsWith("git:")) {
+      setSourceRecentFiles([]);
+      fetch("/api/git/status", { credentials: "same-origin" })
+        .then((r) => r.json())
+        .then((s) => {
+          setGitChanges(s);
+          setGitInfo(s ? { branch: s.branch, last_commit: s.last_commit } : null);
+        })
+        .catch(() => { setGitChanges(null); setGitInfo(null); });
+    }
+  }, [selectedSource]);
 
   // ── Load session messages ─────────────────────────────────────────────────
   useEffect(() => {
@@ -813,19 +933,23 @@ export default function AgentDashboard() {
       const filename = message.filename ?? "snippet";
       const language = message.language ?? "text";
       const generatedCode = message.generatedCode ?? "";
+      const bucket = message.bucket || defaultBucketForMonacoRef.current;
       let originalContent = "";
-      try {
-        const r = await fetch(
-          `/api/r2/buckets/agent-sam/object/${encodeURIComponent(filename)}`,
-          { credentials: "same-origin" }
-        );
-        if (r.ok) originalContent = await r.text();
-      } catch (_) {}
+      if (bucket) {
+        try {
+          const r = await fetch(
+            `/api/r2/buckets/${encodeURIComponent(bucket)}/object/${encodeURIComponent(filename)}`,
+            { credentials: "same-origin" }
+          );
+          if (r.ok) originalContent = await r.text();
+        } catch (_) {}
+      }
       setMonacoDiffFromChat({
         original: originalContent,
         modified: generatedCode,
         filename,
         language,
+        bucket: bucket || undefined,
       });
       setPreviewOpen(true);
       setActiveTab("code");
@@ -1026,14 +1150,7 @@ export default function AgentDashboard() {
             <button
               type="button"
               title="Source control"
-              onClick={() => {
-                if (previewOpen && activeTab === "files") {
-                  setPreviewOpen(false);
-                } else {
-                  setActiveTab("files");
-                  setPreviewOpen(true);
-                }
-              }}
+              onClick={() => setShowSourcePanel((v) => !v)}
               style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: "6px", borderRadius: "4px", display: "flex", alignItems: "center" }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
@@ -1436,608 +1553,402 @@ export default function AgentDashboard() {
               />
             </div>
 
-            {/* ── Input bar ──────────────────────────────────────────────── */}
-            <div
-              className="agent-input-bar-wrap"
-              style={{
-                flexShrink: 0,
-                background: "var(--bg-nav)",
-                borderTop: "1px solid var(--color-border)",
-                padding: "12px 16px",
-                display: "flex",
-                alignItems: "center",
-                flexWrap: "nowrap",
-                gap: 0,
-              }}
-            >
-            {/* Left: icons with 8px gap, 12px margin after */}
-            <div
-              style={{ display: "flex", alignItems: "center", gap: "8px", marginRight: "12px", flexShrink: 0, position: "relative" }}
-              ref={connectorPopupRef}
-            >
-              {/* + button */}
-              <button
-                type="button"
-                onClick={() => setConnectorPopupOpen(!connectorPopupOpen)}
-                aria-expanded={connectorPopupOpen}
-                aria-haspopup="true"
-                title="Attach"
-                style={{
-                  minWidth: "32px",
-                  height: "32px",
-                  padding: 0,
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  borderRadius: "8px",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "var(--color-text)",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              </button>
-
-              {/* Mic (talk-to-type) */}
-              <button
-                type="button"
-                title="Voice input"
-                aria-label="Voice input"
-                onClick={toggleMic}
-                style={{
-                  minWidth: "32px",
-                  height: "32px",
-                  padding: 0,
-                  border: "none",
-                  borderRadius: "8px",
-                  background: "transparent",
-                  color: isListening ? "var(--color-primary)" : "var(--color-text)",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="9" y="2" width="6" height="12" rx="3"/>
-                  <path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/>
-                </svg>
-              </button>
-
-              {/* Token gauge (session usage popover) */}
-              <div style={{ position: "relative", flexShrink: 0 }} ref={costPopoverRef}>
-                <button
-                  type="button"
-                  onClick={() => setCostPopoverOpen((o) => !o)}
-                  title={`Context ${contextUsedK}k / ${contextLimitK}k — Spend $${spendDisplay}`}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "28px",
-                    height: "28px",
-                    flexShrink: 0,
-                    position: "relative",
-                  }}
-                >
-                  <svg viewBox="0 0 36 36" style={{ width: "28px", height: "28px", transform: "rotate(-90deg)" }}>
-                    <circle cx="18" cy="18" r="14" fill="none" stroke="var(--color-border)" strokeWidth="3"/>
-                    <circle cx="18" cy="18" r="14" fill="none" stroke="var(--color-primary)" strokeWidth="3" strokeDasharray={`${contextPct * 0.88} 88`} strokeLinecap="round"/>
-                  </svg>
-                  <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "7px", color: "var(--text-muted)", fontWeight: "600" }}>
-                    {contextUsedK}k
-                  </span>
-                </button>
-                {costPopoverOpen && (
-                  <div
-                    role="dialog"
-                    style={{
-                      position: "absolute",
-                      bottom: "100%",
-                      left: 0,
-                      marginBottom: "8px",
-                      background: "var(--bg-elevated)",
-                      border: "1px solid var(--color-border)",
-                      borderRadius: "10px",
-                      padding: "12px 16px",
-                      minWidth: "200px",
-                      zIndex: 9999,
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-                    }}
-                  >
-                    <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px", fontWeight: "600" }}>Session Usage</div>
-                    <div style={{ fontSize: "12px", color: "var(--color-text)", marginBottom: "4px" }}>
-                      Context: {contextUsedK}k / {contextLimitK}k tokens
-                    </div>
-                    <div style={{ fontSize: "12px", color: "var(--color-text)" }}>
-                      Spend: ${spendDisplay}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Mobile backdrop for connector popup */}
-              {isMobile && connectorPopupOpen && (
-                <div
-                  onClick={() => setConnectorPopupOpen(false)}
-                  style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 10000 }}
-                  aria-hidden="true"
-                />
-              )}
-
-              {/* Connector popup */}
-              {connectorPopupOpen && (
-                <div
-                  role="menu"
-                  style={
-                    isMobile
-                      ? {
-                          position: "fixed",
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          borderRadius: "16px 16px 0 0",
-                          background: "var(--bg-elevated)",
-                          border: "1px solid var(--color-border)",
-                          zIndex: 10001,
-                          maxHeight: "75vh",
-                          overflowY: "auto",
-                          padding: "0 0 16px 0",
-                          boxShadow: "0 -4px 20px rgba(0,0,0,0.2)",
-                        }
-                      : {
-                          position: "absolute",
-                          bottom: "100%",
-                          left: 0,
-                          marginBottom: "4px",
-                          background: "var(--bg-elevated)",
-                          border: "1px solid var(--color-border)",
-                          borderRadius: "10px",
-                          minWidth: "220px",
-                          maxWidth: "320px",
-                          maxHeight: "85vh",
-                          overflowY: "auto",
-                          padding: "8px 0",
-                          zIndex: 9999,
-                          boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-                        }
-                  }
-                >
-                  {isMobile && (
-                    <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--color-border)", margin: "10px auto 12px" }} />
-                  )}
-                  {[
-                    { label: "Upload File", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>, action: () => { fileInputRef.current?.click(); setConnectorPopupOpen(false); } },
-                    { label: "Upload Image", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>, action: () => { imageInputRef.current?.click(); setConnectorPopupOpen(false); } },
-                    { label: "Google Drive", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 19h20L12 2z"/></svg>, action: () => setConnectorPopupOpen(false) },
-                    { label: "GitHub", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>, action: () => setConnectorPopupOpen(false) },
-                    { label: "Cloudflare", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>, action: () => { setInput("@cloudflare list my workers and D1 databases"); setTimeout(() => textareaRef.current?.focus(), 50); setConnectorPopupOpen(false); } },
-                    { label: "Take Screenshot", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>, action: () => { setPreviewOpen(true); setActiveTab("browser"); setConnectorPopupOpen(false); } },
-                    { label: "Search knowledge base", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>, action: () => { setConnectorPopupOpen(false); setKnowledgeSearchOpen(true); setKnowledgeSearchQuery(""); setKnowledgeSearchResults([]); } },
-                  ].map((item) => (
-                    <button
-                      key={item.label}
-                      type="button"
-                      role="menuitem"
-                      onClick={item.action}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        width: "100%",
-                        padding: "10px 16px",
-                        border: "none",
-                        background: "none",
-                        color: "var(--color-text)",
-                        fontSize: "13px",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-canvas)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
-                    >
-                      <span style={{ color: "var(--text-muted)", display: "flex" }}>{item.icon}</span>
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {knowledgeSearchOpen && (
-                <div
-                  ref={knowledgeSearchRef}
-                  style={{
-                    position: "absolute",
-                    left: 0,
-                    bottom: "100%",
-                    marginBottom: "8px",
-                    width: "320px",
-                    maxWidth: "90vw",
-                    background: "var(--bg-elevated)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "12px",
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-                    padding: "12px",
-                    zIndex: 9999,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                    maxHeight: "360px",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
-                    <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-text)" }}>Search knowledge base</span>
-                    <button type="button" onClick={() => setKnowledgeSearchOpen(false)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: "4px", fontSize: "14px" }} aria-label="Close">x</button>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Type to search (min 3 chars)..."
-                    value={knowledgeSearchQuery}
-                    onChange={(e) => setKnowledgeSearchQuery(e.target.value)}
-                    autoFocus
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      border: "1px solid var(--color-border)",
-                      borderRadius: "8px",
-                      background: "var(--bg-canvas)",
-                      color: "var(--color-text)",
-                      fontSize: "13px",
-                      outline: "none",
-                    }}
-                  />
-                  <div style={{ flex: 1, overflowY: "auto", minHeight: "80px" }}>
-                    {knowledgeSearchLoading && <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "8px" }}>Searching...</div>}
-                    {!knowledgeSearchLoading && knowledgeSearchQuery.trim().length >= 3 && knowledgeSearchResults.length === 0 && (
-                      <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "8px" }}>No matches</div>
-                    )}
-                    {!knowledgeSearchLoading && knowledgeSearchResults.slice(0, 10).map((text, i) => {
-                      const snippet = (typeof text === "string" ? text : "").slice(0, 150);
-                      const full = typeof text === "string" ? text : "";
-                      return (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => {
-                            setInput("Context from knowledge base:\n\n" + full + "\n\nBased on this, ");
-                            setKnowledgeSearchOpen(false);
-                            setKnowledgeSearchQuery("");
-                            setKnowledgeSearchResults([]);
-                            setTimeout(() => textareaRef.current?.focus(), 50);
-                          }}
-                          style={{
-                            display: "block",
-                            width: "100%",
-                            padding: "10px 12px",
-                            textAlign: "left",
-                            border: "none",
-                            borderBottom: "1px solid var(--color-border)",
-                            background: "none",
-                            color: "var(--color-text)",
-                            fontSize: "12px",
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {(snippet + (full.length > 150 ? "..." : "")).replace(/\n/g, " ")}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Divider after left icons */}
-            <div style={{ width: 1, height: 24, background: "var(--color-border)", marginRight: 12, flexShrink: 0 }} aria-hidden />
-
-            {/* Center: input area (flex 1) */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: 0 }}>
-              {attachedImages.length > 0 && (
-                <div style={{ display: "flex", gap: "4px", alignItems: "center", flexWrap: "wrap" }}>
-                  {attachedImages.map((img, i) => (
-                    <span key={i} style={{ fontSize: "10px", color: "var(--text-muted)", background: "var(--bg-canvas)", padding: "2px 6px", borderRadius: "4px" }}>{img.name}</span>
-                  ))}
-                  <button type="button" onClick={() => setAttachedImages([])} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "12px", padding: "2px" }}>x</button>
-                </div>
-              )}
-              {attachedFiles.length > 0 && (
-                <div style={{ display: "flex", gap: "4px", alignItems: "center", flexWrap: "wrap" }}>
-                  {attachedFiles.map((f, i) => (
-                    <span key={i} style={{ fontSize: "10px", color: "var(--text-muted)", background: "var(--bg-canvas)", padding: "2px 6px", borderRadius: "4px" }}>{f.name}</span>
-                  ))}
-                  <button type="button" onClick={() => setAttachedFiles([])} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "12px", padding: "2px" }}>x</button>
-                </div>
-              )}
+            {/* ── Input bar (Cursor-style: one container) ─────────────────── */}
+            <div style={{ flexShrink: 0, padding: "12px 16px", background: "var(--bg-nav)", borderTop: "1px solid var(--color-border)" }}>
               <div
-                className="iam-chat-input-main"
+                className="agent-input-container"
+                onDrop={onDropFiles}
+                onDragOver={(e) => e.preventDefault()}
                 style={{
-                  flex: 1,
-                  minWidth: 0,
                   display: "flex",
-                  flexDirection: "column",
-                  background: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  borderRadius: "8px",
-                  overflow: "visible",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 14px",
+                  background: "var(--bg-elevated)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 10,
+                  minHeight: 48,
+                  width: "100%",
+                  maxWidth: 900,
+                  margin: "0 auto",
                 }}
               >
-                <div style={{ flex: 1, minHeight: 0, position: "relative", display: "flex" }}>
-                  <textarea
-                    ref={textareaRef}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        sendMessage();
-                      }
-                    }}
-                    onInput={(e) => {
-                      e.target.style.height = "auto";
-                      e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
-                    }}
-                    onDrop={onDropFiles}
-                    onDragOver={onDragOverFiles}
-                    placeholder={messages.length > 1 ? "Reply..." : "How can I help?"}
-                    style={{
-                      flex: 1,
-                      minHeight: "44px",
-                      maxHeight: "160px",
-                      background: "transparent",
-                      border: "none",
-                      outline: "none",
-                      color: "var(--color-text)",
-                      padding: "10px 12px",
-                      fontFamily: "inherit",
-                      fontSize: "16px",
-                      resize: "none",
-                      lineHeight: "1.5",
-                      overflowY: "auto",
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Hidden file inputs */}
-              <input type="file" ref={fileInputRef} multiple style={{ display: "none" }} onChange={onFileSelect} />
-              <input type="file" ref={imageInputRef} accept="image/*" multiple style={{ display: "none" }} onChange={onImageSelect} />
-            </div>
-
-            {/* Divider before right controls */}
-            <div style={{ width: 1, height: 24, background: "var(--color-border)", marginLeft: 12, marginRight: 12, flexShrink: 0 }} aria-hidden />
-
-            {/* Right: mode, model, context gauge, send — 8px gap */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-                  <div style={{ position: "relative", flexShrink: 0 }} ref={modePopupRef}>
-                    <button
-                      type="button"
-                      onClick={() => setModePopupOpen((o) => !o)}
-                      aria-haspopup="true"
-                      aria-expanded={modePopupOpen}
-                      title="Chat mode"
-                      className="agent-mode-selector"
-                      style={{
-                        padding: "4px 8px 4px 20px",
-                        fontSize: "11px",
-                        border: "1px solid var(--color-border)",
-                        borderRadius: "6px",
-                        background: "var(--bg-canvas)",
-                        color: "var(--color-text)",
-                        cursor: "pointer",
-                        textTransform: "capitalize",
-                        position: "relative",
-                      }}
-                    >
-                      <span
-                        className="agent-mode-indicator"
-                        style={{
-                          position: "absolute",
-                          left: "6px",
-                          top: "50%",
-                          width: "6px",
-                          height: "6px",
-                          borderRadius: "50%",
-                          background: "var(--mode-color)",
-                          animation: "modePulse 2s ease-in-out infinite",
-                        }}
-                        aria-hidden
-                      />
-                      {mode}
-                    </button>
-                    {modePopupOpen && (
-                      <div
-                        role="menu"
-                        style={{
-                          position: "absolute",
-                          bottom: "100%",
-                          left: 0,
-                          marginBottom: "4px",
-                          background: "var(--bg-elevated)",
-                          border: "1px solid var(--color-border)",
-                          borderRadius: "8px",
-                          padding: "4px 0",
-                          minWidth: "100px",
-                          zIndex: 9999,
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-                        }}
-                      >
-                        {["ask", "plan", "debug", "agent"].map((m) => (
-                          <button
-                            key={m}
-                            type="button"
-                            role="menuitem"
-                            onClick={() => { setMode(m); setModePopupOpen(false); }}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                              width: "100%",
-                              padding: "6px 10px",
-                              textAlign: "left",
-                              border: "none",
-                              background: mode === m ? "var(--bg-canvas)" : "transparent",
-                              color: "var(--color-text)",
-                              fontSize: "12px",
-                              cursor: "pointer",
-                              textTransform: "capitalize",
-                            }}
-                          >
-                            <span
-                              style={{
-                                width: "6px",
-                                height: "6px",
-                                borderRadius: "50%",
-                                background: `var(--mode-${m})`,
-                                flexShrink: 0,
-                              }}
-                              aria-hidden
-                            />
-                            {m}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ position: "relative", flexShrink: 0 }} ref={modelPopupRef}>
-                    <button
-                      type="button"
-                      onClick={() => setModelPopupOpen((o) => !o)}
-                      aria-haspopup="true"
-                      aria-expanded={modelPopupOpen}
-                      title="Model"
-                      style={{
-                        padding: "4px 8px",
-                        fontSize: "11px",
-                        border: "1px solid rgba(255,255,255,0.2)",
-                        borderRadius: "6px",
-                        background: "rgba(255,255,255,0.06)",
-                        color: "var(--color-text)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {MODEL_LABELS[activeModel?.model_key] ?? activeModel?.display_name ?? "Auto"}
-                    </button>
-                    {modelPopupOpen && (
-                      <div
-                        role="menu"
-                        style={{
-                          position: "absolute",
-                          bottom: "100%",
-                          left: 0,
-                          marginBottom: "4px",
-                          background: "var(--bg-elevated)",
-                          border: "1px solid var(--color-border)",
-                          borderRadius: "8px",
-                          padding: "4px 0",
-                          minWidth: "120px",
-                          zIndex: 9999,
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-                        }}
-                      >
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => { setActiveModel(models[0] ?? null); setModelPopupOpen(false); }}
-                          style={{
-                            display: "block",
-                            width: "100%",
-                            padding: "6px 10px",
-                            textAlign: "left",
-                            border: "none",
-                            background: !activeModel || models[0]?.id === activeModel?.id ? "var(--bg-canvas)" : "transparent",
-                            color: "var(--color-text)",
-                            fontSize: "12px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Auto
-                        </button>
-                        {(models.length ? models : []).map((m) => (
-                          <button
-                            key={m.id}
-                            type="button"
-                            role="menuitem"
-                            onClick={() => { setActiveModel(m); setModelPopupOpen(false); }}
-                            style={{
-                              display: "block",
-                              width: "100%",
-                              padding: "6px 10px",
-                              textAlign: "left",
-                              border: "none",
-                              background: activeModel?.id === m.id ? "var(--bg-canvas)" : "transparent",
-                              color: "var(--color-text)",
-                              fontSize: "12px",
-                              cursor: "pointer",
-                            }}
-                          >
-                            {MODEL_LABELS[m.model_key] ?? m.display_name ?? m.model_key}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {/* Context gauge (same design: minimal circle with %) */}
-                  <div title={`${inputBarContextPct}% context used`} style={{ flexShrink: 0 }}>
-                    {(() => {
-                      const radius = 10;
-                      const circ = 2 * Math.PI * radius;
-                      const filled = circ * (inputBarContextPct / 100);
-                      return (
-                        <svg width="28" height="28" viewBox="0 0 28 28" style={{ flexShrink: 0 }}>
-                          <circle cx="14" cy="14" r={radius} fill="none"
-                            stroke="rgba(255,255,255,0.1)" strokeWidth="2.5"/>
-                          <circle cx="14" cy="14" r={radius} fill="none"
-                            stroke={inputBarContextPct > 80 ? "var(--color-danger)" : "var(--color-primary)"}
-                            strokeWidth="2.5"
-                            strokeDasharray={`${filled} ${circ}`}
-                            strokeLinecap="round"
-                            transform="rotate(-90 14 14)"/>
-                          <text x="14" y="18" textAnchor="middle"
-                            fontSize="7" fill="var(--color-text)" fontWeight="600">
-                            {inputBarContextPct}%
-                          </text>
-                        </svg>
-                      );
-                    })()}
-                  </div>
+                <div style={{ position: "relative", flexShrink: 0 }} ref={connectorPopupRef}>
                   <button
                     type="button"
-                    onClick={isLoading ? stopGeneration : sendMessage}
-                    disabled={!isLoading && !canSend}
-                    aria-label={isLoading ? "Stop" : "Send"}
+                    onClick={() => setConnectorPopupOpen(!connectorPopupOpen)}
+                    className="add-files-btn"
+                    aria-label="Attach"
+                    aria-expanded={connectorPopupOpen}
+                    aria-haspopup="true"
+                    title="Attach"
                     style={{
-                      background: isLoading ? "var(--bg-canvas)" : "var(--mode-color)",
-                      border: "none",
-                      color: "var(--color-text)",
-                      padding: "7px",
-                      borderRadius: "8px",
+                      width: 28,
+                      height: 28,
+                      borderRadius: 6,
+                      background: "transparent",
+                      border: "1px solid var(--color-border)",
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      opacity: !isLoading && !canSend ? 0.45 : 1,
+                      fontSize: 16,
+                      color: "var(--color-text)",
                     }}
                   >
-                    {isLoading ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
-                    ) : (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"/>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                      </svg>
-                    )}
+                    +
                   </button>
+                  {isMobile && connectorPopupOpen && (
+                    <div
+                      onClick={() => setConnectorPopupOpen(false)}
+                      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 10000 }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  {connectorPopupOpen && (
+                    <div
+                      role="menu"
+                      style={
+                        isMobile
+                          ? {
+                              position: "fixed",
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              borderRadius: "16px 16px 0 0",
+                              background: "var(--bg-elevated)",
+                              border: "1px solid var(--color-border)",
+                              zIndex: 10001,
+                              maxHeight: "75vh",
+                              overflowY: "auto",
+                              padding: "0 0 16px 0",
+                              boxShadow: "0 -4px 20px rgba(0,0,0,0.2)",
+                            }
+                          : {
+                              position: "absolute",
+                              bottom: "100%",
+                              left: 0,
+                              marginBottom: 8,
+                              background: "var(--bg-elevated)",
+                              border: "1px solid var(--color-border)",
+                              borderRadius: 10,
+                              minWidth: 220,
+                              maxWidth: 320,
+                              maxHeight: "85vh",
+                              overflowY: "auto",
+                              padding: "8px 0",
+                              zIndex: 9999,
+                              boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+                            }
+                      }
+                    >
+                      {isMobile && (
+                        <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--color-border)", margin: "10px auto 12px" }} />
+                      )}
+                      {[
+                        { label: "Upload File", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>, action: () => { fileInputRef.current?.click(); setConnectorPopupOpen(false); } },
+                        { label: "Upload Image", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>, action: () => { imageInputRef.current?.click(); setConnectorPopupOpen(false); } },
+                        { label: "Google Drive", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 19h20L12 2z"/></svg>, action: () => setConnectorPopupOpen(false) },
+                        { label: "GitHub", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>, action: () => setConnectorPopupOpen(false) },
+                        { label: "Cloudflare", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>, action: () => { setInput("@cloudflare list my workers and D1 databases"); setTimeout(() => textareaRef.current?.focus(), 50); setConnectorPopupOpen(false); } },
+                        { label: "Take Screenshot", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>, action: () => { setPreviewOpen(true); setActiveTab("browser"); setConnectorPopupOpen(false); } },
+                        { label: "Search knowledge base", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>, action: () => { setConnectorPopupOpen(false); setKnowledgeSearchOpen(true); setKnowledgeSearchQuery(""); setKnowledgeSearchResults([]); } },
+                      ].map((item) => (
+                        <button
+                          key={item.label}
+                          type="button"
+                          role="menuitem"
+                          onClick={item.action}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            width: "100%",
+                            padding: "10px 16px",
+                            border: "none",
+                            background: "none",
+                            color: "var(--color-text)",
+                            fontSize: "13px",
+                            textAlign: "left",
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-canvas)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
+                        >
+                          <span style={{ color: "var(--text-muted)", display: "flex" }}>{item.icon}</span>
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {knowledgeSearchOpen && (
+                    <div
+                      ref={knowledgeSearchRef}
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        bottom: "100%",
+                        marginBottom: "8px",
+                        width: "320px",
+                        maxWidth: "90vw",
+                        background: "var(--bg-elevated)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: "12px",
+                        boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+                        padding: "12px",
+                        zIndex: 9999,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                        maxHeight: "360px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                        <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-text)" }}>Search (R2, knowledge, chats)</span>
+                        <button type="button" onClick={() => setKnowledgeSearchOpen(false)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: "4px", fontSize: "14px" }} aria-label="Close">x</button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Type to search (min 2 chars)..."
+                        value={knowledgeSearchQuery}
+                        onChange={(e) => setKnowledgeSearchQuery(e.target.value)}
+                        autoFocus
+                        style={{
+                          width: "100%",
+                          padding: "8px 12px",
+                          border: "1px solid var(--color-border)",
+                          borderRadius: "8px",
+                          background: "var(--bg-canvas)",
+                          color: "var(--color-text)",
+                          fontSize: "13px",
+                          outline: "none",
+                        }}
+                      />
+                      <div style={{ flex: 1, overflowY: "auto", minHeight: "80px" }}>
+                        {knowledgeSearchLoading && <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "8px" }}>Searching...</div>}
+                        {!knowledgeSearchLoading && knowledgeSearchQuery.trim().length >= 2 && knowledgeSearchResults.length === 0 && (
+                          <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "8px" }}>No matches</div>
+                        )}
+                        {!knowledgeSearchLoading && knowledgeSearchResults.slice(0, 15).map((result, i) => (
+                          <button
+                            key={result.id || i}
+                            type="button"
+                            onClick={() => {
+                              if (result.type === "file") {
+                                setInput((prev) => prev + (prev ? "\n\n" : "") + "Context: file " + (result.bucket ? result.bucket + "/" : "") + (result.path || result.title) + " from R2. ");
+                              } else if (result.type === "knowledge") {
+                                setInput((prev) => prev + (prev ? "\n\n" : "") + "Context from knowledge base:\n\n" + (result.source || result.title) + "\n\nBased on this, ");
+                              } else if (result.type === "chat") {
+                                setCurrentSessionId(result.id);
+                                setSessionName(result.title || "Chat");
+                              }
+                              setKnowledgeSearchOpen(false);
+                              setKnowledgeSearchQuery("");
+                              setKnowledgeSearchResults([]);
+                              setTimeout(() => textareaRef.current?.focus(), 50);
+                            }}
+                            style={{
+                              display: "block",
+                              width: "100%",
+                              padding: "10px 12px",
+                              textAlign: "left",
+                              border: "none",
+                              borderBottom: "1px solid var(--color-border)",
+                              background: "none",
+                              color: "var(--color-text)",
+                              fontSize: "12px",
+                              cursor: "pointer",
+                              fontFamily: "inherit",
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            <div style={{ fontWeight: 500 }}>{result.title}</div>
+                            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
+                              {result.type} {result.bucket && `${result.bucket}/`}{result.path || result.source || ""}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {attachedImages.length > 0 && (
+                  <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap", flexShrink: 0 }}>
+                    {attachedImages.map((img, i) => (
+                      <span key={i} style={{ fontSize: 10, color: "var(--text-muted)", background: "var(--bg-canvas)", padding: "2px 6px", borderRadius: 4 }}>{img.name}</span>
+                    ))}
+                    <button type="button" onClick={() => setAttachedImages([])} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}>x</button>
+                  </div>
+                )}
+                {attachedFiles.length > 0 && (
+                  <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap", flexShrink: 0 }}>
+                    {attachedFiles.map((f, i) => (
+                      <span key={i} style={{ fontSize: 10, color: "var(--text-muted)", background: "var(--bg-canvas)", padding: "2px 6px", borderRadius: 4 }}>{f.name}</span>
+                    ))}
+                    <button type="button" onClick={() => setAttachedFiles([])} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}>x</button>
+                  </div>
+                )}
+
+                <textarea
+                  ref={textareaRef}
+                  placeholder="How can I help?"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  onInput={(e) => {
+                    e.target.style.height = "auto";
+                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+                  }}
+                  style={{
+                    flex: 1,
+                    border: "none",
+                    background: "transparent",
+                    resize: "none",
+                    outline: "none",
+                    fontSize: 14,
+                    lineHeight: 1.4,
+                    minHeight: 28,
+                    maxHeight: 120,
+                    overflowY: "auto",
+                    color: "var(--color-text)",
+                    fontFamily: "inherit",
+                  }}
+                />
+
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0, position: "relative" }} ref={modePopupRef}>
+                  <button
+                    type="button"
+                    onClick={() => setModePopupOpen((o) => !o)}
+                    aria-haspopup="true"
+                    aria-expanded={modePopupOpen}
+                    title={mode}
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: "50%",
+                      background: "var(--mode-color)",
+                      border: "none",
+                      cursor: "pointer",
+                      opacity: 0.9,
+                    }}
+                  />
+                  {modePopupOpen && (
+                    <div
+                      role="menu"
+                      style={{
+                        position: "absolute",
+                        bottom: "100%",
+                        right: 120,
+                        marginBottom: 8,
+                        background: "var(--bg-elevated)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: 8,
+                        padding: 4,
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                        zIndex: 1000,
+                      }}
+                    >
+                      {["ask", "plan", "debug", "agent"].map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          role="menuitem"
+                          onClick={() => { setMode(m); setModePopupOpen(false); }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "6px 12px",
+                            background: mode === m ? "var(--bg-canvas)" : "transparent",
+                            border: "none",
+                            borderRadius: 6,
+                            cursor: "pointer",
+                            fontSize: 13,
+                            width: "100%",
+                            textAlign: "left",
+                            color: "var(--color-text)",
+                            textTransform: "capitalize",
+                          }}
+                        >
+                          <span style={{ width: 12, height: 12, borderRadius: "50%", background: `var(--mode-${m})`, flexShrink: 0 }} />
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <select
+                    value={activeModel?.id ?? ""}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      const m = models.find((x) => x.id === id);
+                      setActiveModel(m ?? models[0] ?? null);
+                    }}
+                    style={{
+                      fontSize: 12,
+                      padding: "4px 8px",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: 6,
+                      background: "transparent",
+                      color: "var(--color-text)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {models.map((m) => (
+                      <option key={m.id} value={m.id}>{MODEL_LABELS[m.model_key] ?? m.display_name}</option>
+                    ))}
+                  </select>
+
+                  <div style={{ display: "flex", gap: 2, alignItems: "center" }} title={`Context ${contextUsedK}k / ${contextLimitK}k — Spend $${spendDisplay}`}>
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        style={{
+                          width: 3,
+                          height: 12,
+                          background: contextPct > i * 20 ? "var(--mode-color)" : "var(--color-border)",
+                          borderRadius: 1,
+                          opacity: contextPct > i * 20 ? 1 : 0.3,
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={isLoading ? stopGeneration : sendMessage}
+                    disabled={!canSend && !isLoading}
+                    aria-label={isLoading ? "Stop" : "Send"}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      background: isLoading ? "var(--color-border)" : "var(--mode-color)",
+                      border: "none",
+                      cursor: !canSend && !isLoading ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--color-on-mode)",
+                      fontSize: 16,
+                      opacity: !input.trim() && !attachedImages.length && !attachedFiles.length ? 0.5 : 1,
+                    }}
+                  >
+                    {isLoading ? "..." : "\u2192"}
+                  </button>
+                </div>
+
+                <input type="file" ref={fileInputRef} multiple accept="*/*" onChange={onFileSelect} style={{ display: "none" }} />
+                <input type="file" ref={imageInputRef} accept="image/*" multiple onChange={onImageSelect} style={{ display: "none" }} />
+              </div>
             </div>
-          </div>
           </div>
 
           {/* Status bar */}
@@ -2124,6 +2035,149 @@ export default function AgentDashboard() {
             connectedIntegrations={connectedIntegrations}
             runCommandRunnerRef={runCommandRunnerRef}
           />
+        )}
+
+        {showSourcePanel && (
+          <div
+            style={{
+              position: "fixed",
+              top: 60,
+              right: 20,
+              width: 350,
+              maxHeight: 500,
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--color-border)",
+              borderRadius: 12,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+              zIndex: 2000,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div style={{ padding: 16, borderBottom: "1px solid var(--color-border)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <span style={{ fontWeight: 600, fontSize: 14, color: "var(--color-text)" }}>Source Control</span>
+                <button type="button" onClick={() => setShowSourcePanel(false)} style={{ background: "none", border: "none", fontSize: 18, cursor: "pointer", opacity: 0.6, color: "var(--color-text)" }} aria-label="Close">&#215;</button>
+              </div>
+              <select
+                value={selectedSource}
+                onChange={(e) => setSelectedSource(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 6,
+                  background: "var(--bg-canvas)",
+                  fontSize: 12,
+                  color: "var(--color-text)",
+                }}
+              >
+                <optgroup label="R2 Buckets">
+                  {r2Buckets.map((b) => (
+                    <option key={`r2-${b.name}`} value={`r2:${b.name}`}>{b.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="GitHub Repos">
+                  {githubRepos.map((r) => (
+                    <option key={`git-${r.name}`} value={`git:${r.name}`}>{r.name}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+            <div style={{ display: "flex", borderBottom: "1px solid var(--color-border)" }}>
+              {["Recent Files", "Changes", "Info"].map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setSourceTab(tab)}
+                  style={{
+                    flex: 1,
+                    padding: "8px 12px",
+                    background: sourceTab === tab ? "var(--bg-canvas)" : "transparent",
+                    border: "none",
+                    borderBottom: sourceTab === tab ? "2px solid var(--mode-color)" : "none",
+                    fontSize: 12,
+                    cursor: "pointer",
+                    color: "var(--color-text)",
+                  }}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+            <div style={{ maxHeight: 350, overflowY: "auto", padding: 12 }}>
+              {sourceTab === "Recent Files" && (
+                sourceRecentFiles.length === 0 ? (
+                  <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>No recent files for this source.</div>
+                ) : (
+                sourceRecentFiles.map((file) => (
+                  <div
+                    key={file.path}
+                    onClick={() => { setPreviewOpen(true); setActiveTab("files"); }}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      marginBottom: 4,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      background: "var(--bg-canvas)",
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text)" }}>{file.name}</div>
+                      <div style={{ fontSize: 10, color: "var(--text-secondary)" }}>{file.path}</div>
+                    </div>
+                    <div style={{ fontSize: 10, color: "var(--text-secondary)" }}>{file.updated_at ? new Date(file.updated_at).toLocaleDateString() : ""}</div>
+                  </div>
+                ))
+                )
+              )}
+              {sourceTab === "Changes" && (
+                <>
+                  {selectedSource.startsWith("git:") && gitChanges && (
+                    <>
+                      {(gitChanges.modified || []).map((f, i) => (
+                        <div key={i} style={{ padding: "6px 10px", fontSize: 11, marginBottom: 4, borderRadius: 4, background: "var(--bg-canvas)", color: "var(--color-text)" }}>
+                          <span style={{ color: "var(--mode-plan)", marginRight: 8 }}>M</span>
+                          {typeof f === "string" ? f : f.file || f.name}
+                        </div>
+                      ))}
+                      {(gitChanges.staged || []).map((f, i) => (
+                        <div key={i} style={{ padding: "6px 10px", fontSize: 11, marginBottom: 4, borderRadius: 4, background: "var(--bg-canvas)", color: "var(--color-text)" }}>
+                          <span style={{ color: "var(--mode-ask)", marginRight: 8 }}>+</span>
+                          {typeof f === "string" ? f : f.file || f.name}
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  {selectedSource.startsWith("r2:") && (
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Recent uploads to {selectedSource.replace("r2:", "")}</div>
+                  )}
+                </>
+              )}
+              {sourceTab === "Info" && (
+                <>
+                  {selectedSource.startsWith("r2:") && (
+                    <div style={{ fontSize: 11, color: "var(--color-text)" }}>
+                      <div style={{ marginBottom: 8 }}><strong>Bucket:</strong> {selectedSource.replace("r2:", "")}</div>
+                      <div style={{ marginBottom: 8 }}><strong>Objects:</strong> {bucketInfo?.object_count ?? 0}</div>
+                      <div><strong>Size:</strong> {bucketInfo?.size != null ? (bucketInfo.size / 1024).toFixed(1) + " KB" : "—"}</div>
+                    </div>
+                  )}
+                  {selectedSource.startsWith("git:") && (
+                    <div style={{ fontSize: 11, color: "var(--color-text)" }}>
+                      <div style={{ marginBottom: 8 }}><strong>Repo:</strong> {selectedSource.replace("git:", "")}</div>
+                      <div style={{ marginBottom: 8 }}><strong>Branch:</strong> {gitInfo?.branch ?? "—"}</div>
+                      <div><strong>Last commit:</strong> {gitInfo?.last_commit ?? "—"}</div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
         )}
       </div>
 

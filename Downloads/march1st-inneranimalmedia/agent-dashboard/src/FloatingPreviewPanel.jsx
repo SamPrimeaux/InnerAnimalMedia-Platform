@@ -155,6 +155,7 @@ export default function FloatingPreviewPanel({
   const terminalSessionIdRef = useRef(null);
   const [diffMode, setDiffMode] = useState(false);
   const [proposedContent, setProposedContent] = useState(null);
+  const lastSavedContentRef = useRef("");
 
   // Google Drive integration (Files tab when source is __gdrive__)
   const [gdriveFolderId, setGdriveFolderId] = useState("root");
@@ -268,8 +269,8 @@ export default function FloatingPreviewPanel({
     fetch("/api/r2/buckets", { credentials: "same-origin" })
       .then((r) => r.json())
       .then((data) => {
-        const list = (data && data.bound_bucket_names) ? data.bound_bucket_names : (data && data.buckets) ? (data.buckets.map((b) => b.bucket_name || b.name)).filter(Boolean) : ["agent-sam", "iam-platform"];
-        setFilesBuckets(Array.isArray(list) ? list : ["agent-sam"]);
+        const list = (data && data.bound_bucket_names) ? data.bound_bucket_names : (data && data.buckets) ? (data.buckets.map((b) => b.bucket_name || b.name)).filter(Boolean) : [];
+        setFilesBuckets(Array.isArray(list) ? list : []);
         if (!filesBucket && list && list.length) setFilesBucket(list[0]);
       })
       .catch((e) => setFilesError(e.message || "Failed to load buckets"));
@@ -458,10 +459,10 @@ export default function FloatingPreviewPanel({
   }, [onCodeContentChange, onTabChange, previewableExtensions]);
 
   const saveFileToR2 = useCallback(async () => {
-    if (!codeFilename || !editMode) return;
+    if (!codeFilename || !filesBucket) return;
     setSaving(true);
     try {
-      const currentContent = monacoEditorRef.current?.getValue();
+      const currentContent = monacoEditorRef.current?.getValue() ?? codeContent;
       const res = await fetch(
         `/api/r2/buckets/${encodeURIComponent(filesBucket)}/object/${encodeURIComponent(codeFilename)}`,
         {
@@ -471,6 +472,7 @@ export default function FloatingPreviewPanel({
         }
       );
       if (res.ok) {
+        lastSavedContentRef.current = typeof currentContent === "string" ? currentContent : codeContent;
         setEditMode(false);
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 2000);
@@ -481,7 +483,7 @@ export default function FloatingPreviewPanel({
     } finally {
       setSaving(false);
     }
-  }, [codeFilename, editMode, filesBucket, codeContent, onCodeContentChange]);
+  }, [codeFilename, filesBucket, codeContent, onCodeContentChange]);
 
   const acceptProposedChange = useCallback(async () => {
     if (proposedContent == null || !codeFilename || !filesBucket) return;
@@ -512,10 +514,12 @@ export default function FloatingPreviewPanel({
 
   const handleKeepChangesFromChat = useCallback(async () => {
     if (!monacoDiffFromChat || !monacoDiffFromChat.filename) return;
+    const bucket = monacoDiffFromChat.bucket || filesBucket || (filesBuckets.length ? filesBuckets[0] : "");
+    if (!bucket) return;
     setSaving(true);
     try {
       const res = await fetch(
-        `/api/r2/buckets/agent-sam/object/${encodeURIComponent(monacoDiffFromChat.filename)}`,
+        `/api/r2/buckets/${encodeURIComponent(bucket)}/object/${encodeURIComponent(monacoDiffFromChat.filename)}`,
         {
           method: "PUT",
           headers: { "Content-Type": "text/plain" },
@@ -533,11 +537,23 @@ export default function FloatingPreviewPanel({
     } finally {
       setSaving(false);
     }
-  }, [monacoDiffFromChat, onCodeContentChange, onMonacoDiffResolved]);
+  }, [monacoDiffFromChat, filesBucket, filesBuckets, onCodeContentChange, onMonacoDiffResolved]);
 
   const handleUndoFromChat = useCallback(() => {
     onMonacoDiffResolved?.();
   }, [onMonacoDiffResolved]);
+
+  const hasChanges = codeContent !== lastSavedContentRef.current;
+  const handleUndoChanges = useCallback(() => {
+    const saved = lastSavedContentRef.current;
+    if (onCodeContentChange) onCodeContentChange(saved);
+    if (monacoEditorRef.current) monacoEditorRef.current.setValue(saved);
+  }, [onCodeContentChange]);
+
+  // Sync last-saved content when file loads (for hasChanges / Undo)
+  useEffect(() => {
+    if (codeFilename && codeContent !== undefined) lastSavedContentRef.current = codeContent;
+  }, [codeFilename, codeContent]);
 
   // Notify parent whenever file loaded in Code tab changes (for agent context)
   useEffect(() => {
@@ -1200,25 +1216,43 @@ export default function FloatingPreviewPanel({
                   )}
                 </button>
                 <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{codeFilename.split("/").pop() || codeFilename}</span>
-                {editMode && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
                   <button
                     type="button"
                     onClick={saveFileToR2}
-                    disabled={saving}
+                    disabled={!hasChanges || saving}
                     style={{
-                      padding: "2px 8px",
-                      borderRadius: "3px",
+                      padding: "5px 14px",
+                      background: hasChanges ? "var(--mode-ask)" : "var(--color-border)",
+                      color: "white",
                       border: "none",
-                      background: "var(--accent)",
-                      color: "var(--bg-canvas)",
-                      fontSize: 11,
-                      cursor: saving ? "wait" : "pointer",
+                      borderRadius: 6,
+                      fontSize: 12,
+                      cursor: hasChanges && !saving ? "pointer" : "not-allowed",
+                      fontWeight: 500,
                       fontFamily: "inherit",
                     }}
                   >
-                    {saving ? "Saving..." : saveSuccess ? "Saved" : "Save to R2"}
+                    {saving ? "Saving..." : saveSuccess ? "Saved" : "Save File"}
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={handleUndoChanges}
+                    disabled={!hasChanges}
+                    style={{
+                      padding: "5px 14px",
+                      background: "transparent",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: 6,
+                      fontSize: 12,
+                      cursor: hasChanges ? "pointer" : "not-allowed",
+                      color: "var(--color-text)",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Undo
+                  </button>
+                </div>
                 <button type="button" onClick={() => { if (onBrowserUrlChange) onBrowserUrlChange(buildR2Url(filesBucket, codeFilename)); if (onTabChange) onTabChange("browser"); }} style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 12, fontFamily: "inherit", padding: "0 4px", whiteSpace: "nowrap" }}>Open in Browser tab {'->'}</button>
               </div>
             ) : (

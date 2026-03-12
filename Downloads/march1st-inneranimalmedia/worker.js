@@ -1598,9 +1598,17 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
         } catch (e) {
           resultText = JSON.stringify({ error: e?.message ?? String(e) });
         }
+      } else if ((toolName === 'playwright_screenshot' || toolName === 'browser_screenshot') && env.MYBROWSER && env.DASHBOARD) {
+        try {
+          const out = await runInternalPlaywrightTool(env, toolName, params);
+          resultText = JSON.stringify(out);
+          void writeAuditLog(env, { event_type: toolName, message: `Screenshot: ${(params.url || '').slice(0, 200)}`, metadata: { conversationId: conversationId ?? null } }).catch(() => {});
+        } catch (e) {
+          resultText = JSON.stringify({ error: e?.message ?? String(e) });
+        }
       }
 
-      const BUILTIN_TOOLS = new Set(['terminal_execute', 'd1_query', 'd1_write', 'r2_read', 'r2_list', 'knowledge_search', 'generate_execution_plan']);
+      const BUILTIN_TOOLS = new Set(['terminal_execute', 'd1_query', 'd1_write', 'r2_read', 'r2_list', 'knowledge_search', 'generate_execution_plan', 'playwright_screenshot', 'browser_screenshot']);
       if (!BUILTIN_TOOLS.has(toolName) && env.DB) {
         try {
           const toolRow = await env.DB.prepare('SELECT tool_category FROM mcp_registered_tools WHERE tool_name = ? AND enabled = 1').bind(toolName).first();
@@ -2329,6 +2337,38 @@ FROM r2_bucket_summary`
       return jsonResponse({ objects, prefixes: parsed.prefixes || [] });
     }
 
+    if (pathLower === '/api/r2/search' && method === 'GET') {
+      const bucket = url.searchParams.get('bucket');
+      const q = (url.searchParams.get('q') || '').trim().toLowerCase();
+      if (!bucket) return jsonResponse({ error: 'bucket required' }, 400);
+      if (!q || q.length < 2) return jsonResponse([]);
+      const binding = getR2Binding(env, bucket);
+      if (!binding || !binding.list) return jsonResponse([]);
+      const allObjects = [];
+      let cursor;
+      const maxScan = 500;
+      do {
+        const list = await binding.list({ prefix: '', limit: 500, cursor });
+        const rawObjects = list.objects || [];
+        for (const o of rawObjects) {
+          if (o.key.endsWith('/')) continue;
+          if (o.key.toLowerCase().includes(q)) {
+            allObjects.push({
+              key: o.key,
+              path: o.key,
+              name: o.key.split('/').pop() || o.key,
+              size: o.size ?? 0,
+              last_modified: o.uploaded ? new Date(o.uploaded).toISOString() : null,
+            });
+            if (allObjects.length >= 100) break;
+          }
+        }
+        if (allObjects.length >= 100) break;
+        cursor = list.truncated ? list.cursor : undefined;
+      } while (cursor && allObjects.length < 100);
+      return jsonResponse(allObjects);
+    }
+
     if (pathLower === '/api/r2/upload' && method === 'POST') {
       const bucket = url.searchParams.get('bucket');
       const key = url.searchParams.get('key') || `upload/${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -2639,6 +2679,16 @@ async function handleAgentApi(request, url, env, ctx) {
       } catch (_) {}
       const payload = { agents, mcp_services, models, sessions, prompts, cidi: [], integrations, default_model_id };
       return jsonResponse(payload);
+    }
+
+    if (pathLower === '/api/agent/conversations/search' && method === 'GET') {
+      const q = (url.searchParams.get('q') || '').trim();
+      if (!q) return jsonResponse([]);
+      const like = '%' + q.replace(/%/g, '\\%').replace(/_/g, '\\_') + '%';
+      const { results } = await env.DB.prepare(
+        `SELECT id, COALESCE(name, title, '') as title FROM agent_conversations WHERE name LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\' ORDER BY id DESC LIMIT 20`
+      ).bind(like, like).all();
+      return jsonResponse((results || []).map((r) => ({ id: r.id, title: r.title || 'New Conversation' })));
     }
 
     if (pathLower === '/api/terminal/session/register' && method === 'POST') {
