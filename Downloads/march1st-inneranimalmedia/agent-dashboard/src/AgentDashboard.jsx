@@ -199,9 +199,10 @@ export default function AgentDashboard() {
 
   const [mode, setMode] = useState("ask");
   const [modePopupOpen, setModePopupOpen] = useState(false);
-  const modePopupRef = useRef(null);
-  const [showModeModal, setShowModeModal] = useState(false);
-  const [showModelModal, setShowModelModal] = useState(false);
+  const modeDropdownRef = useRef(null);
+  const modelDropdownRef = useRef(null);
+  const [showModeDropdown, setShowModeDropdown] = useState(false);
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
 
   const [modelPopupOpen, setModelPopupOpen] = useState(false);
   const modelPopupRef = useRef(null);
@@ -237,6 +238,7 @@ export default function AgentDashboard() {
   // ── Panel / split resize ──────────────────────────────────────────────────
   const [previewOpen, setPreviewOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("terminal");
+  const [availableCommands, setAvailableCommands] = useState([]);
   const [panelWidthPct, setPanelWidthPct] = useState(() => {
     try {
       const v = localStorage.getItem("iam_panel_width");
@@ -557,7 +559,7 @@ export default function AgentDashboard() {
 
   // ── Close pickers on outside click ───────────────────────────────────────
   useEffect(() => {
-    if (!connectorPopupOpen && !costPopoverOpen && !modelPickerOpen && !agentPickerOpen && !modePopupOpen && !modelPopupOpen && !knowledgeSearchOpen) return;
+    if (!connectorPopupOpen && !costPopoverOpen && !modelPickerOpen && !agentPickerOpen && !showModeDropdown && !showModelDropdown && !knowledgeSearchOpen) return;
     const onDocClick = (e) => {
       if (connectorPopupRef.current && !connectorPopupRef.current.contains(e.target))
         setConnectorPopupOpen(false);
@@ -569,14 +571,48 @@ export default function AgentDashboard() {
         setModelPickerOpen(false);
       if (agentPickerRef.current && !agentPickerRef.current.contains(e.target))
         setAgentPickerOpen(false);
-      if (modePopupRef.current && !modePopupRef.current.contains(e.target))
-        setModePopupOpen(false);
-      if (modelPopupRef.current && !modelPopupRef.current.contains(e.target))
-        setModelPopupOpen(false);
+      if (modeDropdownRef.current && !modeDropdownRef.current.contains(e.target))
+        setShowModeDropdown(false);
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(e.target))
+        setShowModelDropdown(false);
     };
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
-  }, [connectorPopupOpen, costPopoverOpen, modelPickerOpen, agentPickerOpen, modePopupOpen, modelPopupOpen, knowledgeSearchOpen]);
+  }, [connectorPopupOpen, costPopoverOpen, modelPickerOpen, agentPickerOpen, showModeDropdown, showModelDropdown, knowledgeSearchOpen]);
+
+  // ── Keyboard shortcuts ───────────────────────────────────────────────────
+  useEffect(() => {
+    function handleKeyboardShortcut(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setPreviewOpen(true);
+        setActiveTab("settings");
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "/") {
+        e.preventDefault();
+        textareaRef.current?.focus();
+      }
+      if (e.key === "Escape") {
+        setPreviewOpen(false);
+        setConnectorPopupOpen(false);
+        setShowModeDropdown(false);
+        setShowModelDropdown(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeyboardShortcut);
+    return () => window.removeEventListener("keydown", handleKeyboardShortcut);
+  }, []);
+
+  // ── Load commands (for Settings tab) ──────────────────────────────────────
+  useEffect(() => {
+    fetch("/api/commands", { credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((data) => {
+        const list = data.commands || [];
+        setAvailableCommands(Array.isArray(list) ? list : []);
+      })
+      .catch(() => setAvailableCommands([]));
+  }, []);
 
   // ── Split-pane drag (mouse + touch) ──────────────────────────────────────
   const onDragStart = useCallback(() => setDragging(true), []);
@@ -694,9 +730,31 @@ export default function AgentDashboard() {
 
   const sendMessage = async () => {
     if (!canSend) return;
+    const trimmedInput = input.trim();
     const text =
-      input.trim() ||
+      trimmedInput ||
       (attachedImages.length ? "(image attached)" : "(files attached)");
+
+    if (trimmedInput.startsWith("/")) {
+      const commandParts = trimmedInput.slice(1).split(/\s+/);
+      const commandName = commandParts[0] || "";
+      const cmd = availableCommands.find(
+        (c) => (c.command_name || c.trigger || "").toLowerCase() === commandName.toLowerCase()
+      );
+      const systemMsg = {
+        id: `cmd${Date.now()}`,
+        role: "assistant",
+        content: cmd
+          ? `Command /${commandName} — ${cmd.description || "No description."} (Execution not yet wired.)`
+          : `Command /${commandName} not found. Open Settings (gear) or type /help for available commands.`,
+        provider: "system",
+        created_at: Date.now(),
+      };
+      setMessages((prev) => [...prev, { id: `m${Date.now()}`, role: "user", content: text, provider: null, created_at: Date.now() }, systemMsg]);
+      setInput("");
+      return;
+    }
+
     const imagesToSend = attachedImages.length ? [...attachedImages] : undefined;
     const filesToSend = attachedFiles.length
       ? attachedFiles.map((f) => ({ name: f.name, content: f.content }))
@@ -1055,6 +1113,12 @@ export default function AgentDashboard() {
   const contextUsedK = Math.round((telemetry.total_tokens || 0) / 1000);
   const contextLimitK = 128;
   const contextPct = Math.min(100, (contextUsedK / contextLimitK) * 100);
+  const placeholderText =
+    messages.length === 0
+      ? "How can I help?"
+      : isLoading || agentState !== AGENT_STATES.IDLE
+        ? "Add a follow up..."
+        : "Reply";
   const spendDisplay =
     telemetry.total_cost != null ? Number(telemetry.total_cost).toFixed(2) : "0.00";
   const spendPct = Math.min(100, (Number(telemetry.total_cost) || 0) / 100);
@@ -1546,6 +1610,26 @@ export default function AgentDashboard() {
                 )}
               </>
             )}
+            {(isLoading || agentState !== AGENT_STATES.IDLE) && (
+              <div
+                style={{
+                  padding: "6px 12px 12px",
+                  minHeight: "24px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-start",
+                  width: "100%",
+                  maxWidth: "720px",
+                  alignSelf: "center",
+                }}
+              >
+                <AnimatedStatusText
+                  state={agentState}
+                  config={STATE_CONFIG[agentState]}
+                  context={agentStateContext}
+                />
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
@@ -1562,25 +1646,8 @@ export default function AgentDashboard() {
             </div>
           )}
 
-          {/* ── Agent status + input bar (--mode-color scope for status) ───── */}
+          {/* ── Input bar (--mode-color scope) ───────────────────────────────── */}
           <div style={{ "--mode-color": `var(--mode-${mode})`, flexShrink: 0 }}>
-            {/* Agent status (above input bar) */}
-            <div
-              style={{
-                padding: "6px 12px 0",
-                minHeight: "24px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "flex-start",
-              }}
-            >
-              <AnimatedStatusText
-                state={agentState}
-                config={STATE_CONFIG[agentState]}
-                context={agentStateContext}
-              />
-            </div>
-
             {/* ── Input bar (Cursor-style: one container) ─────────────────── */}
             <div style={{ flexShrink: 0, padding: "12px 16px", background: "var(--bg-nav)", borderTop: "1px solid var(--color-border)" }}>
               <div
@@ -1822,7 +1889,7 @@ export default function AgentDashboard() {
 
                 <textarea
                   ref={textareaRef}
-                  placeholder="How can I help?"
+                  placeholder={placeholderText}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -1837,6 +1904,8 @@ export default function AgentDashboard() {
                   }}
                   style={{
                     flex: 1,
+                    minWidth: 0,
+                    width: 0,
                     border: "none",
                     background: "transparent",
                     resize: "none",
@@ -1852,77 +1921,203 @@ export default function AgentDashboard() {
                 />
 
                 <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-                <button
-                  type="button"
-                  onClick={() => setShowModeModal(true)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "6px 12px",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: 6,
-                    background: "transparent",
-                    cursor: "pointer",
-                    fontSize: 13,
-                    color: "var(--color-text)",
-                    flexShrink: 0,
-                  }}
-                >
-                  <span style={{ display: "flex", color: "var(--mode-color)" }}>
-                    {MODE_ICONS[mode]}
-                  </span>
-                  <span style={{ textTransform: "capitalize" }}>{mode}</span>
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ flexShrink: 0 }}>
-                    <path d="M5 7L1 3h8z" />
-                  </svg>
-                </button>
+                <div style={{ position: "relative", flexShrink: 0 }} ref={modeDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowModeDropdown(!showModeDropdown)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "6px 12px",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: 6,
+                      background: "transparent",
+                      cursor: "pointer",
+                      fontSize: 13,
+                      color: "var(--color-text)",
+                    }}
+                  >
+                    <span style={{ display: "flex", color: "var(--mode-color)" }}>
+                      {MODE_ICONS[mode]}
+                    </span>
+                    <span style={{ textTransform: "capitalize" }}>{mode}</span>
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+                      <path d="M5 7L1 3h8z" />
+                    </svg>
+                  </button>
+                  {showModeDropdown && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: "100%",
+                        left: 0,
+                        marginBottom: 8,
+                        background: "var(--bg-elevated)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: 8,
+                        minWidth: 160,
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                        zIndex: 1000,
+                      }}
+                    >
+                      {["ask", "agent", "plan", "debug"].map((m) => (
+                        <div
+                          key={m}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => { setMode(m); setShowModeDropdown(false); }}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setMode(m); setShowModeDropdown(false); } }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            padding: "10px 14px",
+                            cursor: "pointer",
+                            background: mode === m ? "var(--bg-canvas)" : "transparent",
+                            fontSize: 13,
+                            borderLeft: mode === m ? `3px solid var(--mode-${m})` : "3px solid transparent",
+                            color: "var(--color-text)",
+                          }}
+                        >
+                          <span style={{ display: "flex", color: `var(--mode-${m})` }}>{MODE_ICONS[m]}</span>
+                          <span style={{ textTransform: "capitalize" }}>{m}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowModelModal(true)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "6px 12px",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: 6,
-                    background: "transparent",
-                    cursor: "pointer",
-                    fontSize: 13,
-                    color: "var(--color-text)",
-                    flexShrink: 0,
-                  }}
-                >
-                  {selectedModel?.id === "auto" ? "Auto" : (selectedModel ? (MODEL_LABELS[selectedModel.model_key] ?? selectedModel.display_name) : (activeModel ? (MODEL_LABELS[activeModel.model_key] ?? activeModel.display_name) : "Auto"))}
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ marginLeft: 6, flexShrink: 0 }}>
-                    <path d="M5 7L1 3h8z" />
-                  </svg>
-                </button>
+                <div style={{ position: "relative", flexShrink: 0 }} ref={modelDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowModelDropdown(!showModelDropdown)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "6px 12px",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: 6,
+                      background: "transparent",
+                      cursor: "pointer",
+                      fontSize: 13,
+                      color: "var(--color-text)",
+                    }}
+                  >
+                    <span>{selectedModel?.id === "auto" ? "Auto" : (selectedModel ? (MODEL_LABELS[selectedModel.model_key] ?? selectedModel.display_name) : (activeModel ? (MODEL_LABELS[activeModel.model_key] ?? activeModel.display_name) : "Auto"))}</span>
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+                      <path d="M5 7L1 3h8z" />
+                    </svg>
+                  </button>
+                  {showModelDropdown && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: "100%",
+                        left: 0,
+                        marginBottom: 8,
+                        background: "var(--bg-elevated)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: 8,
+                        minWidth: 200,
+                        maxHeight: 300,
+                        overflowY: "auto",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                        zIndex: 1000,
+                      }}
+                    >
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          setSelectedModel({ id: "auto", display_name: "Auto" });
+                          setActiveModel(models[0] ?? null);
+                          setShowModelDropdown(false);
+                        }}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setSelectedModel({ id: "auto", display_name: "Auto" }); setActiveModel(models[0] ?? null); setShowModelDropdown(false); } }}
+                        style={{
+                          padding: "10px 14px",
+                          cursor: "pointer",
+                          background: selectedModel?.id === "auto" ? "var(--bg-canvas)" : "transparent",
+                          fontSize: 13,
+                          color: "var(--color-text)",
+                        }}
+                      >
+                        Auto
+                      </div>
+                      {models.map((m) => (
+                        <div
+                          key={m.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            setSelectedModel(m);
+                            setActiveModel(m);
+                            setShowModelDropdown(false);
+                          }}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setSelectedModel(m); setActiveModel(m); setShowModelDropdown(false); } }}
+                          style={{
+                            padding: "10px 14px",
+                            cursor: "pointer",
+                            background: selectedModel?.id === m.id ? "var(--bg-canvas)" : "transparent",
+                            fontSize: 13,
+                            color: "var(--color-text)",
+                          }}
+                        >
+                          {MODEL_LABELS[m.model_key] ?? m.display_name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 <div
                   title={`Context ${contextUsedK}k / ${contextLimitK}k — Spend $${spendDisplay}`}
                   style={{
-                    display: "flex",
-                    gap: 2,
-                    alignItems: "center",
-                    padding: "0 8px",
+                    position: "relative",
+                    width: 32,
+                    height: 32,
                     flexShrink: 0,
                   }}
                 >
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      style={{
-                        width: 4,
-                        height: 16,
-                        background: contextPct > i * 20 ? "var(--mode-color)" : "var(--color-border)",
-                        borderRadius: 2,
-                        opacity: contextPct > i * 20 ? 1 : 0.3,
-                        transition: "all 200ms ease",
-                      }}
+                  <svg width="32" height="32" viewBox="0 0 32 32" style={{ transform: "rotate(-90deg)" }}>
+                    <circle
+                      cx="16"
+                      cy="16"
+                      r="14"
+                      fill="none"
+                      stroke="var(--color-border)"
+                      strokeWidth="2"
+                      opacity="0.3"
                     />
-                  ))}
+                    <circle
+                      cx="16"
+                      cy="16"
+                      r="14"
+                      fill="none"
+                      stroke="var(--mode-color)"
+                      strokeWidth="2"
+                      strokeDasharray={2 * Math.PI * 14}
+                      strokeDashoffset={2 * Math.PI * 14 * (1 - contextPct / 100)}
+                      strokeLinecap="round"
+                      style={{ transition: "stroke-dashoffset 0.3s ease" }}
+                    />
+                  </svg>
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 9,
+                      fontWeight: 600,
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    {Math.round(contextPct)}%
+                  </div>
                 </div>
 
                 <button
@@ -1979,6 +2174,39 @@ export default function AgentDashboard() {
                 <input type="file" ref={imageInputRef} accept="image/*" multiple onChange={onImageSelect} style={{ display: "none" }} />
               </div>
             </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                padding: "8px 16px",
+                gap: 12,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => { setPreviewOpen(true); setActiveTab("settings"); }}
+                title="Settings & Commands"
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: "50%",
+                  background: "transparent",
+                  border: "1px solid var(--color-border)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: 0.6,
+                  transition: "opacity 200ms",
+                  color: "var(--color-text)",
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* Status bar */}
@@ -2006,158 +2234,6 @@ export default function AgentDashboard() {
             <div style={{ flexShrink: 0 }} aria-hidden="true" />
           )}
         </div>
-
-        {/* ── Mode selection modal ─────────────────────────────────────────── */}
-        {showModeModal && (
-          <>
-            <div
-              role="presentation"
-              onClick={() => setShowModeModal(false)}
-              style={{
-                position: "fixed",
-                inset: 0,
-                background: "rgba(0,0,0,0.5)",
-                zIndex: 9998,
-                backdropFilter: "blur(2px)",
-              }}
-            />
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="mode-modal-title"
-              style={{
-                position: "fixed",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                background: "var(--bg-elevated)",
-                border: "1px solid var(--color-border)",
-                borderRadius: 12,
-                padding: 24,
-                minWidth: 320,
-                boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-                zIndex: 9999,
-              }}
-            >
-              <h3 id="mode-modal-title" style={{ margin: "0 0 16px 0", fontSize: 16, fontWeight: 600 }}>Select Mode</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {["ask", "agent", "plan", "debug"].map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => { setMode(m); setShowModeModal(false); }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "12px 16px",
-                      border: mode === m ? `2px solid var(--mode-${m})` : "1px solid var(--color-border)",
-                      borderRadius: 8,
-                      background: mode === m ? "var(--bg-canvas)" : "transparent",
-                      cursor: "pointer",
-                      fontSize: 14,
-                      textAlign: "left",
-                      transition: "all 150ms ease",
-                      color: "var(--color-text)",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    <span style={{ display: "flex", color: `var(--mode-${m})` }}>{MODE_ICONS[m]}</span>
-                    <span style={{ textTransform: "capitalize" }}>{m}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* ── Model selection modal ─────────────────────────────────────────── */}
-        {showModelModal && (
-          <>
-            <div
-              role="presentation"
-              onClick={() => setShowModelModal(false)}
-              style={{
-                position: "fixed",
-                inset: 0,
-                background: "rgba(0,0,0,0.5)",
-                zIndex: 9998,
-                backdropFilter: "blur(2px)",
-              }}
-            />
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="model-modal-title"
-              style={{
-                position: "fixed",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                background: "var(--bg-elevated)",
-                border: "1px solid var(--color-border)",
-                borderRadius: 12,
-                padding: 24,
-                minWidth: 340,
-                maxHeight: "60vh",
-                overflowY: "auto",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-                zIndex: 9999,
-              }}
-            >
-              <h3 id="model-modal-title" style={{ margin: "0 0 16px 0", fontSize: 16, fontWeight: 600 }}>Select Model</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedModel({ id: "auto", display_name: "Auto" });
-                    setActiveModel(models[0] ?? null);
-                    setShowModelModal(false);
-                  }}
-                  style={{
-                    padding: "12px 16px",
-                    border: selectedModel?.id === "auto" ? "2px solid var(--mode-color)" : "1px solid var(--color-border)",
-                    borderRadius: 8,
-                    background: selectedModel?.id === "auto" ? "var(--bg-canvas)" : "transparent",
-                    cursor: "pointer",
-                    fontSize: 14,
-                    textAlign: "left",
-                    transition: "all 150ms ease",
-                    color: "var(--color-text)",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  Auto
-                </button>
-                {models.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedModel(m);
-                      setActiveModel(m);
-                      setShowModelModal(false);
-                    }}
-                    style={{
-                      padding: "12px 16px",
-                      border: selectedModel?.id === m.id ? "2px solid var(--mode-color)" : "1px solid var(--color-border)",
-                      borderRadius: 8,
-                      background: selectedModel?.id === m.id ? "var(--bg-canvas)" : "transparent",
-                      cursor: "pointer",
-                      fontSize: 14,
-                      textAlign: "left",
-                      transition: "all 150ms ease",
-                      color: "var(--color-text)",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    {MODEL_LABELS[m.model_key] ?? m.display_name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
 
         {/* ── Panel resize divider ────────────────────────────────────────── */}
         {previewOpen && (
@@ -2216,6 +2292,7 @@ export default function AgentDashboard() {
             onMonacoDiffResolved={() => setMonacoDiffFromChat(null)}
             connectedIntegrations={connectedIntegrations}
             runCommandRunnerRef={runCommandRunnerRef}
+            availableCommands={availableCommands}
           />
         )}
 

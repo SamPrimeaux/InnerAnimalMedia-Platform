@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Editor from "@monaco-editor/react";
 import { DiffEditor } from "@monaco-editor/react";
 
-const TAB_LABELS = { terminal: "Terminal", browser: "Browser", files: "Files", code: "Code", view: "View" };
-const TAB_ORDER = ["terminal", "browser", "files", "code", "view"];
+const TAB_LABELS = { terminal: "Terminal", browser: "Browser", files: "Files", code: "Code", view: "View", settings: "Settings" };
+const TAB_ORDER = ["terminal", "browser", "files", "code", "view", "settings"];
 
 function buildR2Url(bucket, key) {
   const base = typeof window !== "undefined" ? window.location.origin : "";
@@ -107,6 +107,7 @@ export default function FloatingPreviewPanel({
   onMonacoDiffResolved,
   connectedIntegrations = {},
   runCommandRunnerRef,
+  availableCommands = [],
 }) {
   const [previewEdit, setPreviewEdit] = useState(false);
   const [browserInputUrl, setBrowserInputUrl] = useState("");
@@ -864,6 +865,40 @@ export default function FloatingPreviewPanel({
                 </>
               );
             })()}
+          </div>
+        )}
+
+        {/* SETTINGS TAB -- commands + shortcuts */}
+        {activeTab === "settings" && (
+          <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
+            <h3 style={{ margin: "0 0 16px 0", fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Commands</h3>
+            <div style={{ marginBottom: 24 }}>
+              {(availableCommands.length === 0) ? (
+                <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>No commands loaded. Type /help in chat for slash commands.</div>
+              ) : (
+                availableCommands.map((cmd) => (
+                  <div
+                    key={cmd.command_name || cmd.trigger || cmd.description}
+                    style={{
+                      padding: 12,
+                      border: "1px solid var(--border)",
+                      borderRadius: 6,
+                      marginBottom: 8,
+                      background: "var(--bg-canvas)",
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-primary)" }}>/{cmd.command_name || cmd.trigger || "command"}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>{cmd.description || "No description."}</div>
+                  </div>
+                ))
+              )}
+            </div>
+            <h3 style={{ margin: "0 0 16px 0", fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Keyboard Shortcuts</h3>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+              <div>Cmd+K - Open settings</div>
+              <div>Cmd+/ - Focus chat input</div>
+              <div>Esc - Close panels</div>
+            </div>
           </div>
         )}
 
