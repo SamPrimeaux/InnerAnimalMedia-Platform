@@ -601,4 +601,29 @@ Cron "30 13 * * *" registered. First fire: 13:30 UTC (8:30am CDT). Daily plan em
 ### Known issues / next steps
 - Verify with wrangler tail when cron fires. Ensure Agent Sam sender (agent@inneranimalmedia.com) is verified in Resend if required.
 
+---
+
+## [2026-03-12] GitHub sync, deployment records, iam-platform memory
+
+### What was asked
+Ensure GitHub repo is up to date, all updates/improvements live, and document: (1) deployment records in D1, (2) memory/context in iam-platform for accurate start tomorrow.
+
+### Files changed
+- `docs/memory/daily/2026-03-12.md`: Created — daily memory: what was done (daily plan cron, deploy, handoff), what is live, tomorrow start (TASK 0–5), where stored (R2, D1, repo).
+- `docs/cursor-session-log.md`: This entry appended.
+
+### Files NOT changed (and why)
+- worker.js, wrangler.production.toml, agent.html, OAuth handlers: not touched.
+
+### Deploy status
+- Built: no. R2 uploaded: yes — iam-platform/memory/daily/2026-03-12.md, iam-platform/agent-sessions/TOMORROW.md. Worker deployed: no (already deployed earlier). D1: post-deploy-record.sh run with TRIGGERED_BY=agent, DEPLOYMENT_NOTES='8:30am CST daily plan cron: sendDailyPlanEmail, D1+Workers AI+Resend'. GitHub: pushed to origin 2026-02-04-330k-b5b6e (commit 651a47c).
+
+### What is live now
+- GitHub (InnerAnimalMedia-Platform): worker.js, wrangler.production.toml, agentsam-clean/docs/TOMORROW.md, docs/cursor-session-log.md, docs/memory/daily/2026-03-12.md committed and pushed.
+- D1 cloudflare_deployments: New row with triggered_by=agent, deployment_notes for daily plan cron.
+- R2 iam-platform: memory/daily/2026-03-12.md and agent-sessions/TOMORROW.md uploaded for tomorrow context and AutoRAG.
+
+### Known issues / next steps
+- Re-index memory (or cron 0 6 * * *) will pick up memory/daily/2026-03-12.md for Vectorize. Tomorrow: start with TASK 0 (chat history), read TOMORROW.md.
+
 - After deploy: run verification tests 1–6 from the repair plan (terminal WS, Run in terminal, tool loop Anthropic/OpenAI/Google, RAG).
