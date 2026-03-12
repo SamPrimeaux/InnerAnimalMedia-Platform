@@ -5,6 +5,9 @@ compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 preview_urls = true
 
+[esbuild]
+external = ["@cloudflare/playwright"]
+
 [[routes]]
 pattern = "inneranimalmedia.com/*"
 zone_name = "inneranimalmedia.com"
