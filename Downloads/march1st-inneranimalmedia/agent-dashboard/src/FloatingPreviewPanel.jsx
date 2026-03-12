@@ -103,6 +103,8 @@ export default function FloatingPreviewPanel({
   activeThemeSlug = "",
   proposedFileChange = null,
   onProposedChangeResolved,
+  monacoDiffFromChat = null,
+  onMonacoDiffResolved,
   connectedIntegrations = {},
   runCommandRunnerRef,
 }) {
@@ -507,6 +509,35 @@ export default function FloatingPreviewPanel({
     setProposedContent(null);
     onProposedChangeResolved?.("rejected");
   }, [onProposedChangeResolved]);
+
+  const handleKeepChangesFromChat = useCallback(async () => {
+    if (!monacoDiffFromChat || !monacoDiffFromChat.filename) return;
+    setSaving(true);
+    try {
+      const res = await fetch(
+        `/api/r2/buckets/agent-sam/object/${encodeURIComponent(monacoDiffFromChat.filename)}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "text/plain" },
+          body: monacoDiffFromChat.modified,
+          credentials: "same-origin",
+        }
+      );
+      if (res.ok) {
+        setCodeFilename(monacoDiffFromChat.filename);
+        if (onCodeContentChange) onCodeContentChange(monacoDiffFromChat.modified);
+        onMonacoDiffResolved?.();
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 2000);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [monacoDiffFromChat, onCodeContentChange, onMonacoDiffResolved]);
+
+  const handleUndoFromChat = useCallback(() => {
+    onMonacoDiffResolved?.();
+  }, [onMonacoDiffResolved]);
 
   // Notify parent whenever file loaded in Code tab changes (for agent context)
   useEffect(() => {
@@ -1119,7 +1150,20 @@ export default function FloatingPreviewPanel({
 
         {/* CODE TAB -- Monaco */}
         <div style={{ flex: 1, display: activeTab === "code" ? "flex" : "none", flexDirection: "column", overflow: "hidden", background: "var(--bg-canvas)" }}>
-            {diffMode ? (
+            {monacoDiffFromChat ? (
+              <div style={{ display: "flex", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--color-border)", background: "var(--bg-elevated)", flexShrink: 0, alignItems: "center" }}>
+                <div style={{ flex: 1, fontSize: 13, color: "var(--text-muted)" }}>
+                  <span style={{ color: "var(--mode-ask)", fontWeight: 600 }}>+</span> Added
+                  <span style={{ marginLeft: 16, color: "var(--color-danger)", fontWeight: 600 }}>-</span> Removed
+                </div>
+                <button type="button" onClick={handleKeepChangesFromChat} disabled={saving} style={{ padding: "6px 16px", background: "var(--mode-ask)", color: "var(--color-on-mode)", border: "none", borderRadius: 6, cursor: saving ? "wait" : "pointer", fontWeight: 500, fontSize: 13 }}>
+                  {saving ? "Saving..." : saveSuccess ? "Saved" : "Keep Changes"}
+                </button>
+                <button type="button" onClick={handleUndoFromChat} style={{ padding: "6px 16px", background: "transparent", border: "1px solid var(--color-border)", borderRadius: 6, cursor: "pointer", fontSize: 13, color: "var(--color-text)" }}>
+                  Undo
+                </button>
+              </div>
+            ) : diffMode ? (
               <div style={{ height: 32, background: "rgba(234,179,8,0.10)", fontSize: 12, color: "var(--text-secondary)", padding: "0 12px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{codeFilename.split("/").pop() || codeFilename}</span>
                 <span style={{ color: "var(--text-muted)" }}>|</span>
@@ -1181,15 +1225,15 @@ export default function FloatingPreviewPanel({
               <div style={{ padding: "4px 8px", borderBottom: "1px solid var(--border)", fontSize: "10px", color: "var(--text-muted)" }}>Code -- edit or paste; use Files tab to open from R2</div>
             )}
             <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-              {diffMode ? (
+              {(monacoDiffFromChat || diffMode) ? (
                 <DiffEditor
-                  original={codeContent}
-                  modified={proposedContent ?? ""}
-                  language={getMonacoLanguage(codeFilename)}
+                  original={monacoDiffFromChat ? monacoDiffFromChat.original : codeContent}
+                  modified={monacoDiffFromChat ? monacoDiffFromChat.modified : (proposedContent ?? "")}
+                  language={getMonacoLanguage(monacoDiffFromChat ? monacoDiffFromChat.filename : codeFilename)}
                   theme="iam-custom"
                   options={{
-                    readOnly: true,
-                    renderSideBySide: false,
+                    readOnly: !monacoDiffFromChat,
+                    renderSideBySide: !!monacoDiffFromChat,
                     lineNumbers: "on",
                     minimap: { enabled: false },
                     fontSize: 13,

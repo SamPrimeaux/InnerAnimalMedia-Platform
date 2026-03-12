@@ -1584,9 +1584,23 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
         } catch (e) {
           resultText = JSON.stringify({ error: e?.message ?? String(e) });
         }
+      } else if (toolName === 'generate_execution_plan' && env.DB) {
+        const summary = typeof params.summary === 'string' ? params.summary.trim() : '';
+        const steps = Array.isArray(params.steps) ? params.steps : [];
+        try {
+          const planId = crypto.randomUUID();
+          const tenantId = env.TENANT_ID || 'system';
+          const planJson = JSON.stringify({ summary, steps });
+          await env.DB.prepare(
+            `INSERT INTO agent_execution_plans (id, tenant_id, session_id, plan_json, summary, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'pending', unixepoch(), unixepoch())`
+          ).bind(planId, tenantId, conversationId ?? '', planJson, summary.slice(0, 2000)).run();
+          resultText = JSON.stringify({ plan_id: planId, status: 'pending', message: 'Plan created; user can approve or reject in the UI.' });
+        } catch (e) {
+          resultText = JSON.stringify({ error: e?.message ?? String(e) });
+        }
       }
 
-      const BUILTIN_TOOLS = new Set(['terminal_execute', 'd1_query', 'd1_write', 'r2_read', 'r2_list', 'knowledge_search']);
+      const BUILTIN_TOOLS = new Set(['terminal_execute', 'd1_query', 'd1_write', 'r2_read', 'r2_list', 'knowledge_search', 'generate_execution_plan']);
       if (!BUILTIN_TOOLS.has(toolName) && env.DB) {
         try {
           const toolRow = await env.DB.prepare('SELECT tool_category FROM mcp_registered_tools WHERE tool_name = ? AND enabled = 1').bind(toolName).first();
@@ -3338,10 +3352,15 @@ async function handleAgentApi(request, url, env, ctx) {
 
         const readable = new ReadableStream({
           async pull(controller) {
+            let sentThinking = false;
             try {
               for (;;) {
                 const { done, value } = await reader.read();
                 if (done) break;
+                if (!sentThinking) {
+                  sentThinking = true;
+                  controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'state', state: 'THINKING' })}\n\n`));
+                }
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split('\n');
                 buffer = lines.pop() || '';
@@ -3408,6 +3427,9 @@ async function handleAgentApi(request, url, env, ctx) {
               }
             } finally {
               reader.releaseLock();
+              try {
+                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'state', state: 'IDLE' })}\n\n`));
+              } catch (_) {}
             }
             controller.close();
           },
@@ -3713,6 +3735,97 @@ async function handleAgentApi(request, url, env, ctx) {
       } catch (e) {
         console.error('[agent/rag/compact-chats]', e?.message || e);
         return jsonResponse({ error: String(e?.message || e), conversations: 0, messages: 0, key: '' }, 500);
+      }
+    }
+
+    if (pathLower === '/api/agent/queue' && method === 'POST') {
+      try {
+        if (!env.DB) return jsonResponse({ error: 'DB missing' }, 503);
+        const body = await request.json().catch(() => ({}));
+        const sessionId = body.session_id || body.conversation_id || '';
+        const taskType = body.task_type || 'task';
+        const payload = body.payload != null ? body.payload : {};
+        const planId = body.plan_id || null;
+        if (!sessionId) return jsonResponse({ error: 'session_id or conversation_id required' }, 400);
+        const tenantId = env.TENANT_ID || 'system';
+        const { results: existing } = await env.DB.prepare(
+          'SELECT COALESCE(MAX(position), 0) as max_pos FROM agent_request_queue WHERE session_id = ?'
+        ).bind(sessionId).all();
+        const position = (existing?.[0]?.max_pos ?? 0) + 1;
+        const id = crypto.randomUUID();
+        await env.DB.prepare(
+          `INSERT INTO agent_request_queue (id, tenant_id, session_id, plan_id, task_type, payload_json, status, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'queued', ?, unixepoch(), unixepoch())`
+        ).bind(id, tenantId, sessionId, planId, taskType, JSON.stringify(payload), position).run();
+        return jsonResponse({ id, session_id: sessionId, task_type: taskType, status: 'queued', position });
+      } catch (e) {
+        console.error('[agent/queue]', e?.message || e);
+        return jsonResponse({ error: String(e?.message || e) }, 500);
+      }
+    }
+
+    if (pathLower === '/api/agent/queue/status' && method === 'GET') {
+      try {
+        if (!env.DB) return jsonResponse({ error: 'DB missing' }, 503);
+        const sessionId = url.searchParams.get('session_id') || url.searchParams.get('conversation_id') || '';
+        if (!sessionId) return jsonResponse({ error: 'session_id or conversation_id required' }, 400);
+        const { results: rows } = await env.DB.prepare(
+          'SELECT id, task_type, status, position, payload_json, result_json, plan_id, created_at FROM agent_request_queue WHERE session_id = ? ORDER BY position ASC'
+        ).bind(sessionId).all();
+        const queue = (rows || []).map((r) => {
+          let payload = null;
+          let result = null;
+          try { if (r.payload_json) payload = JSON.parse(r.payload_json); } catch (_) {}
+          try { if (r.result_json) result = JSON.parse(r.result_json); } catch (_) {}
+          return {
+            id: r.id,
+            task_type: r.task_type,
+            status: r.status,
+            position: r.position,
+            payload,
+            result,
+            plan_id: r.plan_id,
+            created_at: r.created_at,
+          };
+        });
+        const current = queue.find((q) => q.status === 'running') || queue.find((q) => q.status === 'queued');
+        return jsonResponse({ session_id: sessionId, current: current || null, queue_count: queue.length, queue });
+      } catch (e) {
+        console.error('[agent/queue/status]', e?.message || e);
+        return jsonResponse({ error: String(e?.message || e), queue: [], queue_count: 0 }, 500);
+      }
+    }
+
+    if (pathLower === '/api/agent/plan/approve' && method === 'POST') {
+      try {
+        if (!env.DB) return jsonResponse({ error: 'DB missing' }, 503);
+        const body = await request.json().catch(() => ({}));
+        const planId = body.plan_id || '';
+        if (!planId) return jsonResponse({ error: 'plan_id required' }, 400);
+        const r = await env.DB.prepare(
+          "UPDATE agent_execution_plans SET status = 'approved', updated_at = unixepoch() WHERE id = ? AND status = 'pending'"
+        ).bind(planId).run();
+        if (r.meta?.changes === 0) return jsonResponse({ error: 'Plan not found or already approved/rejected' }, 404);
+        return jsonResponse({ plan_id: planId, status: 'approved' });
+      } catch (e) {
+        console.error('[agent/plan/approve]', e?.message || e);
+        return jsonResponse({ error: String(e?.message || e) }, 500);
+      }
+    }
+
+    if (pathLower === '/api/agent/plan/reject' && method === 'POST') {
+      try {
+        if (!env.DB) return jsonResponse({ error: 'DB missing' }, 503);
+        const body = await request.json().catch(() => ({}));
+        const planId = body.plan_id || '';
+        if (!planId) return jsonResponse({ error: 'plan_id required' }, 400);
+        const r = await env.DB.prepare(
+          "UPDATE agent_execution_plans SET status = 'rejected', updated_at = unixepoch() WHERE id = ? AND status = 'pending'"
+        ).bind(planId).run();
+        if (r.meta?.changes === 0) return jsonResponse({ error: 'Plan not found or already approved/rejected' }, 404);
+        return jsonResponse({ plan_id: planId, status: 'rejected' });
+      } catch (e) {
+        console.error('[agent/plan/reject]', e?.message || e);
+        return jsonResponse({ error: String(e?.message || e) }, 500);
       }
     }
 

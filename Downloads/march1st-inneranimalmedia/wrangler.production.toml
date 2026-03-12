@@ -4,6 +4,11 @@ compatibility_date = "2026-01-20"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 preview_urls = true
+no_bundle = true
+packages = "external"
+
+[build]
+command = ""
 
 [esbuild]
 external = ["@cloudflare/playwright"]

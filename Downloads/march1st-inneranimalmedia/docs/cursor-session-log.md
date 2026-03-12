@@ -809,13 +809,245 @@ Execute plan: Phase 1 (Steps 1-3) quick wins: (1) Model configuration — Sonnet
 
 ### Deploy status
 - Built: yes (agent-dashboard npm run build succeeded).
-- R2 uploaded: no (per rules: no deploy without "deploy approved").
-- Worker deployed: no.
-- Migration 127: 127_agent_configs_default_model.sql failed on remote (table agent_configs already exists, no default_model_id column). 127_agent_configs_add_columns.sql run failed: duplicate column updated_at (so updated_at already exists). Migration file updated to only ADD default_model_id and UPDATE/INSERT without updated_at. User may need to run add_columns again; if default_model_id was already added, run only: UPDATE agent_configs SET default_model_id = 'claude-sonnet-4-6' WHERE id = 'agent-sam-primary'; INSERT OR IGNORE INTO agent_configs (id, default_model_id) VALUES ('agent-sam-primary', 'claude-sonnet-4-6');
+- Migration 127: Applied 127_agent_configs_add_columns.sql to remote D1 (3 queries, 2 rows written). default_model_id added and agent-sam-primary set to claude-sonnet-4-6.
+- R2 uploaded: yes. agent.html, agent-dashboard.js, agent-dashboard.css to agent-sam (static/dashboard/agent.html, static/dashboard/agent/agent-dashboard.js, static/dashboard/agent/agent-dashboard.css) with --remote.
+- Worker deployed: yes. npm run deploy. Version ID: 10ad6786-b554-43b4-9309-17fcbdbea22c.
+- Git: committed "Phase 1: Model defaults, z-index fix, AI Search integration"; pushed to origin agentsam-clean.
 
 ### What is live now
-Nothing deployed. After migration 127 applied and deploy: boot returns default_model_id; Agent page selects Sonnet 4.6 by default with all models in dropdown; header dropdowns above content; header search shows Knowledge results when typing 3+ chars; Agent "Search knowledge base" opens panel, results insert into chat.
+Boot returns default_model_id; Agent page selects Sonnet 4.6 by default with all models in dropdown; header dropdowns (profile, notifications, clock, search) at z-index 2100 above content; header search shows Knowledge results when typing 3+ chars and inserts into chat; Agent "Search knowledge base" in connector popup opens panel, results insert into chat.
 
 ### Known issues / next steps
 - Apply D1: run 127_agent_configs_add_columns.sql (or just UPDATE/INSERT if default_model_id already present).
 - Phase 2 (Steps 4-11) and Steps 12-13 pending; pause after Phase 1 for verification per user request.
+
+---
+
+## [2026-03-12] Complete verified rebuild and deploy (v=37, z-index, Sonnet 4.6)
+
+### What was asked
+Complete verified rebuild and deploy: ensure agent.html has v=37 and z-index changes live; rebuild React bundle; upload all dashboard assets to correct R2 paths; deploy worker; verify v=37, z-index 9000/9100, and default_model_id claude-sonnet-4-6.
+
+### Files changed
+- None this session. Local `dashboard/agent.html` already had v=37 and .topbar z-index 9000 (dropdowns 9100) from prior session.
+
+### Files NOT changed (and why)
+- worker.js, FloatingPreviewPanel.jsx, agent.html (no code edits; only R2 re-upload of existing file).
+
+### Deploy status
+- Built: yes. `cd agent-dashboard && npm run build` (vite build succeeded).
+- R2 uploaded: yes (with `./scripts/with-cloudflare-env.sh` and `--remote`): agent-sam/static/dashboard/agent.html, agent-sam/static/dashboard/agent/agent-dashboard.js, agent-sam/static/dashboard/agent/agent-dashboard.css.
+- Worker deployed: yes. `npm run deploy`. Version ID: 62a5ce91-77fa-4f7a-b9ec-a3e845465c48.
+- Deploy approved by Sam: not typed this session; user requested "complete verified rebuild and deploy" and verification was run after deploy.
+
+### What is live now
+- Live HTML at https://inneranimalmedia.com/dashboard/agent serves agent-dashboard.js?v=37 and agent-dashboard.css?v=37.
+- .topbar has z-index: 9000; search-dropdown, profile-dropdown, clock, notifications, agent-drawer-model-popup have z-index: 9100.
+- /api/agent/boot returns default_model_id: "claude-sonnet-4-6".
+
+### Verification results (Step 7)
+- `curl .../dashboard/agent?nocache=... | grep "agent-dashboard.js?v="` -> v=37 present.
+- Live HTML contains `.topbar { z-index: 9000; }` and dropdowns at z-index: 9100.
+- `curl .../api/agent/boot | jq '.default_model_id'` -> "claude-sonnet-4-6".
+
+### Known issues / next steps
+- User to test in incognito: v=37 in page source, default model "Claude Sonnet 4.6", dropdowns above content.
+- Phase 2 (Steps 4-11) and Steps 12-13 still pending.
+
+---
+
+## [2026-03-12] Agent page: z-index 10001, clock 12h Central, v=38
+
+### What was asked
+Fix dropdown z-index to 10001 (from 9100) so dropdowns appear above content; change clock to 12-hour format and America/Chicago (Lafayette, LA); bump cache to v=38; upload to R2.
+
+### Files changed
+- `dashboard/agent.html`: (1) All dropdown z-index 9100 -> 10001 (CSS: .search-dropdown, .profile-dropdown, .agent-drawer-model-popup; inline: #clock-dropdown, #notifications-dropdown). (2) updateClockDisplay: toLocaleTimeString with hour12: true, timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit', second: '2-digit'; clockDateEl with toLocaleDateString('en-US', { timeZone: 'America/Chicago', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }). (3) Cache version v=37 -> v=38 for agent-dashboard.css and agent-dashboard.js.
+
+### Files NOT changed (and why)
+- worker.js, FloatingPreviewPanel.jsx: not touched per rules.
+
+### Deploy status
+- Built: no (HTML only).
+- R2 uploaded: yes. agent-sam/static/dashboard/agent.html via ./scripts/with-cloudflare-env.sh (--remote).
+- Worker deployed: no.
+
+### What is live now
+- Agent page serves v=38; dropdowns use z-index: 10001; clock shows 12-hour Central Time and date in America/Chicago.
+
+### Verification
+- curl live /dashboard/agent: v=38 and z-index: 10001 present in HTML.
+
+### Known issues / next steps
+- User to verify in incognito: dropdowns above content, clock "1:34:28 PM" format, Lafayette timezone.
+
+---
+
+## [2026-03-12] Agent header dropdowns: position fixed + JS positioning (v=39)
+
+### What was asked
+Agent drawer works (position: fixed) but header dropdowns don't; change header dropdowns from position: absolute to position: fixed and add JS to position them on open (viewport-relative). Increment to v=39, upload, test.
+
+### Report: agent drawer CSS
+- `.agent-drawer-backdrop`: `position: fixed; inset: 0; z-index: 200`
+- `.agent-drawer`: `position: fixed; top: 0; right: 0; ... z-index: 201`
+- Header dropdowns previously used `position: absolute` (trapped in stacking context).
+
+### Files changed
+- `dashboard/agent.html`: (1) CSS: .search-dropdown and .profile-dropdown from position: absolute to position: fixed (removed left/right/top from CSS). (2) Inline #clock-dropdown and #notifications-dropdown: position: absolute -> position: fixed, removed right/top. (3) Added positionHeaderDropdown(triggerEl, dropdownEl, align) helper (align 'left' or 'right', sets top/left or top/right from getBoundingClientRect). (4) Call positionHeaderDropdown on open for: clock (clock-btn + clock-dropdown, 'right'), notifications (notifications-btn + notifications-dropdown, 'right'), search (searchWrap + searchDropdown, 'left') on focus and on mobile button open, profile (profileAvatar + profileDropdown, 'right'). (5) Cache v=38 -> v=39.
+
+### Files NOT changed (and why)
+- worker.js, FloatingPreviewPanel.jsx, AgentDashboard.jsx: not touched.
+
+### Deploy status
+- Built: no.
+- R2 uploaded: yes. agent-sam/static/dashboard/agent.html via ./scripts/with-cloudflare-env.sh --remote.
+- Worker deployed: no.
+
+### What is live now
+- Agent page v=39; header dropdowns use position: fixed and are positioned by JS on open so they escape the main-content stacking context and appear above the React app.
+
+---
+
+## [2026-03-12] Phase 2 Steps 4-5: Database and backend (execution plans, queue, SSE)
+
+### What was asked
+Phase 2 Enhanced Agent Sam: Steps 4-5 only. Create migrations agent_execution_plans and agent_request_queue; add generate_execution_plan tool; add queue endpoints (POST /api/agent/queue, GET /api/agent/queue/status); add plan endpoints (POST /api/agent/plan/approve, /reject); add SSE state events to /api/agent/chat. Report when migrations are ready for review.
+
+### Files changed
+- `migrations/129_agent_execution_plans_and_queue.sql`: New. CREATE TABLE agent_execution_plans (id, tenant_id, session_id, plan_json, summary, status pending|approved|rejected, created_at, updated_at). CREATE TABLE agent_request_queue (id, tenant_id, session_id, plan_id, task_type, payload_json, status queued|running|done|failed, position, result_json, created_at, updated_at). Indexes on session_id and status.
+- `migrations/130_agent_generate_execution_plan_tool.sql`: New. INSERT OR IGNORE into mcp_registered_tools for generate_execution_plan (builtin, summary + steps array, execute category).
+- `worker.js`: (1) runToolLoop: handle generate_execution_plan (insert into agent_execution_plans, return plan_id and status pending); add generate_execution_plan to BUILTIN_TOOLS. (2) POST /api/agent/queue: body session_id, task_type, payload, optional plan_id; insert into agent_request_queue, return id and status. (3) GET /api/agent/queue/status?session_id=: return current (running or first queued), queue_count, queue[]. (4) POST /api/agent/plan/approve and /reject: body plan_id; UPDATE agent_execution_plans SET status. (5) Anthropic stream: send SSE state event THINKING at start of pull; send state IDLE in finally before close.
+
+### Files NOT changed (and why)
+- OAuth handlers, agent.html, FloatingPreviewPanel.jsx, AgentDashboard.jsx: not touched per constraints.
+
+### Deploy status
+- Migrations: not run (ready for review and approval).
+- Worker: not deployed.
+
+### Migrations ready for review
+Run after approval:
+```bash
+./scripts/with-cloudflare-env.sh npx wrangler d1 execute inneranimalmedia-business --remote -c wrangler.production.toml --file=./migrations/129_agent_execution_plans_and_queue.sql
+./scripts/with-cloudflare-env.sh npx wrangler d1 execute inneranimalmedia-business --remote -c wrangler.production.toml --file=./migrations/130_agent_generate_execution_plan_tool.sql
+```
+
+---
+
+## [2026-03-12] Agent drawer toggle fix (v=40)
+
+### What was asked
+Quick fix: '?' button opened the drawer but did not close it. Add toggle so clicking again closes the drawer. Then upload v=40.
+
+### Files changed
+- `dashboard/agent.html`: agent-drawer-btn click handler changed from `addEventListener('click', openDrawer)` to a function that checks `drawer.classList.contains('open')` and calls closeDrawer() or openDrawer() accordingly. Cache v=39 -> v=40.
+
+### Deploy status
+- R2 uploaded: yes. agent-sam/static/dashboard/agent.html (v=40) via ./scripts/with-cloudflare-env.sh --remote.
+- Worker deployed: no.
+
+---
+
+## [2026-03-12] Phase 2 Step 6 — Mode system (Ask, Debug, Plan, Agent)
+
+### What was asked
+Proceed with Phase 2 Steps 6–8; start with Step 6 only and report when ready for review. Step 6: 4 modes with CSS variables (Ask green, Debug red, Plan orange, Agent blue), mode selector in chat input area, send button inherits --mode-color, active mode indicator with pulse animation, no emojis.
+
+### Files changed
+- `agent-dashboard/src/index.css`: Added #agent-dashboard-root scoped vars --mode-ask, --mode-debug, --mode-plan, --mode-agent (hex values in CSS only). Added @keyframes modePulse (opacity + scale).
+- `agent-dashboard/src/AgentDashboard.jsx`: (1) Input bar wrap: set --mode-color from current mode so send and indicator inherit. (2) Mode selector button: added left-padding, absolute-positioned dot with background var(--mode-color) and modePulse animation. (3) Mode dropdown items: added small colored dot per mode using var(--mode-*). (4) Send button: background uses var(--mode-color) when not loading instead of var(--color-primary).
+
+### Files NOT changed (and why)
+- worker.js, agent.html, FloatingPreviewPanel.jsx: not touched per rules.
+
+### Deploy status
+- Built: no (agent-dashboard build not run).
+- R2 uploaded: no.
+- Worker deployed: no.
+- Deploy approved by Sam: no.
+
+### What is ready for review
+Step 6 (mode system) is implemented locally. Mode selector shows current mode with a pulsing colored dot; dropdown shows all four modes with dots; send button color follows selected mode. Steps 7–8 (AnimatedStatusText, SSE state wiring) not started.
+
+---
+
+## [2026-03-12] Phase 2 Steps 7–8 — Agent states + AnimatedStatusText + SSE
+
+### What was asked
+Implement Step 7 (state machine: AGENT_STATES, STATE_CONFIG) and Step 8 (AnimatedStatusText component, CSS, wire SSE type=state to agent state, position above chat input).
+
+### Files changed
+- `agent-dashboard/src/index.css`: Added --state-tool, --state-code, --state-queued; @keyframes blink; .agent-status-text and .status-label / .status-cursor styles.
+- `agent-dashboard/src/AnimatedStatusText.jsx`: New component. Typing 30–50ms/char, fade cycle 2s display + 500ms fade, blinking cursor; supports context { tool, file, current, total, position } for message templates; returns null when state IDLE or no config.
+- `agent-dashboard/src/AgentDashboard.jsx`: (1) Import AnimatedStatusText. (2) AGENT_STATES and STATE_CONFIG (colors use CSS vars: --mode-color, --mode-plan, --mode-agent, --state-tool, --state-code, --state-queued). (3) agentState (default IDLE), agentStateContext. (4) Wrapper above input bar with --mode-color scope; AnimatedStatusText with state, config, context. (5) sendMessage: set stream: true; setAgentState(THINKING) at start; if response is text/event-stream and response.body, SSE branch: create assistant message, getReader(), parse data: lines, type state -> setAgentState + setAgentStateContext, type text -> append to content, type done -> telemetry/conversation_id, type error -> append to message; finally setAgentState(IDLE) and setAgentStateContext({}). Non-stream path unchanged (response.json()).
+
+### Files NOT changed (and why)
+- worker.js, agent.html, FloatingPreviewPanel.jsx: not touched per rules.
+
+### Deploy status
+- Built: no. R2 uploaded: no. Worker deployed: no. Deploy approved by Sam: no.
+
+### What is ready for review
+Steps 7–8 done. Agent state machine and AnimatedStatusText are in place; chat requests use stream: true and SSE state events drive agentState; status text appears above input bar with typing/fade/cursor animation.
+
+---
+
+## [2026-03-12] Input bar polish — context gauge move + spacing
+
+### What was asked
+Move the context gauge (minimal circle design) to between model selector and send button; fix input bar spacing (8px gaps, 12px margins); add optional 1px dividers; center textarea with flex: 1. Do not change gauge design, footer, or other areas.
+
+### Files changed
+- `agent-dashboard/src/AgentDashboard.jsx`: (1) Input bar wrap: padding 12px 16px, gap 0. (2) Left group: + and mic only, gap 8px, marginRight 12px; removed context gauge and kept token (session usage) gauge. (3) Divider 1x24 after left. (4) Center: flex 1, minWidth 0; iam-chat-input-main now contains only textarea (no bottom row). (5) Divider before right. (6) Right group: mode selector, model selector, context gauge (same SVG as before), send button; gap 8px; removed marginLeft auto from send. (7) Removed duplicate hidden file inputs and extra closing div.
+
+### Deploy status
+- Built: no. R2: no. Worker: no.
+
+### Result
+Context gauge is beside send button; left = icons + token gauge; center = textarea; right = [Ask] [Model] [circle %] [Send]; 8px gaps, 12px margins, dividers between sections.
+
+---
+
+## [2026-03-12] Phase 2 Steps 9-11 — CodePreviewWindow, ExecutionPlanCard, QueueIndicator
+
+### What was asked
+Implement Steps 9-11: CodePreviewWindow (floating code panels, slide-in, auto-dismiss 5s), ExecutionPlanCard (plan approval UI), QueueIndicator (queue status + poll); wire all into AgentDashboard.
+
+### Files changed
+- `agent-dashboard/src/index.css`: Added --mode-code, --color-on-mode; @keyframes slideInRight, fadeInLine.
+- `agent-dashboard/src/CodePreviewWindow.jsx`: New. Fixed bottom-right, 400px wide, max 500px tall, header (filename + language badge), line-numbered code with fadeInLine, footer line count, autoDismissMs 5s, onClose. Uses var(--color-border), var(--mode-code), var(--color-on-mode).
+- `agent-dashboard/src/ExecutionPlanCard.jsx`: New. Plan summary, steps (title/description or name/detail), Approve (POST /api/agent/plan/approve) and Reject (POST /api/agent/plan/reject). Border var(--mode-plan), button text var(--color-on-mode).
+- `agent-dashboard/src/QueueIndicator.jsx`: New. Fixed top-right; shows current task_type and +N queued; Clear button sets queueDismissed.
+- `agent-dashboard/src/AgentDashboard.jsx`: Imports for CodePreviewWindow, ExecutionPlanCard, QueueIndicator. State: codePreviewWindows[], executionPlan, queueStatus, queueDismissed. SSE: on state WAITING_APPROVAL with plan_id set executionPlan; on type "code" push { id, filename, language, code, lineCount } to codePreviewWindows. Queue poll: GET /api/agent/queue/status?session_id= every 2s. Handlers: handlePlanApprove, handlePlanReject, removeCodePreview. Render: ExecutionPlanCard when agentState === WAITING_APPROVAL && executionPlan; QueueIndicator when showQueueIndicator (with onClear dismiss); CodePreviewWindow stack (fixed bottom-right, column-reverse, 12px gap), each with autoDismissMs 5000.
+
+### Files NOT changed
+- worker.js, agent.html, FloatingPreviewPanel.jsx: not touched per rules.
+
+### Deploy status
+- Built: no. R2: no. Worker: no.
+
+### Result
+Code preview windows appear when SSE sends type "code"; they stack bottom-right and auto-dismiss after 5s. Execution plan card appears when state is WAITING_APPROVAL and plan_id/summary/steps are set via SSE. Queue indicator polls every 2s and shows current task + queue count; Clear dismisses locally.
+
+---
+
+## [2026-03-12] Remove CodePreviewWindow; Option B inline code + Monaco diff
+
+### What was asked
+Remove CodePreviewWindow; implement Option B: inline code blocks in chat (max 15 lines, truncation, "Open in Monaco"); Monaco diff view with Keep Changes / Undo; size limits (300px max height, 15 lines preview).
+
+### Files changed
+- **Deleted:** `agent-dashboard/src/CodePreviewWindow.jsx`
+- `agent-dashboard/src/index.css`: Removed @keyframes slideInRight, fadeInLine.
+- `agent-dashboard/src/AgentDashboard.jsx`: Removed CodePreviewWindow import, codePreviewWindows state, removeCodePreview, and code-preview stack render. SSE type "code" now attaches generatedCode/filename/language to current assistant message. Added monacoDiffFromChat state and openInMonaco(message): fetch original from GET /api/r2/buckets/agent-sam/object/{filename}, set monacoDiffFromChat, setPreviewOpen(true), setActiveTab("code"). Inline code block in message render when msg.generatedCode: 15-line preview, "... N more lines", "X lines total", "Open in Monaco ->" button; maxHeight 300px; CSS vars for colors. Pass monacoDiffFromChat and onMonacoDiffResolved to FloatingPreviewPanel.
+- `agent-dashboard/src/FloatingPreviewPanel.jsx`: Added props monacoDiffFromChat, onMonacoDiffResolved. handleKeepChangesFromChat: PUT to /api/r2/buckets/agent-sam/object/{filename} with modified body, then setCodeFilename, onCodeContentChange, onMonacoDiffResolved. handleUndoFromChat: onMonacoDiffResolved. When monacoDiffFromChat set: show control bar (+ Added / - Removed legend, Keep Changes, Undo); DiffEditor with original/modified from monacoDiffFromChat, renderSideBySide: true, readOnly: false. Diff source conditional: monacoDiffFromChat vs existing proposedContent/codeContent.
+
+### Files NOT changed
+- worker.js, agent.html: not touched.
+
+### Deploy status
+- Built: no. R2: no. Worker: no.
+
+### Result
+Code in chat is inline only (max 15 lines, 300px); "Open in Monaco" opens panel in code tab with diff (original from R2 if exists, modified = full generated code); Keep Changes saves to R2 and exits diff; Undo discards. No floating code windows.

@@ -120,7 +120,7 @@
         .topbar {
             position: sticky;
             top: 0;
-            z-index: 2000;
+            z-index: 9000;
             background: var(--bg-nav);
             border-bottom: 1px solid var(--border-nav);
             height: 60px;
@@ -170,7 +170,7 @@
         .search-wrap .search-input::placeholder { color: var(--text-nav-muted); }
         .search-wrap .search-input:focus { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.35); }
         .search-wrap .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-nav-muted); }
-        .search-dropdown { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; max-height: 280px; overflow-y: auto; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); z-index: 2100; display: none; }
+        .search-dropdown { position: fixed; margin-top: 4px; max-height: 280px; overflow-y: auto; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); z-index: 10001; display: none; }
         .search-dropdown.open { display: block; }
         .search-dropdown .item { padding: 10px 12px; font-size: 13px; color: var(--text-primary); cursor: pointer; border-bottom: 1px solid var(--border); }
         .search-dropdown .item:hover { background: var(--bg-canvas); }
@@ -179,7 +179,7 @@
         .topbar-right { position: relative; }
         .profile-wrap { position: relative; }
         .agent-sam-avatar { cursor: pointer; }
-        .profile-dropdown { position: absolute; right: 0; top: 100%; margin-top: 8px; min-width: 200px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); z-index: 2100; display: none; padding: 6px 0; }
+        .profile-dropdown { position: fixed; margin-top: 8px; min-width: 200px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); z-index: 10001; display: none; padding: 6px 0; }
         .profile-dropdown.open { display: block; }
         .profile-dropdown a, .profile-dropdown button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 16px; font-size: 14px; color: var(--text-primary); background: none; border: none; cursor: pointer; text-align: left; font-family: inherit; }
         .profile-dropdown a:hover, .profile-dropdown button:hover { background: var(--bg-canvas); }
@@ -208,7 +208,7 @@
         .agent-drawer-input-row { padding: 10px 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
         .agent-drawer-input-row textarea { flex: 1; min-height: 40px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-canvas); color: var(--text-primary); font-size: 13px; resize: none; font-family: inherit; }
         .agent-drawer-input-row button { padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 13px; border: none; background: var(--accent); color: #fff; cursor: pointer; }
-        .agent-drawer-model-popup { position: absolute; top: 100%; right: 0; margin-top: 4px; width: 260px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 2100; padding: 8px 0; display: none; }
+        .agent-drawer-model-popup { position: absolute; top: 100%; right: 0; margin-top: 4px; width: 260px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 10001; padding: 8px 0; display: none; }
         .agent-drawer-model-popup.open { display: block; }
         .agent-drawer-model-popup .item { padding: 10px 14px; font-size: 13px; color: var(--text-primary); cursor: pointer; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid var(--border); }
         .agent-drawer-model-popup .item:hover { background: var(--bg-canvas); }
@@ -532,7 +532,7 @@
                 <button type="button" id="clock-btn" class="nav-icon-btn" aria-label="Time &amp; tracking" title="Time &amp; tracking" style="border: none; background: transparent; cursor: pointer; padding: 6px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; color: inherit;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                 </button>
-                <div id="clock-dropdown" style="position: absolute; right: 0; top: 100%; margin-top: 8px; width: 280px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 18px 45px rgba(0,0,0,0.15); padding: 16px; display: none; z-index: 2100;">
+                <div id="clock-dropdown" style="position: fixed; margin-top: 8px; width: 280px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 18px 45px rgba(0,0,0,0.15); padding: 16px; display: none; z-index: 10001;">
                     <div id="clock-time" style="font-size: 24px; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums;">--:--:--</div>
                     <div id="clock-date" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">--</div>
                     <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 6px;">
@@ -550,7 +550,7 @@
                 </svg>
                 <span id="notifications-badge" style="position:absolute; top:4px; right:4px; min-width:14px; height:14px; border-radius:999px; background:#f97316; color:white; font-size:10px; line-height:14px; text-align:center; padding:0 3px; display:none;"></span>
             </button>
-            <div id="notifications-dropdown" style="position:absolute; right:0; top:100%; margin-top:8px; width:320px; max-height:420px; overflow-y:auto; background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px; box-shadow:0 18px 45px rgba(0,0,0,0.15); padding:8px 0; display:none; z-index:2100;">
+            <div id="notifications-dropdown" style="position:fixed; margin-top:8px; width:320px; max-height:420px; overflow-y:auto; background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px; box-shadow:0 18px 45px rgba(0,0,0,0.15); padding:8px 0; display:none; z-index:10001;">
                 <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 16px 6px 16px;">
                     <span style="font-size:13px; font-weight:600; color: var(--text-primary);">Notifications</span>
                     <button id="notifications-mark-all" style="border:none; background:none; color: var(--text-secondary); font-size:11px; cursor:pointer;">Mark all read</button>
@@ -759,8 +759,8 @@
 <script>document.body.classList.add('agent-dashboard-page');</script>
 <div id="agent-dashboard-root" style="width:100%;height:100%;overflow:hidden;"></div>
 
-<link rel="stylesheet" href="/static/dashboard/agent/agent-dashboard.css?v=36">
-    <script type="module" src="/static/dashboard/agent/agent-dashboard.js?v=36"></script>
+<link rel="stylesheet" href="/static/dashboard/agent/agent-dashboard.css?v=41">
+    <script type="module" src="/static/dashboard/agent/agent-dashboard.js?v=41"></script>
         </main>
     </div>
 
@@ -869,6 +869,23 @@
     <footer class="dashboard-mobile-footer" aria-hidden="true"></footer>
 
     <script>
+        // Position fixed header dropdowns relative to viewport (escape stacking context)
+        function positionHeaderDropdown(triggerEl, dropdownEl, align) {
+            if (!triggerEl || !dropdownEl) return;
+            var r = triggerEl.getBoundingClientRect();
+            var gap = 8;
+            if (align === 'left') {
+                dropdownEl.style.left = r.left + 'px';
+                dropdownEl.style.top = (r.bottom + 4) + 'px';
+                dropdownEl.style.width = Math.max(r.width, 280) + 'px';
+                dropdownEl.style.right = 'auto';
+            } else {
+                dropdownEl.style.top = (r.bottom + gap) + 'px';
+                dropdownEl.style.right = (window.innerWidth - r.right) + 'px';
+                dropdownEl.style.left = 'auto';
+            }
+        }
+
         // Theme-aware IA logo
         function updateHeaderLogo() {
             const theme = document.documentElement.getAttribute('data-theme') || 'meaux-glass-blue';
@@ -933,8 +950,8 @@
         const REMINDER_KEY = 'dashboard_reminder';
         function updateClockDisplay() {
             var d = new Date();
-            if (clockTimeEl) clockTimeEl.textContent = d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            if (clockDateEl) clockDateEl.textContent = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+            if (clockTimeEl) clockTimeEl.textContent = d.toLocaleTimeString('en-US', { hour12: true, timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit', second: '2-digit' });
+            if (clockDateEl) clockDateEl.textContent = d.toLocaleDateString('en-US', { timeZone: 'America/Chicago', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
         }
         if (clockBtn && clockDropdown) {
             updateClockDisplay();
@@ -943,6 +960,7 @@
                 e.stopPropagation();
                 var open = clockDropdown.style.display !== 'block';
                 clockDropdown.style.display = open ? 'block' : 'none';
+                if (open) positionHeaderDropdown(clockBtn, clockDropdown, 'right');
             });
             document.addEventListener('click', function () { clockDropdown.style.display = 'none'; });
             clockDropdown.addEventListener('click', function (e) { e.stopPropagation(); });
@@ -1021,6 +1039,7 @@
             function toggle() {
                 open = !open;
                 dropdown.style.display = open ? 'block' : 'none';
+                if (open) positionHeaderDropdown(btn, dropdown, 'right');
             }
 
             btn.addEventListener('click', (e) => {
@@ -1145,7 +1164,7 @@
                 });
             }
             if (input) {
-                input.addEventListener('focus', function () { dropdown.classList.add('open'); renderSuggestions(); });
+                input.addEventListener('focus', function () { dropdown.classList.add('open'); positionHeaderDropdown(wrap, dropdown, 'left'); renderSuggestions(); });
                 input.addEventListener('blur', function () { setTimeout(function () { dropdown.classList.remove('open'); }, 150); });
                 input.addEventListener('input', function () {
                     var q = input.value.trim();
@@ -1172,7 +1191,7 @@
             if (mobileBtn) {
                 mobileBtn.addEventListener('click', function () {
                     wrap.classList.toggle('expanded');
-                    if (wrap.classList.contains('expanded')) { input.focus(); renderSuggestions(); dropdown.classList.add('open'); }
+                    if (wrap.classList.contains('expanded')) { input.focus(); dropdown.classList.add('open'); positionHeaderDropdown(wrap, dropdown, 'left'); renderSuggestions(); }
                 });
             }
             renderSuggestions();
@@ -1186,6 +1205,7 @@
             avatar.addEventListener('click', function (e) {
                 e.stopPropagation();
                 dropdown.classList.toggle('open');
+                if (dropdown.classList.contains('open')) positionHeaderDropdown(avatar, dropdown, 'right');
             });
             document.addEventListener('click', function () { dropdown.classList.remove('open'); });
             document.getElementById('profileSwitchAccount') && document.getElementById('profileSwitchAccount').addEventListener('click', function () { dropdown.classList.remove('open'); /* TODO: switch account */ });
@@ -1228,7 +1248,10 @@
                 if (modelPopup) modelPopup.classList.remove('open');
             }
 
-            if (btn) btn.addEventListener('click', openDrawer);
+            if (btn) btn.addEventListener('click', function () {
+                if (drawer && drawer.classList.contains('open')) closeDrawer();
+                else openDrawer();
+            });
             if (backdrop) backdrop.addEventListener('click', closeDrawer);
             if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
 

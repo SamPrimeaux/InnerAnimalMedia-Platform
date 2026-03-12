@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import FloatingPreviewPanel from "./FloatingPreviewPanel";
+import AnimatedStatusText from "./AnimatedStatusText";
+import ExecutionPlanCard from "./ExecutionPlanCard";
+import QueueIndicator from "./QueueIndicator";
 
 const SpeechRecognitionAPI =
   typeof window !== "undefined"
@@ -67,6 +70,56 @@ const MODEL_LABELS = {
   "gpt-4o": "GPT-4o",
 };
 
+const AGENT_STATES = {
+  IDLE: "IDLE",
+  THINKING: "THINKING",
+  PLANNING: "PLANNING",
+  EXECUTING: "EXECUTING",
+  TOOL_CALL: "TOOL_CALL",
+  CODE_GEN: "CODE_GEN",
+  WAITING_APPROVAL: "WAITING_APPROVAL",
+  QUEUED: "QUEUED",
+};
+
+const STATE_CONFIG = {
+  IDLE: { label: "", messages: [], color: "transparent" },
+  THINKING: {
+    label: "[THINK]",
+    messages: ["Analyzing request...", "Processing context...", "Formulating approach..."],
+    color: "var(--mode-color)",
+  },
+  PLANNING: {
+    label: "[PLAN]",
+    messages: ["Creating execution plan...", "Breaking down steps...", "Estimating complexity..."],
+    color: "var(--mode-plan)",
+  },
+  EXECUTING: {
+    label: "[EXEC]",
+    messages: ["Running step {current} of {total}...", "Executing action...", "Applying changes..."],
+    color: "var(--mode-agent)",
+  },
+  TOOL_CALL: {
+    label: "[TOOL]",
+    messages: ["Calling {tool}...", "Fetching data...", "Processing result..."],
+    color: "var(--state-tool)",
+  },
+  CODE_GEN: {
+    label: "[CODE]",
+    messages: ["Generating code...", "Writing {file}...", "Building solution..."],
+    color: "var(--state-code)",
+  },
+  WAITING_APPROVAL: {
+    label: "[WAIT]",
+    messages: ["Awaiting your approval...", "Plan ready for review..."],
+    color: "var(--mode-plan)",
+  },
+  QUEUED: {
+    label: "[QUEUE]",
+    messages: ["Request queued (position {position})...", "Waiting for current task..."],
+    color: "var(--state-queued)",
+  },
+};
+
 export default function AgentDashboard() {
   // ── Core chat state ───────────────────────────────────────────────────────
   const [messages, setMessages] = useState([
@@ -130,6 +183,20 @@ export default function AgentDashboard() {
   const costPopoverRef = useRef(null);
 
   const [inputBarContextPct, setInputBarContextPct] = useState(0);
+
+  // ── Agent state (SSE type=state) ───────────────────────────────────────────
+  const [agentState, setAgentState] = useState(AGENT_STATES.IDLE);
+  const [agentStateContext, setAgentStateContext] = useState({});
+
+  // ── Execution plan for approval (Step 10) ───────────────────────────────────
+  const [executionPlan, setExecutionPlan] = useState(null);
+
+  // ── Queue status (Step 11) ─────────────────────────────────────────────────
+  const [queueStatus, setQueueStatus] = useState(null);
+  const [queueDismissed, setQueueDismissed] = useState(false);
+
+  // ── Monaco diff from chat (Option B: Open in Monaco) ───────────────────────
+  const [monacoDiffFromChat, setMonacoDiffFromChat] = useState(null);
 
   // ── Speech recognition (talk-to-type) ─────────────────────────────────────
   const recognitionRef = useRef(null);
@@ -290,6 +357,24 @@ export default function AgentDashboard() {
         if (data && data.name) setSessionName(data.name);
       })
       .catch(() => setSessionName("New Conversation"));
+  }, [currentSessionId]);
+
+  // ── Queue status poll (Step 11) ───────────────────────────────────────────
+  useEffect(() => {
+    if (!currentSessionId) return;
+    const fetchQueue = () => {
+      fetch(`/api/agent/queue/status?session_id=${encodeURIComponent(currentSessionId)}`, { credentials: "same-origin" })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.error) return;
+          setQueueStatus({ current: d.current ?? null, queue_count: d.queue_count ?? 0, queue: d.queue ?? [] });
+          if ((d.queue_count ?? 0) === 0) setQueueDismissed(false);
+        })
+        .catch(() => {});
+    };
+    fetchQueue();
+    const interval = setInterval(fetchQueue, 2000);
+    return () => clearInterval(interval);
   }, [currentSessionId]);
 
   const saveSessionName = useCallback(() => {
@@ -486,6 +571,8 @@ export default function AgentDashboard() {
       .slice(-20)
       .map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content }));
 
+    setAgentState(AGENT_STATES.THINKING);
+
     try {
       const response = await fetch("/api/agent/chat", {
         method: "POST",
@@ -499,8 +586,126 @@ export default function AgentDashboard() {
           messages: [...conversationMessages, { role: "user", content: text }],
           images: imagesToSend,
           attached_files: filesToSend,
+          stream: true,
         }),
       });
+
+      const contentType = response.headers.get("Content-Type") || "";
+      const isStream = contentType.includes("text/event-stream") && response.ok;
+
+      if (isStream && response.body) {
+        const assistantId = `m${Date.now()}`;
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantId,
+            role: "assistant",
+            content: "",
+            provider: activeModel?.provider ?? "system",
+            created_at: Date.now(),
+          },
+        ]);
+        let buffer = "";
+        const decoder = new TextDecoder();
+        const reader = response.body.getReader();
+        let fullContent = "";
+        let inputTok = 0;
+        let outputTok = 0;
+        let costUsd = 0;
+        let convId = currentSessionId;
+        try {
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue;
+              const raw = line.slice(6).trim();
+              if (raw === "[DONE]") continue;
+              try {
+                const data = JSON.parse(raw);
+                if (data.type === "state" && data.state != null) {
+                  setAgentState(data.state);
+                  if (data.tool != null || data.file != null || data.current != null || data.total != null || data.position != null) {
+                    setAgentStateContext({
+                      tool: data.tool,
+                      file: data.file,
+                      current: data.current,
+                      total: data.total,
+                      position: data.position,
+                    });
+                  }
+                  if (data.state === "WAITING_APPROVAL" && data.plan_id != null) {
+                    setExecutionPlan({
+                      plan_id: data.plan_id,
+                      summary: data.summary ?? "",
+                      steps: Array.isArray(data.steps) ? data.steps : [],
+                    });
+                  }
+                } else if (data.type === "code" && data.code != null) {
+                  const codeStr = typeof data.code === "string" ? data.code : JSON.stringify(data.code, null, 2);
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? {
+                            ...m,
+                            generatedCode: codeStr,
+                            filename: data.filename ?? "snippet",
+                            language: data.language ?? "text",
+                          }
+                        : m
+                    )
+                  );
+                } else if (data.type === "text" && data.text) {
+                  fullContent += data.text;
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId ? { ...m, content: fullContent } : m
+                    )
+                  );
+                } else if (data.type === "done") {
+                  inputTok = data.input_tokens ?? 0;
+                  outputTok = data.output_tokens ?? 0;
+                  costUsd = data.cost_usd ?? 0;
+                  if (data.conversation_id) convId = data.conversation_id;
+                } else if (data.type === "error") {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? { ...m, content: (m.content || "") + "\n\nError: " + (data.error || "Unknown") }
+                        : m
+                    )
+                  );
+                }
+              } catch (_) { /* ignore parse errors */ }
+            }
+          }
+        } finally {
+          reader.releaseLock();
+        }
+        setTelemetry((prev) => ({
+          total_tokens: prev.total_tokens + inputTok + outputTok,
+          total_cost: prev.total_cost + (costUsd || 0),
+        }));
+        const totalTokens = (telemetry.total_tokens || 0) + inputTok + outputTok;
+        setInputBarContextPct(Math.min(100, Math.round((totalTokens / 200000) * 100)));
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId
+              ? { ...m, tokens: inputTok + outputTok }
+              : m
+          )
+        );
+        if (convId && convId !== currentSessionId) {
+          setCurrentSessionId(convId);
+          setSessionName("New Conversation");
+          window.history.replaceState(null, "", `?session=${convId}`);
+        }
+        return;
+      }
+
       const data = await response.json();
       if (!response.ok) {
         setMessages((prev) => [
@@ -559,12 +764,74 @@ export default function AgentDashboard() {
     } finally {
       abortControllerRef.current = null;
       setIsLoading(false);
+      setAgentState(AGENT_STATES.IDLE);
+      setAgentStateContext({});
     }
   };
 
   const stopGeneration = () => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
   };
+
+  const handlePlanApprove = useCallback(
+    async (planId) => {
+      try {
+        const r = await fetch("/api/agent/plan/approve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ plan_id: planId }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.status === "approved") {
+          setExecutionPlan(null);
+          setAgentState(AGENT_STATES.EXECUTING);
+        }
+      } catch (_) {}
+    },
+    []
+  );
+
+  const handlePlanReject = useCallback(
+    async (planId) => {
+      try {
+        await fetch("/api/agent/plan/reject", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ plan_id: planId }),
+        });
+        setExecutionPlan(null);
+        setAgentState(AGENT_STATES.IDLE);
+      } catch (_) {}
+    },
+    []
+  );
+
+  const openInMonaco = useCallback(
+    async (message) => {
+      const filename = message.filename ?? "snippet";
+      const language = message.language ?? "text";
+      const generatedCode = message.generatedCode ?? "";
+      let originalContent = "";
+      try {
+        const r = await fetch(
+          `/api/r2/buckets/agent-sam/object/${encodeURIComponent(filename)}`,
+          { credentials: "same-origin" }
+        );
+        if (r.ok) originalContent = await r.text();
+      } catch (_) {}
+      setMonacoDiffFromChat({
+        original: originalContent,
+        modified: generatedCode,
+        filename,
+        language,
+      });
+      setPreviewOpen(true);
+      setActiveTab("code");
+    },
+    []
+  );
 
   // ── File attach ───────────────────────────────────────────────────────────
   const onImageSelect = (e) => {
@@ -660,6 +927,10 @@ export default function AgentDashboard() {
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────
+  const queueCurrent = queueStatus?.current ?? null;
+  const queueCount = queueStatus?.queue_count ?? 0;
+  const showQueueIndicator = !queueDismissed && (queueCurrent || queueCount > 0);
+
   return (
     <div
       style={{
@@ -677,6 +948,13 @@ export default function AgentDashboard() {
         border: "none",
       }}
     >
+      {showQueueIndicator && (
+        <QueueIndicator
+          current={queueCurrent}
+          queueCount={queueCount}
+          onClear={() => setQueueDismissed(true)}
+        />
+      )}
       <div
         style={{
           display: "flex",
@@ -973,6 +1251,97 @@ export default function AgentDashboard() {
                       >
                         {msg.content}
                       </div>
+                      {msg.generatedCode && (
+                        <div
+                          className="message-code-block"
+                          style={{
+                            background: "var(--bg-canvas)",
+                            borderRadius: 8,
+                            padding: 16,
+                            marginTop: 12,
+                            maxWidth: "100%",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginBottom: 8,
+                              fontSize: 12,
+                              color: "var(--text-muted)",
+                            }}
+                          >
+                            <span>{msg.filename ?? "snippet"}</span>
+                            <span
+                              style={{
+                                padding: "2px 8px",
+                                background: "var(--mode-code)",
+                                borderRadius: 4,
+                                color: "var(--color-on-mode)",
+                              }}
+                            >
+                              {msg.language ?? "text"}
+                            </span>
+                          </div>
+                          <pre
+                            style={{
+                              fontSize: 13,
+                              fontFamily: "monospace",
+                              overflow: "auto",
+                              maxHeight: 300,
+                              background: "var(--bg-elevated)",
+                              padding: 12,
+                              borderRadius: 6,
+                              margin: 0,
+                              color: "var(--color-text)",
+                            }}
+                          >
+                            <code>
+                              {msg.generatedCode.split("\n").slice(0, 15).join("\n")}
+                              {msg.generatedCode.split("\n").length > 15 && (
+                                <div
+                                  style={{
+                                    color: "var(--text-muted)",
+                                    fontStyle: "italic",
+                                    marginTop: 8,
+                                  }}
+                                >
+                                  ... {msg.generatedCode.split("\n").length - 15} more lines
+                                </div>
+                              )}
+                            </code>
+                          </pre>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginTop: 8,
+                            }}
+                          >
+                            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                              {msg.generatedCode.split("\n").length} lines total
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => openInMonaco(msg)}
+                              style={{
+                                padding: "8px 16px",
+                                background: "var(--mode-code)",
+                                color: "var(--color-on-mode)",
+                                border: "none",
+                                borderRadius: 6,
+                                cursor: "pointer",
+                                fontSize: 13,
+                                fontWeight: 500,
+                              }}
+                            >
+                              Open in Monaco -&gt;
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       {(msg.tokens != null && msg.tokens !== 0) && (
                         <div style={{ marginTop: "5px", fontSize: "10px", color: "var(--text-muted)" }}>
                           {msg.tokens} tokens
@@ -1035,23 +1404,55 @@ export default function AgentDashboard() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* ── Input bar ──────────────────────────────────────────────── */}
-          <div
-            className="agent-input-bar-wrap"
-            style={{
-              flexShrink: 0,
-              background: "var(--bg-nav)",
-              borderTop: "1px solid var(--color-border)",
-              padding: "10px 12px",
-              display: "flex",
-              gap: "8px",
-              alignItems: "center",
-              flexWrap: "nowrap",
-            }}
-          >
-            {/* Left group: + button + gauge */}
+          {/* ── Execution plan card (Step 10) ───────────────────────────────── */}
+          {agentState === AGENT_STATES.WAITING_APPROVAL && executionPlan && (
+            <div style={{ flexShrink: 0, padding: "0 16px 12px" }}>
+              <ExecutionPlanCard
+                plan_id={executionPlan.plan_id}
+                summary={executionPlan.summary}
+                steps={executionPlan.steps}
+                onApprove={handlePlanApprove}
+                onReject={handlePlanReject}
+              />
+            </div>
+          )}
+
+          {/* ── Agent status + input bar (--mode-color scope for status) ───── */}
+          <div style={{ "--mode-color": `var(--mode-${mode})`, flexShrink: 0 }}>
+            {/* Agent status (above input bar) */}
             <div
-              style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, position: "relative" }}
+              style={{
+                padding: "6px 12px 0",
+                minHeight: "24px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-start",
+              }}
+            >
+              <AnimatedStatusText
+                state={agentState}
+                config={STATE_CONFIG[agentState]}
+                context={agentStateContext}
+              />
+            </div>
+
+            {/* ── Input bar ──────────────────────────────────────────────── */}
+            <div
+              className="agent-input-bar-wrap"
+              style={{
+                flexShrink: 0,
+                background: "var(--bg-nav)",
+                borderTop: "1px solid var(--color-border)",
+                padding: "12px 16px",
+                display: "flex",
+                alignItems: "center",
+                flexWrap: "nowrap",
+                gap: 0,
+              }}
+            >
+            {/* Left: icons with 8px gap, 12px margin after */}
+            <div
+              style={{ display: "flex", alignItems: "center", gap: "8px", marginRight: "12px", flexShrink: 0, position: "relative" }}
               ref={connectorPopupRef}
             >
               {/* + button */}
@@ -1106,32 +1507,7 @@ export default function AgentDashboard() {
                 </svg>
               </button>
 
-              {/* Context gauge (input bar, between mic and send) */}
-              <div title={`${inputBarContextPct}% context used`} style={{ flexShrink: 0 }}>
-                {(() => {
-                  const radius = 10;
-                  const circ = 2 * Math.PI * radius;
-                  const filled = circ * (inputBarContextPct / 100);
-                  return (
-                    <svg width="28" height="28" viewBox="0 0 28 28" style={{ flexShrink: 0 }}>
-                      <circle cx="14" cy="14" r={radius} fill="none"
-                        stroke="rgba(255,255,255,0.1)" strokeWidth="2.5"/>
-                      <circle cx="14" cy="14" r={radius} fill="none"
-                        stroke={inputBarContextPct > 80 ? "var(--color-danger)" : "var(--color-primary)"}
-                        strokeWidth="2.5"
-                        strokeDasharray={`${filled} ${circ}`}
-                        strokeLinecap="round"
-                        transform="rotate(-90 14 14)"/>
-                      <text x="14" y="18" textAnchor="middle"
-                        fontSize="7" fill="var(--color-text)" fontWeight="600">
-                        {inputBarContextPct}%
-                      </text>
-                    </svg>
-                  );
-                })()}
-              </div>
-
-              {/* Token gauge */}
+              {/* Token gauge (session usage popover) */}
               <div style={{ position: "relative", flexShrink: 0 }} ref={costPopoverRef}>
                 <button
                   type="button"
@@ -1360,7 +1736,10 @@ export default function AgentDashboard() {
               )}
             </div>
 
-            {/* Textarea + mic + send */}
+            {/* Divider after left icons */}
+            <div style={{ width: 1, height: 24, background: "var(--color-border)", marginRight: 12, flexShrink: 0 }} aria-hidden />
+
+            {/* Center: input area (flex 1) */}
             <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: 0 }}>
               {attachedImages.length > 0 && (
                 <div style={{ display: "flex", gap: "4px", alignItems: "center", flexWrap: "wrap" }}>
@@ -1426,15 +1805,18 @@ export default function AgentDashboard() {
                     }}
                   />
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    padding: "4px 8px",
-                    borderTop: "1px solid rgba(255,255,255,0.08)",
-                  }}
-                >
+              </div>
+
+              {/* Hidden file inputs */}
+              <input type="file" ref={fileInputRef} multiple style={{ display: "none" }} onChange={onFileSelect} />
+              <input type="file" ref={imageInputRef} accept="image/*" multiple style={{ display: "none" }} onChange={onImageSelect} />
+            </div>
+
+            {/* Divider before right controls */}
+            <div style={{ width: 1, height: 24, background: "var(--color-border)", marginLeft: 12, marginRight: 12, flexShrink: 0 }} aria-hidden />
+
+            {/* Right: mode, model, context gauge, send — 8px gap */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
                   <div style={{ position: "relative", flexShrink: 0 }} ref={modePopupRef}>
                     <button
                       type="button"
@@ -1442,17 +1824,33 @@ export default function AgentDashboard() {
                       aria-haspopup="true"
                       aria-expanded={modePopupOpen}
                       title="Chat mode"
+                      className="agent-mode-selector"
                       style={{
-                        padding: "4px 8px",
+                        padding: "4px 8px 4px 20px",
                         fontSize: "11px",
-                        border: "1px solid rgba(255,255,255,0.2)",
+                        border: "1px solid var(--color-border)",
                         borderRadius: "6px",
-                        background: "rgba(255,255,255,0.06)",
+                        background: "var(--bg-canvas)",
                         color: "var(--color-text)",
                         cursor: "pointer",
                         textTransform: "capitalize",
+                        position: "relative",
                       }}
                     >
+                      <span
+                        className="agent-mode-indicator"
+                        style={{
+                          position: "absolute",
+                          left: "6px",
+                          top: "50%",
+                          width: "6px",
+                          height: "6px",
+                          borderRadius: "50%",
+                          background: "var(--mode-color)",
+                          animation: "modePulse 2s ease-in-out infinite",
+                        }}
+                        aria-hidden
+                      />
                       {mode}
                     </button>
                     {modePopupOpen && (
@@ -1479,7 +1877,9 @@ export default function AgentDashboard() {
                             role="menuitem"
                             onClick={() => { setMode(m); setModePopupOpen(false); }}
                             style={{
-                              display: "block",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
                               width: "100%",
                               padding: "6px 10px",
                               textAlign: "left",
@@ -1491,6 +1891,16 @@ export default function AgentDashboard() {
                               textTransform: "capitalize",
                             }}
                           >
+                            <span
+                              style={{
+                                width: "6px",
+                                height: "6px",
+                                borderRadius: "50%",
+                                background: `var(--mode-${m})`,
+                                flexShrink: 0,
+                              }}
+                              aria-hidden
+                            />
                             {m}
                           </button>
                         ))}
@@ -1575,14 +1985,37 @@ export default function AgentDashboard() {
                       </div>
                     )}
                   </div>
+                  {/* Context gauge (same design: minimal circle with %) */}
+                  <div title={`${inputBarContextPct}% context used`} style={{ flexShrink: 0 }}>
+                    {(() => {
+                      const radius = 10;
+                      const circ = 2 * Math.PI * radius;
+                      const filled = circ * (inputBarContextPct / 100);
+                      return (
+                        <svg width="28" height="28" viewBox="0 0 28 28" style={{ flexShrink: 0 }}>
+                          <circle cx="14" cy="14" r={radius} fill="none"
+                            stroke="rgba(255,255,255,0.1)" strokeWidth="2.5"/>
+                          <circle cx="14" cy="14" r={radius} fill="none"
+                            stroke={inputBarContextPct > 80 ? "var(--color-danger)" : "var(--color-primary)"}
+                            strokeWidth="2.5"
+                            strokeDasharray={`${filled} ${circ}`}
+                            strokeLinecap="round"
+                            transform="rotate(-90 14 14)"/>
+                          <text x="14" y="18" textAnchor="middle"
+                            fontSize="7" fill="var(--color-text)" fontWeight="600">
+                            {inputBarContextPct}%
+                          </text>
+                        </svg>
+                      );
+                    })()}
+                  </div>
                   <button
                     type="button"
                     onClick={isLoading ? stopGeneration : sendMessage}
                     disabled={!isLoading && !canSend}
                     aria-label={isLoading ? "Stop" : "Send"}
                     style={{
-                      marginLeft: "auto",
-                      background: isLoading ? "var(--bg-canvas)" : "var(--color-primary)",
+                      background: isLoading ? "var(--bg-canvas)" : "var(--mode-color)",
                       border: "none",
                       color: "var(--color-text)",
                       padding: "7px",
@@ -1603,13 +2036,8 @@ export default function AgentDashboard() {
                       </svg>
                     )}
                   </button>
-                </div>
-              </div>
-
-              {/* Hidden file inputs */}
-              <input type="file" ref={fileInputRef} multiple style={{ display: "none" }} onChange={onFileSelect} />
-              <input type="file" ref={imageInputRef} accept="image/*" multiple style={{ display: "none" }} onChange={onImageSelect} />
             </div>
+          </div>
           </div>
 
           {/* Status bar */}
@@ -1691,6 +2119,8 @@ export default function AgentDashboard() {
             activeThemeSlug={activeThemeSlug}
             proposedFileChange={proposedFileChange}
             onProposedChangeResolved={() => setProposedFileChange(null)}
+            monacoDiffFromChat={monacoDiffFromChat}
+            onMonacoDiffResolved={() => setMonacoDiffFromChat(null)}
             connectedIntegrations={connectedIntegrations}
             runCommandRunnerRef={runCommandRunnerRef}
           />
