@@ -120,6 +120,32 @@ const STATE_CONFIG = {
   },
 };
 
+const MODE_ICONS = {
+  ask: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
+  agent: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M18.178 8C19.72 8.667 21 10.2 21 12s-1.28 3.333-2.822 4m-12.356 0C4.28 15.333 3 13.8 3 12s1.28-3.333 2.822-4m0 0C7.636 7.333 9.818 7 12 7s4.364.333 6.178 1m-12.356 0C7.636 8.667 9.818 9 12 9s4.364-.333 6.178-1" />
+    </svg>
+  ),
+  plan: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M8 7h8M8 12h8M8 17h5" />
+    </svg>
+  ),
+  debug: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="8" y="6" width="8" height="12" rx="2" />
+      <path d="M4 7h4M4 12h4M4 17h4M16 7h4M16 12h4M16 17h4" />
+      <path d="M9 3v3M15 3v3" />
+    </svg>
+  ),
+};
+
 export default function AgentDashboard() {
   // ── Core chat state ───────────────────────────────────────────────────────
   const [messages, setMessages] = useState([
@@ -147,6 +173,7 @@ export default function AgentDashboard() {
   const [models, setModels] = useState([]);
   const [activeAgent, setActiveAgent] = useState(null);
   const [activeModel, setActiveModel] = useState(null);
+  const [selectedModel, setSelectedModel] = useState(null);
   const [agentPickerOpen, setAgentPickerOpen] = useState(false);
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const agentPickerRef = useRef(null);
@@ -173,6 +200,8 @@ export default function AgentDashboard() {
   const [mode, setMode] = useState("ask");
   const [modePopupOpen, setModePopupOpen] = useState(false);
   const modePopupRef = useRef(null);
+  const [showModeModal, setShowModeModal] = useState(false);
+  const [showModelModal, setShowModelModal] = useState(false);
 
   const [modelPopupOpen, setModelPopupOpen] = useState(false);
   const modelPopupRef = useRef(null);
@@ -306,6 +335,7 @@ export default function AgentDashboard() {
           const defaultModel = defaultId
             ? data.models.find((m) => m.id === defaultId || m.model_key === defaultId)
             : null;
+          setSelectedModel({ id: "auto", display_name: "Auto" });
           setActiveModel(defaultModel ?? data.models[0]);
         }
         if (data.integrations) setConnectedIntegrations(data.integrations);
@@ -1119,7 +1149,7 @@ export default function AgentDashboard() {
           >
             <button
               type="button"
-              title="New file"
+              title="Files"
               onClick={() => {
                 if (previewOpen && activeTab === "files") {
                   setPreviewOpen(false);
@@ -1130,22 +1160,20 @@ export default function AgentDashboard() {
               }}
               style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: "6px", borderRadius: "4px", display: "flex", alignItems: "center" }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9 15h6"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M13 2v7h7"/></svg>
             </button>
             <button
               type="button"
-              title="Search"
+              title="Search All"
               onClick={() => {
-                if (previewOpen && activeTab === "files") {
-                  setPreviewOpen(false);
-                } else {
-                  setActiveTab("files");
-                  setPreviewOpen(true);
-                }
+                setConnectorPopupOpen(false);
+                setKnowledgeSearchOpen(true);
+                setKnowledgeSearchQuery("");
+                setKnowledgeSearchResults([]);
               }}
               style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: "6px", borderRadius: "4px", display: "flex", alignItems: "center" }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             </button>
             <button
               type="button"
@@ -1583,17 +1611,18 @@ export default function AgentDashboard() {
                     aria-haspopup="true"
                     title="Attach"
                     style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 6,
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
                       background: "transparent",
                       border: "1px solid var(--color-border)",
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontSize: 16,
+                      fontSize: 18,
                       color: "var(--color-text)",
+                      flexShrink: 0,
                     }}
                   >
                     +
@@ -1822,127 +1851,128 @@ export default function AgentDashboard() {
                   }}
                 />
 
-                <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0, position: "relative" }} ref={modePopupRef}>
-                  <button
-                    type="button"
-                    onClick={() => setModePopupOpen((o) => !o)}
-                    aria-haspopup="true"
-                    aria-expanded={modePopupOpen}
-                    title={mode}
-                    style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: "50%",
-                      background: "var(--mode-color)",
-                      border: "none",
-                      cursor: "pointer",
-                      opacity: 0.9,
-                    }}
-                  />
-                  {modePopupOpen && (
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowModeModal(true)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 12px",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: 6,
+                    background: "transparent",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    color: "var(--color-text)",
+                    flexShrink: 0,
+                  }}
+                >
+                  <span style={{ display: "flex", color: "var(--mode-color)" }}>
+                    {MODE_ICONS[mode]}
+                  </span>
+                  <span style={{ textTransform: "capitalize" }}>{mode}</span>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ flexShrink: 0 }}>
+                    <path d="M5 7L1 3h8z" />
+                  </svg>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowModelModal(true)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "6px 12px",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: 6,
+                    background: "transparent",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    color: "var(--color-text)",
+                    flexShrink: 0,
+                  }}
+                >
+                  {selectedModel?.id === "auto" ? "Auto" : (selectedModel ? (MODEL_LABELS[selectedModel.model_key] ?? selectedModel.display_name) : (activeModel ? (MODEL_LABELS[activeModel.model_key] ?? activeModel.display_name) : "Auto"))}
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ marginLeft: 6, flexShrink: 0 }}>
+                    <path d="M5 7L1 3h8z" />
+                  </svg>
+                </button>
+
+                <div
+                  title={`Context ${contextUsedK}k / ${contextLimitK}k — Spend $${spendDisplay}`}
+                  style={{
+                    display: "flex",
+                    gap: 2,
+                    alignItems: "center",
+                    padding: "0 8px",
+                    flexShrink: 0,
+                  }}
+                >
+                  {[0, 1, 2, 3, 4].map((i) => (
                     <div
-                      role="menu"
+                      key={i}
                       style={{
-                        position: "absolute",
-                        bottom: "100%",
-                        right: 120,
-                        marginBottom: 8,
-                        background: "var(--bg-elevated)",
-                        border: "1px solid var(--color-border)",
-                        borderRadius: 8,
-                        padding: 4,
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                        zIndex: 1000,
+                        width: 4,
+                        height: 16,
+                        background: contextPct > i * 20 ? "var(--mode-color)" : "var(--color-border)",
+                        borderRadius: 2,
+                        opacity: contextPct > i * 20 ? 1 : 0.3,
+                        transition: "all 200ms ease",
                       }}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={isLoading ? stopGeneration : sendMessage}
+                  disabled={!canSend && !isLoading}
+                  aria-label={isLoading ? "Stop" : "Send"}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                    background: isLoading ? "var(--color-border)" : "var(--mode-color)",
+                    border: "none",
+                    cursor: !canSend && !isLoading ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "var(--color-on-mode)",
+                    opacity: !input.trim() && !attachedImages.length && !attachedFiles.length ? 0.5 : 1,
+                    flexShrink: 0,
+                    transition: "all 200ms ease",
+                  }}
+                >
+                  {isLoading ? (
+                    <div
+                      style={{
+                        width: 16,
+                        height: 16,
+                        border: "2px solid rgba(255,255,255,0.3)",
+                        borderTop: "2px solid var(--color-on-mode)",
+                        borderRadius: "50%",
+                        animation: "spin 0.8s linear infinite",
+                      }}
+                    />
+                  ) : (
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     >
-                      {["ask", "plan", "debug", "agent"].map((m) => (
-                        <button
-                          key={m}
-                          type="button"
-                          role="menuitem"
-                          onClick={() => { setMode(m); setModePopupOpen(false); }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            padding: "6px 12px",
-                            background: mode === m ? "var(--bg-canvas)" : "transparent",
-                            border: "none",
-                            borderRadius: 6,
-                            cursor: "pointer",
-                            fontSize: 13,
-                            width: "100%",
-                            textAlign: "left",
-                            color: "var(--color-text)",
-                            textTransform: "capitalize",
-                          }}
-                        >
-                          <span style={{ width: 12, height: 12, borderRadius: "50%", background: `var(--mode-${m})`, flexShrink: 0 }} />
-                          {m}
-                        </button>
-                      ))}
-                    </div>
+                      <path d="M22 2L11 13" />
+                      <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+                    </svg>
                   )}
-
-                  <select
-                    value={activeModel?.id ?? ""}
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      const m = models.find((x) => x.id === id);
-                      setActiveModel(m ?? models[0] ?? null);
-                    }}
-                    style={{
-                      fontSize: 12,
-                      padding: "4px 8px",
-                      border: "1px solid var(--color-border)",
-                      borderRadius: 6,
-                      background: "transparent",
-                      color: "var(--color-text)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {models.map((m) => (
-                      <option key={m.id} value={m.id}>{MODEL_LABELS[m.model_key] ?? m.display_name}</option>
-                    ))}
-                  </select>
-
-                  <div style={{ display: "flex", gap: 2, alignItems: "center" }} title={`Context ${contextUsedK}k / ${contextLimitK}k — Spend $${spendDisplay}`}>
-                    {[0, 1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        style={{
-                          width: 3,
-                          height: 12,
-                          background: contextPct > i * 20 ? "var(--mode-color)" : "var(--color-border)",
-                          borderRadius: 1,
-                          opacity: contextPct > i * 20 ? 1 : 0.3,
-                        }}
-                      />
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={isLoading ? stopGeneration : sendMessage}
-                    disabled={!canSend && !isLoading}
-                    aria-label={isLoading ? "Stop" : "Send"}
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: "50%",
-                      background: isLoading ? "var(--color-border)" : "var(--mode-color)",
-                      border: "none",
-                      cursor: !canSend && !isLoading ? "not-allowed" : "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "var(--color-on-mode)",
-                      fontSize: 16,
-                      opacity: !input.trim() && !attachedImages.length && !attachedFiles.length ? 0.5 : 1,
-                    }}
-                  >
-                    {isLoading ? "..." : "\u2192"}
-                  </button>
+                </button>
                 </div>
 
                 <input type="file" ref={fileInputRef} multiple accept="*/*" onChange={onFileSelect} style={{ display: "none" }} />
@@ -1976,6 +2006,158 @@ export default function AgentDashboard() {
             <div style={{ flexShrink: 0 }} aria-hidden="true" />
           )}
         </div>
+
+        {/* ── Mode selection modal ─────────────────────────────────────────── */}
+        {showModeModal && (
+          <>
+            <div
+              role="presentation"
+              onClick={() => setShowModeModal(false)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.5)",
+                zIndex: 9998,
+                backdropFilter: "blur(2px)",
+              }}
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="mode-modal-title"
+              style={{
+                position: "fixed",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--color-border)",
+                borderRadius: 12,
+                padding: 24,
+                minWidth: 320,
+                boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+                zIndex: 9999,
+              }}
+            >
+              <h3 id="mode-modal-title" style={{ margin: "0 0 16px 0", fontSize: 16, fontWeight: 600 }}>Select Mode</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {["ask", "agent", "plan", "debug"].map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => { setMode(m); setShowModeModal(false); }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "12px 16px",
+                      border: mode === m ? `2px solid var(--mode-${m})` : "1px solid var(--color-border)",
+                      borderRadius: 8,
+                      background: mode === m ? "var(--bg-canvas)" : "transparent",
+                      cursor: "pointer",
+                      fontSize: 14,
+                      textAlign: "left",
+                      transition: "all 150ms ease",
+                      color: "var(--color-text)",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    <span style={{ display: "flex", color: `var(--mode-${m})` }}>{MODE_ICONS[m]}</span>
+                    <span style={{ textTransform: "capitalize" }}>{m}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Model selection modal ─────────────────────────────────────────── */}
+        {showModelModal && (
+          <>
+            <div
+              role="presentation"
+              onClick={() => setShowModelModal(false)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.5)",
+                zIndex: 9998,
+                backdropFilter: "blur(2px)",
+              }}
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="model-modal-title"
+              style={{
+                position: "fixed",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--color-border)",
+                borderRadius: 12,
+                padding: 24,
+                minWidth: 340,
+                maxHeight: "60vh",
+                overflowY: "auto",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+                zIndex: 9999,
+              }}
+            >
+              <h3 id="model-modal-title" style={{ margin: "0 0 16px 0", fontSize: 16, fontWeight: 600 }}>Select Model</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedModel({ id: "auto", display_name: "Auto" });
+                    setActiveModel(models[0] ?? null);
+                    setShowModelModal(false);
+                  }}
+                  style={{
+                    padding: "12px 16px",
+                    border: selectedModel?.id === "auto" ? "2px solid var(--mode-color)" : "1px solid var(--color-border)",
+                    borderRadius: 8,
+                    background: selectedModel?.id === "auto" ? "var(--bg-canvas)" : "transparent",
+                    cursor: "pointer",
+                    fontSize: 14,
+                    textAlign: "left",
+                    transition: "all 150ms ease",
+                    color: "var(--color-text)",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  Auto
+                </button>
+                {models.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedModel(m);
+                      setActiveModel(m);
+                      setShowModelModal(false);
+                    }}
+                    style={{
+                      padding: "12px 16px",
+                      border: selectedModel?.id === m.id ? "2px solid var(--mode-color)" : "1px solid var(--color-border)",
+                      borderRadius: 8,
+                      background: selectedModel?.id === m.id ? "var(--bg-canvas)" : "transparent",
+                      cursor: "pointer",
+                      fontSize: 14,
+                      textAlign: "left",
+                      transition: "all 150ms ease",
+                      color: "var(--color-text)",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {MODEL_LABELS[m.model_key] ?? m.display_name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* ── Panel resize divider ────────────────────────────────────────── */}
         {previewOpen && (

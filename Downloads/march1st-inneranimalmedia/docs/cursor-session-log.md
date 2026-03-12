@@ -1075,15 +1075,10 @@ Phase 2.6: (1) Create migration 131 for Playwright tools in mcp_registered_tools
 - agent_audit_log: terminal_execute and d1_write already present; added for playwright_screenshot and browser_screenshot in new branch.
 
 ### Deploy status
-- Built: yes (agent-dashboard). R2 uploaded: no — pending "deploy approved". Worker deployed: no — pending "deploy approved".
-- Commands to run after deploy approved (from repo root, with ./scripts/with-cloudflare-env.sh for wrangler):
-  1. ./scripts/with-cloudflare-env.sh npx wrangler r2 object put agent-sam/static/dashboard/agent.html --file=dashboard/agent.html --content-type=text/html --remote -c wrangler.production.toml
-  2. ./scripts/with-cloudflare-env.sh npx wrangler r2 object put agent-sam/static/dashboard/agent/agent-dashboard.js --file=agent-dashboard/dist/agent-dashboard.js --content-type=application/javascript --remote -c wrangler.production.toml
-  3. ./scripts/with-cloudflare-env.sh npx wrangler r2 object put agent-sam/static/dashboard/agent/agent-dashboard.css --file=agent-dashboard/dist/agent-dashboard.css --content-type=text/css --remote -c wrangler.production.toml
-  4. npm run deploy
+- Built: yes (agent-dashboard). R2 uploaded: yes (agent.html, agent-dashboard.js, agent-dashboard.css). Worker deployed: yes. Version ID: 09eaf193-d19b-42f6-9908-498922034890. Git: commit b59be38 "Phase 2 complete: UI polish, multi-source search, source control, Playwright integration"; pushed to origin agentsam-clean (current branch 2026-02-04-330k-b5b6e).
 
 ### What is live now
-Migration 131 applied (remote D1). Worker and R2 not updated until deploy approved.
+Agent dashboard v42 (cache bust), Playwright tools in BUILTIN_TOOLS and D1, audit log for screenshot tools. Remote agentsam-clean updated.
 
 ### Known issues / next steps
 - User to run Tests 1-8 from docs/PHASE_2_6_TEST_CHECKLIST.md after deploy.

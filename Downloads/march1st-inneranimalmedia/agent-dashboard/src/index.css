@@ -86,6 +86,10 @@ select option {
   }
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Chat input container (Cursor-style) */
 .agent-input-container {
   transition: border-color 200ms ease;
