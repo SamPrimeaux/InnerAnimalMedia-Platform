@@ -4,13 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Settings — Inner Animal Media</title>
+    <!-- CRITICAL: Theme must load BEFORE any visible content -->
     <script>
-        (function() {
-            try {
-                var t = localStorage.getItem('dashboard-theme');
-                if (t) document.documentElement.setAttribute('data-theme', t);
-            } catch (e) {}
-        })();
+    (function() {
+        const saved = localStorage.getItem('dashboard-theme');
+        if (saved) {
+            document.documentElement.setAttribute('data-theme', saved);
+        }
+        // Preload theme CSS vars to prevent flash
+        const savedVars = localStorage.getItem('dashboard-theme-vars');
+        if (savedVars) {
+            const style = document.createElement('style');
+            style.id = 'theme-preload-inject';
+            style.textContent = savedVars;
+            document.head.appendChild(style);
+        }
+    })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1683,36 +1692,39 @@ window.usSetTab = usSetTab;
 
 function applyThemeToShell(themeName, themeData) {
   try {
-    localStorage.setItem('dashboard-theme', themeName);
     document.documentElement.setAttribute('data-theme', themeName);
+    var cssVars = {};
     if (BUILTIN_THEMES.indexOf(themeName) !== -1) {
+      localStorage.setItem('dashboard-theme', themeName);
       var el = document.getElementById('theme-dynamic-inject');
       if (el) el.remove();
       return;
     }
-    if (!themeData) return;
-    var td = typeof themeData === 'string' ? JSON.parse(themeData) : themeData;
-    var v = (typeof td === "string" ? (function(){try{return JSON.parse(td);}catch(e){return {};}}()) : (td && td.css_vars ? td.css_vars : (td || {})));
-    // Support alternate shape: colors.brand / colors.bg (from worker categorization)
-    if (td.colors) {
-      var c = td.colors;
-      var brand = c.brand || {};
-      if (brand.primary) v['--color-primary'] = v['--color-primary'] || brand.primary;
-      if (c.accent) v['--color-primary'] = v['--color-primary'] || c.accent;
-      if (c.bg) v['--bg-surface'] = v['--bg-surface'] || c.bg;
-      if (c.background && c.background.base) v['--bg-surface'] = v['--bg-surface'] || c.background.base;
+    if (themeData) {
+      var td = typeof themeData === 'string' ? JSON.parse(themeData) : themeData;
+      var v = (typeof td === 'string' ? (function(){try{return JSON.parse(td);}catch(e){return {};}}()) : (td && td.css_vars ? td.css_vars : (td || {})));
+      if (td && td.colors) {
+        var c = td.colors;
+        if (c.brand && c.brand.primary) v['--color-primary'] = v['--color-primary'] || c.brand.primary;
+        if (c.accent) v['--color-primary'] = v['--color-primary'] || c.accent;
+        if (c.bg) v['--bg-canvas'] = v['--bg-canvas'] || c.bg;
+      }
+      cssVars = v;
     }
-    var bg = v['--bg-surface'] || v['--color-bg'] || v['--bg-canvas'] || v['--bg-panel'] || '#f8f9fa';
-    var elevated = v['--bg-elevated'] || v['--surface-2'] || v['--bg-panel'] || bg;
-    var primary = v['--color-primary'] || v['--accent'] || v['--teal'] || '#3b82f6';
-    var nav = v['--bg-nav'] || primary;
-    var text = v['--text-primary'] || v['--color-text'] || v['--text'] || '#111827';
-    var text2 = v['--text-secondary'] || v['--text-muted'] || v['--color-muted'] || '#6b7280';
-    var border = v['--border'] || v['--color-border'] || '#e5e7eb';
-    var el = document.getElementById('theme-dynamic-inject');
-    if (!el) { el = document.createElement('style'); el.id = 'theme-dynamic-inject'; document.head.appendChild(el); }
-    var safe = themeName.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    el.textContent = '[data-theme="' + safe + '"]{--bg-canvas:' + bg + ';--bg-elevated:' + elevated + ';--bg-nav:' + nav + ';--text-primary:' + text + ';--text-secondary:' + text2 + ';--border:' + border + ';--accent:' + primary + ';--accent-hover:' + primary + ';--text-nav:#fff;--text-nav-muted:rgba(255,255,255,0.75);--border-nav:rgba(255,255,255,0.2);}';
+    if (Object.keys(cssVars).length === 0) {
+      cssVars['--bg-nav'] = '#1e293b'; cssVars['--text-nav'] = '#f1f5f9'; cssVars['--bg-canvas'] = '#0f172a'; cssVars['--bg-elevated'] = '#1e293b';
+    }
+    var cssText = ':root[data-theme="' + String(themeName).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"] {';
+    for (var k in cssVars) if (Object.prototype.hasOwnProperty.call(cssVars, k)) {
+      var key = String(k).indexOf('--') === 0 ? k : '--' + k;
+      cssText += key + ':' + cssVars[k] + ';';
+    }
+    cssText += '}';
+    localStorage.setItem('dashboard-theme', themeName);
+    localStorage.setItem('dashboard-theme-vars', cssText);
+    var styleEl = document.getElementById('theme-dynamic-inject');
+    if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = 'theme-dynamic-inject'; document.head.appendChild(styleEl); }
+    styleEl.textContent = cssText;
   } catch (err) {}
 }
 
@@ -2555,10 +2567,11 @@ usInit();
     </script>
 
 <script id="theme-loader-v2-override">
-// v2 override — replaces broken applyThemeToShell + loadThemes
+// v2 override — sync theme with localStorage vars for FOUC prevention
 (function() {
   const TMAP = { bg:'--bg-primary', surface:'--bg-secondary', elevated:'--bg-elevated', nav:'--bg-nav', text:'--color-text', textSecondary:'--text-muted', border:'--color-border', primary:'--accent-primary', secondary:'--accent-secondary', radius:'--border-radius' };
   let styleEl = null;
+  let themeCssMap = {};
   async function loadThemesV2() {
     try {
       const res = await fetch('/api/themes');
@@ -2581,23 +2594,31 @@ usInit();
         vars += '--bg-canvas:' + (config.bg||'#0f172a') + ';--bg-elevated:' + (config.surface||'#1e293b') + ';';
         vars += '--color-primary:' + (config.primary||'#3b82f6') + ';--accent:' + (config.primary||'#3b82f6') + ';--border:' + (config.border||'#334155') + ';';
         vars += '--text-primary:' + (config.text||'#f1f5f9') + ';--text-secondary:' + (config.textSecondary||'#94a3b8') + ';';
-        if (vars) css += '[data-theme="' + slug + '"]{' + vars + '}\n';
+        if (vars) {
+          var block = ':root[data-theme="' + slug + '"] {' + vars + '}';
+          css += block + '\n';
+          themeCssMap[slug] = block;
+        }
       });
       styleEl.textContent = css;
       const saved = localStorage.getItem('dashboard-theme') || 'meaux-glass-blue';
       document.documentElement.setAttribute('data-theme', saved);
+      if (themeCssMap[saved]) localStorage.setItem('dashboard-theme-vars', themeCssMap[saved]);
     } catch(e) { console.error('loadThemesV2 error', e); }
   }
-  // override globals
   window.applyThemeToShell = function(name) {
     localStorage.setItem('dashboard-theme', name);
     document.documentElement.setAttribute('data-theme', name);
+    if (themeCssMap[name]) {
+      localStorage.setItem('dashboard-theme-vars', themeCssMap[name]);
+      var el = document.getElementById('theme-dynamic-inject');
+      if (!el) { el = document.createElement('style'); el.id = 'theme-dynamic-inject'; document.head.appendChild(el); }
+      el.textContent = themeCssMap[name];
+    }
   };
   loadThemesV2();
   window._loadThemesV2 = loadThemesV2;
 
-  // Override usApplyTheme to use v2 apply
-  const _origUsApply = window.usApplyTheme;
   window.usApplyTheme = async function(name, displayName) {
     document.querySelectorAll('.us-theme-card').forEach(function(c) {
       var onStr = (c.getAttribute('onclick') || '');
@@ -2605,8 +2626,11 @@ usInit();
     });
     localStorage.setItem('dashboard-theme', name);
     document.documentElement.setAttribute('data-theme', name);
-    if (window._themeStyleEl) {
-      // already applied via loadThemesV2 CSS block
+    if (themeCssMap[name]) {
+      localStorage.setItem('dashboard-theme-vars', themeCssMap[name]);
+      var el = document.getElementById('theme-dynamic-inject');
+      if (!el) { el = document.createElement('style'); el.id = 'theme-dynamic-inject'; document.head.appendChild(el); }
+      el.textContent = themeCssMap[name];
     }
     try {
       var res = await fetch('/api/settings/theme', { method: 'PATCH', headers: {'Content-Type': 'application/json'}, credentials: 'same-origin', body: JSON.stringify({ theme: name }) });

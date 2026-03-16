@@ -1,8 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="meaux-glass-blue">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- CRITICAL: Theme must load BEFORE any visible content -->
+  <script>
+  (function() {
+      const saved = localStorage.getItem('dashboard-theme');
+      if (saved) {
+          document.documentElement.setAttribute('data-theme', saved);
+      }
+      const savedVars = localStorage.getItem('dashboard-theme-vars');
+      if (savedVars) {
+          const style = document.createElement('style');
+          style.id = 'theme-preload-inject';
+          style.textContent = savedVars;
+          document.head.appendChild(style);
+      }
+  })();
+  </script>
   <title>3D Model Viewer</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }

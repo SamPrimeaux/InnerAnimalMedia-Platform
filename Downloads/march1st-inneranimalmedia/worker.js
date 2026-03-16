@@ -10,6 +10,11 @@ import { DurableObject } from "cloudflare:workers";
 // @cloudflare/playwright loaded dynamically at runtime
 let playwrightLaunch = null;
 
+function normalizeThemeSlug(value) {
+  if (!value || typeof value !== 'string') return null;
+  return value.startsWith('theme-') ? value.substring(6) : value;
+}
+
 const SUPERADMIN_EMAILS = ['info@inneranimals.com', 'sam@inneranimalmedia.com', 'inneranimalclothing@gmail.com'];
 
 function getSamContext(email) {
@@ -599,30 +604,80 @@ const worker = {
         }
       }
 
-      // ----- API: Commands list (D1 commands + custom_commands for list-commands / ref) -----
+      // ----- API: Commands - Load slash commands from DB (agent_commands) -----
       if (pathLower === '/api/commands' && request.method === 'GET') {
-        if (!env.DB) return jsonResponse({ error: 'DB not configured' }, 503);
+        if (!env.DB) return jsonResponse({ success: false, error: 'DB not configured' }, 503);
         try {
-          const { results } = await env.DB.prepare(
-            `SELECT command_name, trigger, description, category, tool FROM commands WHERE is_active != 0
-             UNION ALL
-             SELECT command_name, trigger, description, category, tool FROM custom_commands WHERE is_active = 1
-             ORDER BY category, command_name`
-          ).all();
-          const grouped = {};
-          for (const row of results || []) {
-            const cat = row.category || 'General';
-            if (!grouped[cat]) grouped[cat] = [];
-            grouped[cat].push({
-              command_name: row.command_name,
-              trigger: row.trigger,
-              description: row.description,
-              tool: row.tool,
-            });
+          const tenantId = 'tenant_sam_primeaux'; // TODO: Get from session/auth
+
+          const result = await env.DB.prepare(`
+            SELECT
+              slug,
+              name,
+              description,
+              category,
+              command_text,
+              parameters_json
+            FROM agent_commands
+            WHERE tenant_id = ?
+              AND status = 'active'
+            ORDER BY category, name
+          `).bind(tenantId).all();
+
+          return new Response(JSON.stringify({
+            success: true,
+            commands: result.results || [],
+          }), {
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            },
+          });
+        } catch (error) {
+          console.error('Error loading commands:', error);
+          return new Response(JSON.stringify({
+            success: false,
+            error: error.message || 'Failed to load commands',
+          }), {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            },
+          });
+        }
+      }
+
+      // ----- API: Execute slash command (agent_commands) -----
+      if (pathLower === '/api/agent/commands/execute' && request.method === 'POST') {
+        if (!env.DB) return jsonResponse({ success: false, error: 'DB not configured' }, 503);
+        try {
+          const body = await request.json().catch(() => ({}));
+          const commandName = (body.command_name || body.name || '').trim();
+          const parameters = body.parameters || {};
+          const tenantId = 'tenant_sam_primeaux';
+          if (!commandName) return jsonResponse({ success: false, error: 'command_name required' }, 400);
+          const command = await env.DB.prepare(
+            `SELECT * FROM agent_commands WHERE tenant_id = ? AND status = 'active' AND (name = ? OR slug = ?) LIMIT 1`
+          ).bind(tenantId, commandName, commandName).first();
+          if (!command) {
+            return jsonResponse({ success: false, error: 'Command not found' }, 404);
           }
-          return jsonResponse({ commands: results || [], grouped });
+          let result = { output: command.command_text || `Command /${commandName} registered.` };
+          if (command.implementation_type === 'builtin' && command.implementation_ref) {
+            const builtins = {
+              clear_context: async () => ({ output: 'Context cleared' }),
+              list_tools: async () => {
+                const r = await env.DB.prepare('SELECT tool_name, description FROM mcp_registered_tools WHERE enabled = 1').all();
+                return { output: JSON.stringify((r.results || []).map(t => ({ name: t.tool_name, description: t.description })), null, 2) };
+              },
+            };
+            const fn = builtins[command.implementation_ref];
+            if (fn) result = await fn();
+          }
+          return jsonResponse({ success: true, result });
         } catch (e) {
-          return jsonResponse({ error: e?.message || 'Query failed', grouped: {}, commands: [] }, 500);
+          return jsonResponse({ success: false, error: e?.message ?? String(e) }, 500);
         }
       }
 
@@ -659,31 +714,6 @@ const worker = {
         }
       }
 
-      // ----- API: User preferences (theme_preset) -----
-      if (pathLower === '/api/user/preferences' && (request.method || 'GET').toUpperCase() === 'PATCH') {
-        try {
-          const body = await request.json().catch(() => ({}));
-          const themePreset = body.theme_preset;
-          if (themePreset != null && typeof themePreset === 'string') {
-            if (env.DB) {
-              try {
-                await env.DB.prepare(
-                  "INSERT INTO user_preferences (user_id, key, value, updated_at) VALUES (?, 'theme_preset', ?, datetime('now')) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')"
-                ).bind('sam_primeaux', themePreset).run();
-                // Keep user_settings in sync so GET /api/settings/theme sees the same theme
-                await env.DB.prepare(
-                  "INSERT INTO user_settings (user_id, theme, updated_at) VALUES (?, ?, unixepoch()) ON CONFLICT(user_id) DO UPDATE SET theme = excluded.theme, updated_at = unixepoch()"
-                ).bind('sam_primeaux', themePreset).run().catch(() => null);
-              } catch (_) { /* table may not exist */ }
-            }
-            return jsonResponse({ ok: true, theme_preset: themePreset });
-          }
-          return jsonResponse({ ok: false, error: 'theme_preset required' }, 400);
-        } catch (e) {
-          return jsonResponse({ ok: false, error: e?.message }, 500);
-        }
-      }
-
       // ----- API: Search (AI RAG + history) -----
       if (url.pathname === '/api/search') {
         const query = request.method === 'POST'
@@ -716,7 +746,7 @@ const worker = {
         if (request.method === 'GET') {
           // Allow unauthenticated GET so agent/dashboard can apply default theme without 401 (theme testing, pre-login paint)
           if (!user) {
-            const defaultSlug = 'meaux-storm-gray';
+            const defaultSlug = normalizeThemeSlug('meaux-storm-gray') || 'meaux-storm-gray';
             try {
               const themeRow = await env.DB.prepare("SELECT name, config FROM cms_themes WHERE slug = ? LIMIT 1").bind(defaultSlug).first();
               const cfg = (themeRow?.config && typeof themeRow.config === 'string') ? (() => { try { return JSON.parse(themeRow.config); } catch (_) { return {}; } })() : (typeof themeRow?.config === 'object' && themeRow.config !== null ? themeRow.config : {});
@@ -751,11 +781,8 @@ const worker = {
           }
           try {
             const row = await env.DB.prepare("SELECT theme FROM user_settings WHERE user_id = ? LIMIT 1").bind(user.id).first();
-            let slug = row?.theme;
-            if (!slug) {
-              const pref = await env.DB.prepare("SELECT value FROM user_preferences WHERE user_id = ? AND key = 'theme_preset' LIMIT 1").bind(user.id).first();
-              slug = (pref?.value && typeof pref.value === 'string') ? pref.value : 'meaux-storm-gray';
-            }
+            let slug = row?.theme ? normalizeThemeSlug(row.theme) : null;
+            if (!slug) slug = 'meaux-storm-gray';
             const themeRow = await env.DB.prepare("SELECT name, config FROM cms_themes WHERE slug = ? LIMIT 1").bind(slug).first();
             const cfg = (themeRow?.config && typeof themeRow.config === 'string') ? (() => { try { return JSON.parse(themeRow.config); } catch (_) { return {}; } })() : (typeof themeRow?.config === 'object' && themeRow.config !== null ? themeRow.config : {});
             const variables = {};
@@ -789,13 +816,15 @@ const worker = {
         }
         if (request.method === 'PATCH') {
           if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 });
-          const { theme } = await request.json();
-          if (!theme || typeof theme !== 'string') return Response.json({ error: 'theme required' }, { status: 400 });
+          const body = await request.json().catch(() => ({}));
+          const theme = body.theme;
+          const normalizedTheme = normalizeThemeSlug(theme);
+          if (!normalizedTheme) return Response.json({ ok: false, error: 'Invalid theme' }, { status: 400 });
           const upsert = await env.DB.prepare(
             "INSERT INTO user_settings (user_id, theme, updated_at) VALUES (?, ?, unixepoch()) ON CONFLICT(user_id) DO UPDATE SET theme = excluded.theme, updated_at = unixepoch()"
-          ).bind(user.id, theme).run().catch(() => null);
+          ).bind(user.id, normalizedTheme).run().catch(() => null);
           if (!upsert) {
-            await env.DB.prepare("UPDATE user_settings SET theme = ?, updated_at = unixepoch() WHERE user_id = ?").bind(theme, user.id).run();
+            await env.DB.prepare("UPDATE user_settings SET theme = ?, updated_at = unixepoch() WHERE user_id = ?").bind(normalizedTheme, user.id).run();
           }
           const cacheKey = 'theme:' + (user.id || '');
           if (env.SESSION_CACHE && cacheKey) {
@@ -1659,6 +1688,7 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
  * Returns { output, command }. Throws on connect/error so callers can try/catch.
  */
 async function runTerminalCommand(env, request, command, sessionId = null) {
+  console.log('[runTerminalCommand] START', { command: typeof command === 'string' ? command.slice(0, 80) : command, sessionId });
   const cmd = typeof command === 'string' ? command.trim() : '';
   const wsUrl = env.TERMINAL_WS_URL;
   if (!wsUrl) throw new Error('Terminal not configured');
@@ -1698,29 +1728,31 @@ async function runTerminalCommand(env, request, command, sessionId = null) {
     .trim();
   const out = { output: cleanOutput, command: cmd };
   if (env.DB) {
-    const conversationIdForHistory = sessionId;
-    void (async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const agentSessionIdForHistory = sessionId || null;
+    const id1 = 'th_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+    const id2 = 'th_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+    try {
+      await env.DB.prepare(
+        'INSERT INTO terminal_history (id, direction, content, triggered_by, terminal_session_id, agent_session_id, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).bind(id1, 'input', cmd.slice(0, 50000), 'agent', null, agentSessionIdForHistory, now).run();
+      await env.DB.prepare(
+        'INSERT INTO terminal_history (id, direction, content, triggered_by, terminal_session_id, agent_session_id, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).bind(id2, 'output', cleanOutput.slice(0, 100000), 'agent', null, agentSessionIdForHistory, now).run();
+      console.log('[runTerminalCommand] terminal_history written (input + output)');
+    } catch (e1) {
       try {
-        let termSessionId = (await env.DB.prepare("SELECT id FROM terminal_sessions WHERE label = 'agent_sam_chat' AND tenant_id = 'tenant_sam_primeaux' LIMIT 1").first())?.id;
-        if (!termSessionId) {
-          await env.DB.prepare(
-            "INSERT INTO terminal_sessions (id, tenant_id, user_id, status, auth_token_hash, label, created_at, updated_at) VALUES ('term_agent_sam_chat', 'tenant_sam_primeaux', 'agent_sam', 'active', 'n/a', 'agent_sam_chat', unixepoch(), unixepoch())"
-          ).run();
-          termSessionId = 'term_agent_sam_chat';
-        }
-        const seqRow = await env.DB.prepare('SELECT COALESCE(MAX(sequence), 0) + 1 AS seq FROM terminal_history WHERE terminal_session_id = ?').bind(termSessionId).first();
-        const seq = seqRow?.seq ?? 1;
-        const now = Math.floor(Date.now() / 1000);
         await env.DB.prepare(
-          `INSERT INTO terminal_history (id, terminal_session_id, tenant_id, sequence, direction, content, triggered_by, agent_session_id, recorded_at)
-           VALUES (?, ?, 'tenant_sam_primeaux', ?, 'input', ?, 'agent', ?, ?)`
-        ).bind('th_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16), termSessionId, seq, cmd.slice(0, 50000), conversationIdForHistory ?? null, now).run();
+          'INSERT INTO terminal_history (id, direction, content, triggered_by, session_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+        ).bind(id1, 'input', cmd.slice(0, 50000), 'agent', agentSessionIdForHistory, now).run();
         await env.DB.prepare(
-          `INSERT INTO terminal_history (id, terminal_session_id, tenant_id, sequence, direction, content, triggered_by, agent_session_id, recorded_at)
-           VALUES (?, ?, 'tenant_sam_primeaux', ?, 'output', ?, 'agent', ?, ?)`
-        ).bind('th_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16), termSessionId, seq + 1, cleanOutput.slice(0, 100000), conversationIdForHistory ?? null, now).run();
-      } catch (e) { console.warn('[runTerminalCommand] terminal_history', e?.message ?? e); }
-    })().catch(() => {});
+          'INSERT INTO terminal_history (id, direction, content, triggered_by, session_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+        ).bind(id2, 'output', cleanOutput.slice(0, 100000), 'agent', agentSessionIdForHistory, now).run();
+        console.log('[runTerminalCommand] terminal_history written (input + output, legacy schema)');
+      } catch (e2) {
+        console.warn('[runTerminalCommand] terminal_history', e1?.message ?? e1, e2?.message ?? e2);
+      }
+    }
   }
   return out;
 }
@@ -2610,9 +2642,15 @@ FROM r2_bucket_summary`
       await env.DB.prepare(
         "INSERT INTO agent_command_proposals (id, command_text, session_id, status, created_at, decided_at) VALUES (?,?,?,?,?,?)"
       ).bind(proposalId, command, body.session_id || null, 'approved', now, now).run();
-      await env.DB.prepare(
-        "INSERT INTO terminal_history (id, direction, content, triggered_by, session_id, created_at) VALUES (?,?,?,?,?,?)"
-      ).bind(historyId, 'input', command, 'user', body.session_id || null, now).run();
+      try {
+        await env.DB.prepare(
+          "INSERT INTO terminal_history (id, direction, content, triggered_by, terminal_session_id, agent_session_id, recorded_at) VALUES (?,?,?,?,?,?,?)"
+        ).bind(historyId, 'input', command, 'user', body.session_id || null, null, now).run();
+      } catch (_) {
+        await env.DB.prepare(
+          "INSERT INTO terminal_history (id, direction, content, triggered_by, session_id, created_at) VALUES (?,?,?,?,?,?)"
+        ).bind(historyId, 'input', command, 'user', body.session_id || null, now).run().catch(() => {});
+      }
       return jsonResponse({ ok: true, proposal_id: proposalId, message: 'Run in terminal to execute: ' + command });
     }
 
@@ -2891,24 +2929,61 @@ async function handleAgentApi(request, url, env, ctx) {
       const sessionId = sessionIdMatch[1];
       if (method === 'PATCH') {
         const body = await request.json().catch(() => ({}));
-        const name = body.name != null ? String(body.name).trim().slice(0, 200) : null;
-        if (name === null || name === '') return jsonResponse({ error: 'name required' }, 400);
+        const updates = [];
+        const params = [];
+        if (body.name !== undefined && body.name !== null) {
+          const name = String(body.name).trim().slice(0, 200);
+          updates.push('name = ?');
+          params.push(name || null);
+        }
+        if (body.starred !== undefined) {
+          updates.push('is_starred = ?');
+          params.push(body.starred ? 1 : 0);
+        }
+        if (body.project_id !== undefined) {
+          updates.push('project_id = ?');
+          params.push(body.project_id && String(body.project_id).trim() ? String(body.project_id).trim() : null);
+        }
+        if (updates.length === 0) return jsonResponse({ error: 'No fields to update' }, 400);
+        updates.push('updated_at = unixepoch()');
+        params.push(sessionId);
         try {
-          await env.DB.prepare('UPDATE agent_conversations SET name=? WHERE id=?').bind(name, sessionId).run();
+          await env.DB.prepare(
+            `UPDATE agent_conversations SET ${updates.join(', ')} WHERE id = ?`
+          ).bind(...params).run();
         } catch (e) {
           return jsonResponse({ error: 'Update failed', detail: e?.message ?? String(e) }, 500);
         }
         return jsonResponse({ ok: true });
       }
+      if (method === 'DELETE') {
+        try {
+          await env.DB.prepare('DELETE FROM agent_messages WHERE conversation_id = ?').bind(sessionId).run();
+          await env.DB.prepare('DELETE FROM agent_conversations WHERE id = ?').bind(sessionId).run();
+          return jsonResponse({ success: true });
+        } catch (e) {
+          return jsonResponse({ success: false, error: e?.message ?? String(e) }, 500);
+        }
+      }
       if (method === 'GET') {
         try {
+          const row = await env.DB.prepare('SELECT id, name, title, is_starred, project_id FROM agent_conversations WHERE id=?').bind(sessionId).first();
+          if (!row) return jsonResponse({ error: 'Not found' }, 404);
+          return jsonResponse({
+            id: row.id,
+            name: row.name ?? row.title ?? 'New Conversation',
+            is_starred: row.is_starred == null ? 0 : row.is_starred,
+            project_id: row.project_id ?? null,
+          });
+        } catch (e) {
           const row = await env.DB.prepare('SELECT id, name, title FROM agent_conversations WHERE id=?').bind(sessionId).first();
           if (!row) return jsonResponse({ error: 'Not found' }, 404);
-          return jsonResponse({ id: row.id, name: row.name ?? row.title ?? 'New Conversation' });
-        } catch (e) {
-          const row = await env.DB.prepare('SELECT id, title FROM agent_conversations WHERE id=?').bind(sessionId).first();
-          if (!row) return jsonResponse({ error: 'Not found' }, 404);
-          return jsonResponse({ id: row.id, name: row.title ?? 'New Conversation' });
+          return jsonResponse({
+            id: row.id,
+            name: row.name ?? row.title ?? 'New Conversation',
+            is_starred: 0,
+            project_id: null,
+          });
         }
       }
     }
@@ -3061,9 +3136,9 @@ async function handleAgentApi(request, url, env, ctx) {
           try {
             const placeholders = ids.map(() => '?').join(',');
             const namesResult = await env.DB.prepare(
-              `SELECT id, title FROM agent_conversations WHERE id IN (${placeholders})`
+              `SELECT id, name, title FROM agent_conversations WHERE id IN (${placeholders})`
             ).bind(...ids).all();
-            (namesResult.results || []).forEach((row) => { namesById[row.id] = row.title ?? 'New Conversation'; });
+            (namesResult.results || []).forEach((row) => { namesById[row.id] = row.name ?? row.title ?? 'New Conversation'; });
           } catch (__) {}
         }
       }
@@ -3073,12 +3148,16 @@ async function handleAgentApi(request, url, env, ctx) {
         has_artifacts: !!artifactFlags[s.id],
         name: namesById[s.id] ?? 'New Conversation',
       }));
-      return jsonResponse(enriched);
+      return new Response(JSON.stringify(enriched), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      });
     }
 
     if (pathLower === '/api/agent/chat' && method === 'POST') {
       const body = await request.json();
-      const { model_id, messages: msgList, agent_id, session_id, images: bodyImages, attached_files: bodyFiles, use_ai_gateway: bodyUseGateway, compiled_context: bodyCompiledContext } = body;
+      const { model_id, messages: msgList, agent_id, session_id, images: bodyImages, attached_files: bodyFiles, use_ai_gateway: bodyUseGateway, compiled_context: bodyCompiledContext, mode: bodyMode } = body;
+      const chatMode = (bodyMode === 'ask' || bodyMode === 'plan' || bodyMode === 'debug' || bodyMode === 'agent') ? bodyMode : 'agent';
       console.log('[agent/chat] model_id:', model_id);
       const bodyCompiledContextTrim = typeof bodyCompiledContext === 'string' ? bodyCompiledContext.trim() : '';
       if (!msgList || !Array.isArray(msgList) || msgList.length === 0) return jsonResponse({ error: 'messages required' }, 400);
@@ -3344,6 +3423,7 @@ async function handleAgentApi(request, url, env, ctx) {
             })
             .catch(() => {});
         }
+        await upsertMcpAgentSession(env, conversationId);
 
         if (canStreamOpenAI) {
           return streamOpenAI(env, systemWithBlurb, apiMessages, model, images, conversationId, agent_id, ctx);
@@ -3361,7 +3441,7 @@ async function handleAgentApi(request, url, env, ctx) {
             mcpToolsCount = tr ? 1 : 0;
           } catch (_) {}
           if (mcpToolsCount > 0) {
-            const toolsResp = await chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, conversationId, agent_id, ctx, { stream: wantStream });
+            const toolsResp = await chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, conversationId, agent_id, ctx, { stream: wantStream, mode: chatMode });
             if (toolsResp) return toolsResp;
           }
         const anthropicMessagesStream = apiMessages.map((m, i) => {
@@ -3530,6 +3610,7 @@ async function handleAgentApi(request, url, env, ctx) {
           console.error('[agent/chat] agent_messages INSERT failed:', e?.message ?? e);
         }
         conversationId = conversationId ?? crypto.randomUUID();
+        await upsertMcpAgentSession(env, conversationId);
         const agentIdForTools = agent_id ?? 'agent_sam_v1';
         const modelKeyForTools = model.provider === 'anthropic' ? resolveAnthropicModelKey(model.model_key) : (model.model_key || 'gpt-4o');
         const finalText = await runToolLoop(env, request, model.provider, modelKeyForTools, systemWithBlurb, apiMessages, toolDefinitions, model, agentIdForTools, conversationId);
@@ -3649,6 +3730,7 @@ async function handleAgentApi(request, url, env, ctx) {
       }
       const assistantContent = result?.content?.[0]?.text ?? result?.choices?.[0]?.message?.content ?? result?.candidates?.[0]?.content?.parts?.[0]?.text ?? (typeof result?.message === 'string' ? result.message : '');
       conversationId = conversationId || crypto.randomUUID();
+      await upsertMcpAgentSession(env, conversationId);
       try {
         const convId = conversationId;
         if (convId) {
@@ -3845,6 +3927,18 @@ async function handleAgentApi(request, url, env, ctx) {
       }
     }
 
+    const queueIdMatch = pathLower.match(/^\/api\/agent\/queue\/([^/]+)$/);
+    if (queueIdMatch && method === 'DELETE') {
+      try {
+        if (!env.DB) return jsonResponse({ error: 'DB missing' }, 503);
+        const queueId = queueIdMatch[1];
+        await env.DB.prepare('DELETE FROM agent_request_queue WHERE id = ?').bind(queueId).run();
+        return jsonResponse({ success: true });
+      } catch (e) {
+        return jsonResponse({ error: String(e?.message || e) }, 500);
+      }
+    }
+
     if (pathLower === '/api/agent/plan/approve' && method === 'POST') {
       try {
         if (!env.DB) return jsonResponse({ error: 'DB missing' }, 503);
@@ -3876,6 +3970,24 @@ async function handleAgentApi(request, url, env, ctx) {
       } catch (e) {
         console.error('[agent/plan/reject]', e?.message || e);
         return jsonResponse({ error: String(e?.message || e) }, 500);
+      }
+    }
+
+    if (pathLower === '/api/agent/chat/execute-approved-tool' && method === 'POST') {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const toolName = body.tool_name || body.name;
+        const toolInput = body.tool_input || body.parameters || body.input || {};
+        if (!toolName || typeof toolName !== 'string') return jsonResponse({ success: false, error: 'tool_name required' }, 400);
+        console.log('[execute-approved-tool] tool_name:', toolName);
+        console.log('[execute-approved-tool] tool_input:', JSON.stringify(toolInput));
+        const out = await invokeMcpToolFromChat(env, toolName, toolInput, body.conversation_id ?? null);
+        console.log('[execute-approved-tool] result:', JSON.stringify(out));
+        if (out.error) return jsonResponse({ success: false, error: out.error }, 200);
+        return jsonResponse({ success: true, result: out.result ?? out });
+      } catch (e) {
+        console.error('[agent/chat/execute-approved-tool]', e?.message || e);
+        return jsonResponse({ success: false, error: String(e?.message || e) }, 500);
       }
     }
 
@@ -4251,7 +4363,7 @@ async function handleMcpApi(req, u, e) {
           if (!token) return jsonResponse({ error: 'MCP auth not configured' }, 503);
           const mcpBody = {
             jsonrpc: '2.0',
-            id: 1,
+            id: Date.now(),
             method: 'tools/call',
             params: { name: tool_name, arguments: params }
           };
@@ -4262,7 +4374,7 @@ async function handleMcpApi(req, u, e) {
               headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json, text/event-stream',
-                'Authorization': 'Bearer ' + token
+                'Authorization': `Bearer ${token}`
               },
               body: JSON.stringify(mcpBody)
             });
@@ -4285,55 +4397,298 @@ async function handleMcpApi(req, u, e) {
       }
 }
 
+/** Record MCP tool call to mcp_tool_calls, mcp_usage_log, and mcp_services. All DB writes in try/catch so missing tables/columns do not break flow. */
+async function recordMcpToolCall(env, opts) {
+  const { conversationId, toolName, toolCategory, toolInput, result, error, serviceName } = opts;
+  if (!env.DB) return;
+  const tenant = 'tenant_sam_primeaux';
+  const sessionId = conversationId ?? '';
+  const status = error ? 'failed' : 'completed';
+  const output = error ? JSON.stringify({ error }) : (typeof result === 'string' ? result : JSON.stringify(result ?? {}));
+  const outputSlice = output.slice(0, 50000);
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  const id = crypto.randomUUID();
+  try {
+    await env.DB.prepare(
+      `INSERT INTO mcp_tool_calls (id, tenant_id, session_id, tool_name, tool_category, input_schema, output, status, invoked_by, invoked_at, completed_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'agent_sam', ?, ?, ?, ?)`
+    ).bind(id, tenant, sessionId, toolName, toolCategory || 'mcp', JSON.stringify(toolInput || {}), outputSlice, status, now, now, now, now).run();
+  } catch (e) { console.warn('[recordMcpToolCall] mcp_tool_calls', e?.message ?? e); }
+  try {
+    const successInc = error ? 0 : 1;
+    const failInc = error ? 1 : 0;
+    await env.DB.prepare(
+      `INSERT INTO mcp_usage_log (id, tenant_id, tool_name, date, call_count, success_count, failure_count)
+       VALUES (?, ?, ?, date('now'), 1, ?, ?)
+       ON CONFLICT(tenant_id, tool_name, date) DO UPDATE SET
+         call_count = call_count + 1,
+         success_count = success_count + ?,
+         failure_count = failure_count + ?`
+    ).bind(crypto.randomUUID(), tenant, toolName, successInc, failInc, successInc, failInc).run();
+  } catch (e) { console.warn('[recordMcpToolCall] mcp_usage_log', e?.message ?? e); }
+  if (serviceName) {
+    try {
+      await env.DB.prepare(
+        `UPDATE mcp_services SET health_status = ?, last_used = ? WHERE service_name = ?`
+      ).bind(error ? 'error' : 'active', new Date().toISOString(), serviceName).run();
+    } catch (e) { console.warn('[recordMcpToolCall] mcp_services', e?.message ?? e); }
+  }
+}
+
+/** Create or update MCP agent session at chat start. Uses conversation_id (migration 135). No-op if columns missing. */
+async function upsertMcpAgentSession(env, conversationId) {
+  if (!env.DB || !conversationId) return;
+  const now = new Date().toISOString();
+  const nowUnix = Math.floor(Date.now() / 1000);
+  try {
+    await env.DB.prepare(
+      `INSERT INTO mcp_agent_sessions (id, agent_id, tenant_id, status, conversation_id, last_activity, tool_calls_count, created_at, updated_at)
+       VALUES (?, 'agent_sam', 'tenant_sam_primeaux', 'active', ?, ?, 0, ?, ?)
+       ON CONFLICT(conversation_id) DO UPDATE SET last_activity = excluded.last_activity, tool_calls_count = tool_calls_count + 1, updated_at = ?`
+    ).bind(crypto.randomUUID(), conversationId, now, nowUnix, nowUnix, nowUnix).run();
+  } catch (e) { console.warn('[upsertMcpAgentSession]', e?.message ?? e); }
+}
+
 /** Invoke MCP tool from chat (same logic as /api/mcp/invoke). Returns { result } or { error }. */
-async function invokeMcpToolFromChat(env, tool_name, params) {
+async function invokeMcpToolFromChat(env, tool_name, params, conversationId) {
   const INTERNAL_PLAYWRIGHT_TOOLS = ['playwright_screenshot', 'browser_screenshot', 'browser_navigate', 'browser_content'];
   if (INTERNAL_PLAYWRIGHT_TOOLS.includes(tool_name) && env.MYBROWSER && env.DASHBOARD) {
     try {
-      return { result: await runInternalPlaywrightTool(env, tool_name, params) };
+      const out = { result: await runInternalPlaywrightTool(env, tool_name, params) };
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'browser', toolInput: params, result: out.result, error: null, serviceName: 'builtin' });
+      return out;
     } catch (err) {
-      return { error: String(err?.message || err) };
+      const errMsg = String(err?.message || err);
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'browser', toolInput: params, result: null, error: errMsg, serviceName: 'builtin' });
+      return { error: errMsg };
     }
   }
   if (tool_name === 'knowledge_search' && env.AI) {
-    const query = params.query ?? '';
-    const max_results = Math.min(Math.max(1, Number(params.max_results) || 5), 10);
+    const query = (params.query ?? params.search_query ?? '').trim();
+    if (!query) {
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'knowledge', toolInput: params, result: null, error: 'query required', serviceName: 'builtin' });
+      return { error: 'query required' };
+    }
     try {
-      const searchResult = await env.AI.autorag('inneranimalmedia-aisearch').search({
-        query: query,
-        max_num_results: max_results,
+      console.log('[knowledge_search] Using AI Search endpoint', { query });
+      const aiSearchResponse = await env.AI.autorag('inneranimalmedia-aisearch').search({
+        query,
+        max_num_results: 5,
       });
-      const resultText = JSON.stringify({
-        query: searchResult.search_query ?? query,
-        results: (searchResult.data ?? []).map(item => ({
-          content: item.content ?? item.text,
-          source: item.source ?? item.metadata?.source ?? 'unknown',
-          score: item.score,
-        })),
-      });
+      let results = aiSearchResponse?.results ?? aiSearchResponse?.data ?? [];
+      let answer = (aiSearchResponse?.answer ?? results.map(r => (r.content ?? r.text ?? '')).filter(Boolean).join('\n\n').slice(0, 10000)) || '';
+      if (results.length === 0 && env.VECTORIZE && env.R2 && env.AI) {
+        console.log('[knowledge_search] AI Search returned 0 results, trying direct Vectorize query');
+        try {
+          const modelResp = await env.AI.run(RAG_MEMORY_EMBED_MODEL, { text: [query] });
+          const data = modelResp?.data ?? modelResp;
+          const vector = (Array.isArray(data) ? data : data?.data)?.[0];
+          if (vector && Array.isArray(vector)) {
+            const vectorMatches = await env.VECTORIZE.query(vector, { topK: 5, returnMetadata: 'all' });
+            const matches = vectorMatches?.matches ?? vectorMatches ?? [];
+            const seen = new Set();
+            for (const m of matches) {
+              const source = m?.metadata?.source;
+              if (!source || seen.has(source)) continue;
+              seen.add(source);
+              const obj = await env.R2.get(source);
+              if (obj) {
+                const text = await obj.text();
+                const content = text.slice(0, 8000);
+                results.push({ content, text: content, source, metadata: { source }, score: m.score ?? 0 });
+              }
+            }
+            if (results.length > 0) answer = results.map(r => r.content ?? r.text ?? '').filter(Boolean).join('\n\n').slice(0, 10000);
+          }
+        } catch (fallbackErr) {
+          console.warn('[knowledge_search] Vectorize fallback error', fallbackErr?.message ?? fallbackErr);
+        }
+      }
+      console.log('[knowledge_search] AI Search results', { count: results.length });
+      if (env.DB) {
+        try {
+          await env.DB.prepare(
+            `INSERT INTO ai_rag_search_history (id, tenant_id, query_text, retrieved_chunk_ids_json, context_used, created_at) VALUES (?, ?, ?, ?, ?, ?)`
+          ).bind(
+            crypto.randomUUID(),
+            'tenant_sam_primeaux',
+            query,
+            JSON.stringify(results.map(r => r.id ?? r.source ?? '')),
+            answer,
+            Math.floor(Date.now() / 1000)
+          ).run();
+        } catch (dbErr) {
+          await env.DB.prepare(
+            `INSERT INTO ai_rag_search_history (id, tenant_id, query_text, context_used, created_at) VALUES (?, ?, ?, ?, unixepoch())`
+          ).bind(crypto.randomUUID(), 'tenant_sam_primeaux', query, answer).run().catch(() => {});
+        }
+      }
+      const resultPayload = {
+        query,
+        answer,
+        results: results.map(r => ({ content: r.content ?? r.text, source: r.source ?? r.metadata?.source ?? 'unknown', score: r.score })),
+        sources: results.map(r => r.source ?? r.metadata?.source ?? ''),
+      };
+      const resultText = JSON.stringify(resultPayload);
+      const out = { result: resultText };
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'knowledge', toolInput: params, result: resultText, error: null, serviceName: 'builtin' });
+      return out;
+    } catch (e) {
+      const errMsg = e?.message ?? String(e);
+      console.error('[knowledge_search] AI Search error:', errMsg);
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'knowledge', toolInput: params, result: null, error: errMsg, serviceName: 'builtin' });
+      return { error: errMsg };
+    }
+  }
+  if (tool_name === 'terminal_execute' && env.TERMINAL_WS_URL) {
+    const command = params.command ?? '';
+    try {
+      const termResult = await runTerminalCommand(env, null, command, params.conversation_id ?? null);
+      const out = { result: termResult.output ?? 'No output' };
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'terminal', toolInput: params, result: out.result, error: null, serviceName: 'builtin' });
+      return out;
+    } catch (err) {
+      const errMsg = String(err?.message || err);
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'terminal', toolInput: params, result: null, error: errMsg, serviceName: 'builtin' });
+      return { error: errMsg };
+    }
+  }
+  if (tool_name === 'd1_query' && env.DB) {
+    const sql = (params.query ?? params.sql ?? '').trim();
+    const normalized = sql.replace(/\/\*[\s\S]*?\*\//g, '').replace(/--[^\n]*/g, '').trim().toUpperCase();
+    if (!normalized.startsWith('SELECT')) {
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'd1', toolInput: params, result: null, error: 'Only SELECT queries allowed via d1_query', serviceName: 'builtin' });
+      return { error: 'Only SELECT queries allowed via d1_query' };
+    }
+    try {
+      const rows = await env.DB.prepare(sql).all();
+      const resultText = JSON.stringify(rows.results ?? []);
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'd1', toolInput: params, result: resultText, error: null, serviceName: 'builtin' });
       return { result: resultText };
     } catch (e) {
-      return { result: JSON.stringify({ error: e?.message ?? String(e) }) };
+      const errMsg = `D1 error: ${e?.message ?? e}`;
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'd1', toolInput: params, result: null, error: errMsg, serviceName: 'builtin' });
+      return { error: errMsg };
+    }
+  }
+  if (tool_name === 'd1_write' && env.DB) {
+    const sql = (params.sql ?? params.query ?? '').trim();
+    const bindParams = Array.isArray(params.params) ? params.params : [];
+    const blocked = /\bdrop\s+table\b|\btruncate\b/i;
+    if (blocked.test(sql)) {
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'd1', toolInput: params, result: null, error: 'Blocked: DROP TABLE and TRUNCATE require manual approval', serviceName: 'builtin' });
+      return { error: 'Blocked: DROP TABLE and TRUNCATE require manual approval' };
+    }
+    try {
+      const stmt = env.DB.prepare(sql);
+      const result = bindParams.length ? await stmt.bind(...bindParams).run() : await stmt.run();
+      const changes = result.meta?.changes ?? result.changes ?? 0;
+      const resultText = JSON.stringify({ changes, success: true });
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'd1', toolInput: params, result: resultText, error: null, serviceName: 'builtin' });
+      return { result: resultText };
+    } catch (e) {
+      const errMsg = `D1 error: ${e?.message ?? e}`;
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'd1', toolInput: params, result: null, error: errMsg, serviceName: 'builtin' });
+      return { error: errMsg };
+    }
+  }
+  if (tool_name === 'r2_read' && env.R2) {
+    const key = params.key ?? params.path ?? '';
+    try {
+      const obj = await env.R2.get(key);
+      const resultText = obj ? await obj.text() : `Key not found: ${key}`;
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'r2', toolInput: params, result: resultText, error: null, serviceName: 'builtin' });
+      return { result: resultText };
+    } catch (e) {
+      const errMsg = `R2 error: ${e?.message ?? e}`;
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'r2', toolInput: params, result: null, error: errMsg, serviceName: 'builtin' });
+      return { error: errMsg };
+    }
+  }
+  if (tool_name === 'r2_list' && env.R2) {
+    const prefix = params.prefix ?? '';
+    try {
+      const list = await env.R2.list({ prefix, limit: 50 });
+      const resultText = JSON.stringify(list.objects.map(o => ({ key: o.key, size: o.size })));
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'r2', toolInput: params, result: resultText, error: null, serviceName: 'builtin' });
+      return { result: resultText };
+    } catch (e) {
+      const errMsg = `R2 error: ${e?.message ?? e}`;
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'r2', toolInput: params, result: null, error: errMsg, serviceName: 'builtin' });
+      return { error: errMsg };
+    }
+  }
+  if (tool_name === 'generate_execution_plan' && env.DB) {
+    const summary = typeof params.summary === 'string' ? params.summary.trim() : '';
+    const steps = Array.isArray(params.steps) ? params.steps : [];
+    try {
+      const planId = crypto.randomUUID();
+      const tenantId = env.TENANT_ID || 'system';
+      const planJson = JSON.stringify({ summary, steps });
+      await env.DB.prepare(
+        `INSERT INTO agent_execution_plans (id, tenant_id, session_id, plan_json, summary, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'pending', unixepoch(), unixepoch())`
+      ).bind(planId, tenantId, conversationId ?? '', planJson, summary.slice(0, 2000)).run();
+      const resultText = JSON.stringify({ plan_id: planId, status: 'pending', message: 'Plan created; user can approve or reject in the UI.' });
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'plan', toolInput: params, result: resultText, error: null, serviceName: 'builtin' });
+      return { result: resultText };
+    } catch (e) {
+      const errMsg = e?.message ?? String(e);
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'plan', toolInput: params, result: null, error: errMsg, serviceName: 'builtin' });
+      return { error: errMsg };
     }
   }
   const toolRow = await env.DB.prepare('SELECT * FROM mcp_registered_tools WHERE tool_name = ? AND enabled = 1').bind(tool_name).first();
-  if (!toolRow) return { error: 'Tool not found' };
-  if (toolRow.requires_approval === 1) return { error: 'Tool requires approval' };
+  if (!toolRow) {
+    await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'mcp', toolInput: params, result: null, error: 'Tool not found', serviceName: null });
+    return { error: 'Tool not found' };
+  }
+  if (toolRow.requires_approval === 1) {
+    await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: toolRow.tool_category || 'mcp', toolInput: params, result: null, error: 'Tool requires approval', serviceName: null });
+    return { error: 'Tool requires approval' };
+  }
   const token = env.MCP_AUTH_TOKEN;
-  if (!token) return { error: 'MCP auth not configured' };
+  if (!token) {
+    await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: toolRow.tool_category || 'mcp', toolInput: params, result: null, error: 'MCP auth not configured', serviceName: 'mcp_remote' });
+    return { error: 'MCP auth not configured' };
+  }
   try {
     const mcpRes = await fetch('https://mcp.inneranimalmedia.com/mcp', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: tool_name, arguments: params } }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json, text/event-stream',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: Date.now(),
+        method: 'tools/call',
+        params: { name: tool_name, arguments: params }
+      }),
     });
     const rawText = await mcpRes.text();
+    if (!mcpRes.ok) {
+      console.warn('[invokeMcpToolFromChat] MCP non-OK', mcpRes.status, rawText?.slice(0, 500));
+      const errMsg = `MCP ${mcpRes.status}: ${rawText?.slice(0, 200) || mcpRes.statusText}`;
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: toolRow.tool_category || 'mcp', toolInput: params, result: null, error: errMsg, serviceName: 'mcp_remote' });
+      return { error: errMsg };
+    }
     const dataLine = rawText.split('\n').find(l => l.startsWith('data:'));
     const parsed = dataLine ? JSON.parse(dataLine.slice(5).trim()) : {};
+    const errMsg = parsed?.error?.message ?? parsed?.error;
+    if (errMsg) {
+      const errStr = String(errMsg);
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: toolRow.tool_category || 'mcp', toolInput: params, result: null, error: errStr, serviceName: 'mcp_remote' });
+      return { error: errStr };
+    }
     const content = parsed?.result?.content ?? parsed;
-    return { result: content };
+    const out = { result: content };
+    await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: toolRow.tool_category || 'mcp', toolInput: params, result: content, error: null, serviceName: 'mcp_remote' });
+    return out;
   } catch (err) {
-    return { error: String(err?.message || err) };
+    const errMsg = String(err?.message || err);
+    await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: toolRow?.tool_category || 'mcp', toolInput: params, result: null, error: errMsg, serviceName: 'mcp_remote' });
+    return { error: errMsg };
   }
 }
 
@@ -4368,21 +4723,62 @@ async function runInternalPlaywrightTool(env, toolName, params) {
   }
 }
 
-const MCP_CHAT_TOOL_LOOP_MAX = 5;
+const MCP_CHAT_TOOL_LOOP_MAX = 10;
+
+const ACTION_TOOLS = [
+  'd1_write', 'r2_write', 'r2_delete', 'terminal_execute', 'worker_deploy',
+  'playwright_screenshot', 'browser_screenshot', 'browser_navigate', 'browser_content',
+];
+const READ_ONLY_TOOLS = [
+  'knowledge_search', 'd1_query', 'r2_read', 'r2_list', 'web_search', 'telemetry_query',
+];
+function isActionTool(toolName) {
+  return typeof toolName === 'string' && ACTION_TOOLS.includes(toolName);
+}
+function toolApprovalPreview(toolName, params) {
+  const p = params && typeof params === 'object' ? params : {};
+  const parts = [toolName];
+  if (p.query) parts.push('query: ' + String(p.query).slice(0, 80));
+  if (p.sql) parts.push('SQL: ' + String(p.sql).slice(0, 80));
+  if (p.bucket || p.key) parts.push([p.bucket, p.key].filter(Boolean).join('/'));
+  if (p.command) parts.push('cmd: ' + String(p.command).slice(0, 60));
+  return parts.join(' | ') || 'Will execute: ' + toolName;
+}
 
 /** Anthropic chat with tools; runs tool_use loop. When opts.stream is true, returns SSE stream with tool_start/tool_result/text/done. */
 async function chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, conversationId, agent_id, ctx, opts = {}) {
   const wantStream = opts.stream === true;
+  const mode = opts.mode || 'agent';
   let tools = [];
   try {
-    const r = await env.DB.prepare('SELECT tool_name, description FROM mcp_registered_tools WHERE enabled = 1 ORDER BY tool_name').all();
-    tools = (r.results || []).map((t) => ({
-      name: t.tool_name,
-      description: (t.description || t.tool_name).slice(0, 500),
-      input_schema: { type: 'object', properties: {}, additionalProperties: true },
-    }));
-  } catch (_) {}
+    const r = await env.DB.prepare('SELECT tool_name, description, input_schema FROM mcp_registered_tools WHERE enabled = 1 ORDER BY tool_name').all();
+    tools = (r.results || []).map((t) => {
+      let rawSchema = {};
+      try { rawSchema = typeof t.input_schema === 'string' ? JSON.parse(t.input_schema) : (t.input_schema || {}); } catch (_) {}
+      let input_schema;
+      if (rawSchema && rawSchema.type === 'object' && rawSchema.properties) {
+        input_schema = rawSchema;
+      } else {
+        const properties = {};
+        const required = [];
+        for (const [key, val] of Object.entries(rawSchema)) {
+          if (key === 'type' || key === 'properties' || key === 'required') continue;
+          properties[key] = { type: (val && val.type) || 'string' };
+          if (val && val.required) required.push(key);
+        }
+        input_schema = { type: 'object', properties: Object.keys(properties).length ? properties : {}, required };
+      }
+      return {
+        name: t.tool_name,
+        description: (t.description || t.tool_name).slice(0, 500),
+        input_schema,
+      };
+    });
+  } catch (e) {
+    console.error('[chatWithToolsAnthropic] tool load failed:', e?.message ?? e);
+  }
   if (tools.length === 0) return null;
+  console.log('[chatWithToolsAnthropic] Loaded tools:', tools.length);
   const modelKey = resolveAnthropicModelKey(model.model_key);
   const allToolCalls = [];
   let messages = apiMessages.map((m) => ({ role: m.role, content: m.content }));
@@ -4404,6 +4800,12 @@ async function chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, 
       messages,
       tools,
     };
+    console.log('[chatWithToolsAnthropic] Sending request to Claude', {
+      model: modelKey,
+      tools_count: tools.length,
+      tool_names: tools.map((t) => t.name).slice(0, 5),
+      has_tools_in_body: !!tools && tools.length > 0,
+    });
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -4413,6 +4815,7 @@ async function chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, 
       },
       body: JSON.stringify(body),
     });
+    console.log('[chatWithToolsAnthropic] Claude API response', { status: res.status, ok: res.ok });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       return jsonResponse({ error: err.error?.message || res.statusText, stream: false }, res.status);
@@ -4421,8 +4824,44 @@ async function chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, 
     const content = data.content || [];
     lastUsage = { input_tokens: data.usage?.input_tokens ?? 0, output_tokens: data.usage?.output_tokens ?? 0 };
     const toolUseBlocks = content.filter((b) => b.type === 'tool_use');
+    for (const b of toolUseBlocks) {
+      console.log('[chatWithToolsAnthropic] Claude using tool', { tool_name: b.name, tool_id: b.id });
+    }
     const textParts = content.filter((b) => b.type === 'text').map((b) => b.text).filter(Boolean);
     lastContent = textParts.join('');
+
+    if (mode === 'ask' && toolUseBlocks.length > 0) {
+      const actionBlock = toolUseBlocks.find((b) => isActionTool(b.name));
+      if (actionBlock) {
+        const toolDesc = (tools.find((t) => t.name === actionBlock.name) || {}).description || actionBlock.name;
+        const preview = toolApprovalPreview(actionBlock.name, actionBlock.input);
+        if (wantStream) {
+          const streamBody = new ReadableStream({
+            start(controller) {
+              enqueue(controller, { type: 'text', text: lastContent });
+              enqueue(controller, {
+                type: 'tool_approval_request',
+                tool: {
+                  name: actionBlock.name,
+                  description: toolDesc,
+                  parameters: actionBlock.input || {},
+                  preview,
+                },
+              });
+              enqueue(controller, { type: 'done', usage: lastUsage });
+              controller.close();
+            },
+          });
+          return new Response(streamBody, { headers: { 'Content-Type': 'text/event-stream' } });
+        }
+        return jsonResponse({
+          tool_approval_request: true,
+          text: lastContent,
+          tool: { name: actionBlock.name, description: toolDesc, parameters: actionBlock.input || {}, preview },
+        });
+      }
+    }
+
     if (toolUseBlocks.length === 0) {
       const inputTokens = lastUsage.input_tokens;
       const outputTokens = lastUsage.output_tokens;
@@ -4452,18 +4891,53 @@ async function chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, 
         cost_usd: costUsd,
       });
     }
+    console.log('[chatWithToolsAnthropic] Tool use detected, invoking after response', { count: toolUseBlocks.length });
     const toolResults = [];
     for (const block of toolUseBlocks) {
       const name = block.name;
       const input = block.input || {};
-      const out = await invokeMcpToolFromChat(env, name, input);
+      const out = await invokeMcpToolFromChat(env, name, input, conversationId);
+      console.log('[chatWithToolsAnthropic] Tool invoked', {
+        tool_name: name,
+        tool_id: block.id,
+        success: !out.error,
+        error: out.error,
+      });
       const resultText = out.error ? JSON.stringify({ error: out.error }) : (typeof out.result === 'string' ? out.result : JSON.stringify(out.result || {}));
       toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: resultText.slice(0, 50000) });
       allToolCalls.push({ id: block.id, name, input, result: resultText.slice(0, 500) });
     }
     messages.push({ role: 'assistant', content });
     messages.push({ role: 'user', content: toolResults });
+    console.log('[chatWithToolsAnthropic] Tool results added to messages, sending follow-up request to Claude', { tool_results_count: toolResults.length });
   }
+
+  if (iter >= MCP_CHAT_TOOL_LOOP_MAX && (!lastContent || lastContent.trim().length < 10)) {
+    const finalSystem = systemWithBlurb + '\n\nYou must reply with a single concise final answer based on the conversation and tool results above. Do not use any tools.';
+    const finalRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: modelKey,
+        max_tokens: 4096,
+        system: finalSystem,
+        messages,
+      }),
+    });
+    if (finalRes.ok) {
+      const finalData = await finalRes.json();
+      const finalText = (finalData.content || []).filter((b) => b.type === 'text').map((b) => b.text).filter(Boolean).join('');
+      if (finalText.trim()) {
+        lastContent = finalText.trim();
+        lastUsage = { input_tokens: lastUsage.input_tokens + (finalData.usage?.input_tokens ?? 0), output_tokens: lastUsage.output_tokens + (finalData.usage?.output_tokens ?? 0) };
+      }
+    }
+  }
+
   if (wantStream) {
     const streamBody = new ReadableStream({
       start(controller) {
@@ -4481,7 +4955,41 @@ async function chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, 
   });
 }
 
+async function processQueues(env) {
+  if (!env.DB) return;
+  try {
+    const { results: sessions } = await env.DB.prepare(
+      `SELECT DISTINCT session_id FROM agent_request_queue WHERE status = 'queued'`
+    ).all();
+    for (const { session_id } of sessions || []) {
+      const task = await env.DB.prepare(
+        `SELECT * FROM agent_request_queue WHERE session_id = ? AND status = 'queued' ORDER BY position ASC, created_at ASC LIMIT 1`
+      ).bind(session_id).first();
+      if (!task) continue;
+      try {
+        await env.DB.prepare(
+          `UPDATE agent_request_queue SET status = 'running', updated_at = unixepoch() WHERE id = ?`
+        ).bind(task.id).run();
+        const payload = task.payload_json ? JSON.parse(task.payload_json) : {};
+        await env.DB.prepare(
+          `UPDATE agent_request_queue SET status = 'done', result_json = ?, updated_at = unixepoch() WHERE id = ?`
+        ).bind(JSON.stringify({ success: true, payload: payload }), task.id).run();
+      } catch (e) {
+        await env.DB.prepare(
+          `UPDATE agent_request_queue SET status = 'failed', result_json = ?, updated_at = unixepoch() WHERE id = ?`
+        ).bind(JSON.stringify({ error: String(e?.message || e) }), task.id).run();
+      }
+    }
+  } catch (e) {
+    console.warn('[processQueues]', e?.message || e);
+  }
+}
+
 worker.scheduled = async function scheduled(event, env, ctx) {
+  if (event.cron === '*/30 * * * *') {
+    ctx.waitUntil(processQueues(env));
+    ctx.waitUntil(runOvernightCronStep(env));
+  }
   if (event.cron === '0 0 * * *') {
     const today = new Date().toISOString().slice(0, 10);
     const already = await env.DB.prepare(
@@ -4493,10 +5001,8 @@ worker.scheduled = async function scheduled(event, env, ctx) {
     ctx.waitUntil(sendDailyDigest(env));
     return;
   }
-  if (event.cron === '*/30 * * * *') {
-    ctx.waitUntil(runOvernightCronStep(env));
-  }
   if (event.cron === '0 6 * * *') {
+    console.log('[cron] Starting daily doc sync (compact -> knowledge sync -> Vectorize index)');
     ctx.waitUntil(
       compactAgentChatsToR2(env)
         .then((r) => {
@@ -4875,7 +5381,7 @@ async function compactAgentChatsToR2(env) {
 async function indexMemoryMarkdownToVectorize(env) {
   const keys = [];
   if (env.R2.list) {
-    for (const prefix of ['memory/daily/', 'memory/compacted-chats/', 'knowledge/']) {
+    for (const prefix of ['memory/daily/', 'memory/compacted-chats/', 'knowledge/', 'docs/']) {
       let cursor;
       do {
         const list = await env.R2.list({ prefix, limit: 200, cursor });

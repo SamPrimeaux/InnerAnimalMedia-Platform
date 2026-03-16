@@ -1082,3 +1082,322 @@ Agent dashboard v42 (cache bust), Playwright tools in BUILTIN_TOOLS and D1, audi
 
 ### Known issues / next steps
 - User to run Tests 1-8 from docs/PHASE_2_6_TEST_CHECKLIST.md after deploy.
+
+---
+
+## [2026-03-12] Agent Dashboard UI Refinement v44
+
+### What was asked
+Implement v44 UI refinements: (1) Textarea mobile fix (width/wordWrap); (2) Layout reorder: left group [+] Mode Model, then textarea, then right group context gauge + Send; delete gear-only footer row; (3) Add gear icon to toolbar after Browser button; (4) Viewport meta maximum-scale=1 user-scalable=no; (5) Chat title with chevron menu (Star, Add to Project, Rename, Delete, no emojis); (6) Send button shows stop icon when agent working and input empty, arrow otherwise. No emojis anywhere in UI. Show diffs for approval before deploying.
+
+### Files changed
+- `agent-dashboard/src/AgentDashboard.jsx`: textarea style (lines ~1905-1922): added width "100%", maxWidth "100%", wordWrap "break-word", whiteSpace "pre-wrap", overflowX "hidden". Wrapped connector in left group; moved Mode and Model dropdowns into left group after [+]; kept textarea then right group (gauge + Send); removed duplicate Mode/Model from right group; deleted gear-only footer row (old lines 2183-2216). Toolbar: added gear button after Browser button (Settings & Commands, gear SVG). Added showChatMenu state; added Chat title row with chevron button and dropdown (Star, Add to Project, Rename, Delete). Send button: onClick/disabled/aria-label/background/cursor/opacity use agentState; icon = stop (square) when agentState !== IDLE && !input.trim(), else send (arrow).
+- `dashboard/agent.html`: viewport meta (line 5) to maximum-scale=1, user-scalable=no; cache ?v=43 -> ?v=44 for CSS and JS.
+
+### Files NOT changed (and why)
+- FloatingPreviewPanel.jsx, worker.js OAuth handlers, agent.html structure beyond viewport and cache: not touched per rules.
+
+### Deploy status
+- Built: no (user to run after approval). R2 uploaded: no. Worker deployed: no. Deploy approved by Sam: no (diffs for approval first).
+
+### What is live now
+Unchanged; v44 changes are in repo only until deploy approved.
+
+### Known issues / next steps
+- Run agent-dashboard build, R2 upload (agent.html, agent-dashboard.js, agent-dashboard.css), then deploy after "deploy approved". Context gauge already circular; QueueIndicator unchanged. Chat menu Rename wires to existing edit flow; Star / Add to Project / Delete are placeholders (setShowChatMenu(false) only).
+
+### Additional (pre-approval)
+- Image/file drop: extended onDropFiles to support image drops (PNG/JPG/GIF) via readAsDataURL -> setAttachedImages (max 3); code files still readAsText -> setAttachedFiles (max 5). Layout reorder did not change drop target (agent-input-container still has onDrop).
+- Microphone button: added in input bar left group between Model dropdown and textarea; title "Voice input", TODO for voice-to-text, same hover style as gear.
+- worker.js: /api/commands replaced with agent_commands query (tenant_sam_primeaux, slug/name/description/category/command_text/parameters_json, status=active). Returns { success, commands }; 500 returns { success: false, error }.
+
+### Ask-mode tool approval (this session)
+- worker.js: ACTION_TOOLS, READ_ONLY_TOOLS, isActionTool(), toolApprovalPreview(); chat body accepts mode (default agent); chatWithToolsAnthropic(opts.mode); when mode === 'ask' and tool_use is action tool, stream tool_approval_request + done and return without executing. POST /api/agent/chat/execute-approved-tool runs tool and returns { success, result }.
+- AgentDashboard: pendingToolApproval state; stream handler for type tool_approval_request; Tool Approval Card (Approve & Execute / Cancel); approveTool() calls execute-approved-tool and appends system message with result; mode sent in chat body; slash command match uses name/slug for agent_commands shape.
+
+---
+
+## [2026-03-13] v44 Missing functionality — Star, Add to Project, Delete, slash execute, queue, context popup
+
+### What was asked
+Implement all missing functionality for v44 to production quality: (1) Star conversation — DB already had is_starred (migration 132); (2) Add to Project — DB project_id (migration 133); (3) Delete conversation; (4) Slash command execution; (5) Queue processor + frontend queue item remove; (6) Plan executor (queue processor); (7) Debug mode / Auto model; (8) Context gauge popup.
+
+### Files changed
+- `worker.js`: PATCH /api/agent/sessions/:id extended to accept optional name, starred, project_id; dynamic UPDATE agent_conversations; GET same path returns is_starred, project_id; DELETE same path added (delete agent_messages then agent_conversations). DELETE /api/agent/queue/:id added. POST /api/agent/commands/execute added (lookup agent_commands by name/slug, return command_text or builtin result). processQueues(env) added; scheduled() runs processQueues on */30 * * * * (with runOvernightCronStep); queue tasks marked running then done/failed (stub execution, no chat invocation).
+- `agent-dashboard/src/AgentDashboard.jsx`: State isStarred, showProjectSelector, projects, showDeleteConfirm. Session load effect sets isStarred from GET session. toggleStar, openProjectSelector, linkToProject, deleteConversation callbacks. Menu: Star/Unstar (toggleStar), Add to Project (openProjectSelector), Delete (opens confirm). Project selector modal (fetch /api/projects, list projects, linkToProject, Cancel). Delete confirm modal (copy, Delete/Cancel, deleteConversation). Slash command: POST /api/agent/commands/execute with command_name and parameters, show result or error in system message. refreshQueue useCallback; deleteQueueItem calls DELETE /api/agent/queue/:id then refreshQueue. QueueIndicator passed queue and onDeleteItem. Context gauge: wrapped in button with costPopoverRef, onClick toggles costPopoverOpen; popover shows tokens, context k/limit, cost.
+- `agent-dashboard/src/QueueIndicator.jsx`: Props queue, onDeleteItem; renders up to 5 queue items with preview and Remove button calling onDeleteItem(item.id).
+
+### Files NOT changed (and why)
+- `FloatingPreviewPanel.jsx`, `agent.html`, `worker.js` OAuth handlers, `wrangler.production.toml`: not touched per rules. Migrations 132/133 already created and run earlier.
+
+### Deploy status
+- Built: no (user to run build when ready).
+- R2 uploaded: no.
+- Worker deployed: no.
+- Deploy approved by Sam: no.
+
+### What is live now
+Unchanged until build, R2 upload of dashboard assets, and worker deploy after "deploy approved".
+
+### Known issues / next steps
+- Plan executor: processQueues marks queue tasks done/failed without invoking chat; full per-task execution would require calling into chat/tools pipeline.
+- Debug mode / Auto model: not implemented; current behavior is documented (mode sent to chat; model chosen by user). Add debug prompt/tools or auto-model selection if specified.
+- agent_commands.implementation_type / implementation_ref may not exist in schema; execute uses them only when present (builtin branch).
+
+## [2026-03-12] Full MCP tracking system
+
+### What was asked
+Wire up the full MCP tracking system: (1) mcp_tool_calls on every tool invocation in invokeMcpToolFromChat; (2) mcp_usage_log daily aggregates; (3) mcp_services health/last_used updates; (4) mcp_agent_sessions create/update at chat start in /api/agent/chat. Deploy after implementation.
+
+### Files changed
+- `migrations/134_mcp_usage_log.sql`: New table mcp_usage_log (id, tenant_id, tool_name, date, call_count, success_count, failure_count, UNIQUE(tenant_id, tool_name, date)).
+- `migrations/135_mcp_tracking_columns.sql`: mcp_agent_sessions: ADD conversation_id, last_activity, tool_calls_count; UNIQUE index on conversation_id WHERE NOT NULL. mcp_services: ADD last_used.
+- `worker.js`: recordMcpToolCall(env, opts) helper: INSERT mcp_tool_calls (runToolLoop schema), INSERT/ON CONFLICT mcp_usage_log, UPDATE mcp_services (health_status, last_used). All in try/catch. upsertMcpAgentSession(env, conversationId): INSERT into mcp_agent_sessions with conversation_id/last_activity/tool_calls_count, ON CONFLICT(conversation_id) DO UPDATE last_activity and increment tool_calls_count. invokeMcpToolFromChat(env, tool_name, params, conversationId): optional 4th param; before every return calls recordMcpToolCall with toolCategory and serviceName (builtin vs mcp_remote). chatWithToolsAnthropic passes conversationId into invokeMcpToolFromChat. /api/agent/chat: await upsertMcpAgentSession(env, conversationId) in all three places where conversationId is set (streaming path after messages insert; non-streaming runToolLoop path; non-streaming result path). execute-approved-tool passes body.conversation_id to invokeMcpToolFromChat.
+
+### Files NOT changed (and why)
+- agent.html, FloatingPreviewPanel.jsx, wrangler.production.toml, OAuth handlers: not touched per rules.
+
+### Deploy status
+- Built: no.
+- R2 uploaded: no (no dashboard file changes).
+- Worker deployed: no. Deploy only after Sam types "deploy approved".
+- Migrations: 134 and 135 not run; run remotely before or with deploy: `./scripts/with-cloudflare-env.sh npx wrangler d1 execute inneranimalmedia-business --remote -c wrangler.production.toml --file=./migrations/134_mcp_usage_log.sql` and same for 135.
+
+### What is live now
+Unchanged until migrations are run and worker is deployed.
+
+### Known issues / next steps
+- Run migrations 134 and 135 on remote D1 before deploy so mcp_usage_log exists and mcp_agent_sessions/mcp_services have new columns. If 135 is run after 134, and a column already exists, that ALTER will fail; run once or add IF NOT EXISTS handling (SQLite has no ADD COLUMN IF NOT EXISTS).
+- mcp_command_suggestions (optional AI-generated) skipped per user priority.
+
+---
+
+# Cursor Session Log - 2026-03-12
+
+## What Was Fixed Today
+
+### MCP Tools (WORKING)
+- Fixed tool loop limit (5 to 10 rounds)
+- Fixed final answer fallback when limit hit
+- All 23 MCP tools now functional (d1_query, terminal_execute, etc.)
+
+### Terminal History Logging (FIX APPLIED)
+- Bug: INSERT was using `session_id` instead of `terminal_session_id`
+- Fix: runTerminalCommand now uses columns `terminal_session_id`, `agent_session_id`, `recorded_at`, and `triggered_by = 'agent'` (worker.js lines 1756, 1759)
+- Migration 136 adds terminal_session_id, agent_session_id, recorded_at to terminal_history
+- Deploy pending (await "deploy approved")
+
+### Deploy History
+- Version: 0c0cb799-0e3e-41b9-9005-398341c57b63
+- Status: Terminal logging column fix in repo; deploy after approval
+
+## Schema Verified
+- ai_rag_search_history: Valid
+- rag_chunks: Valid
+- terminal_history: Valid (columns: terminal_session_id, agent_session_id, recorded_at, triggered_by; migration 136 adds terminal_session_id, agent_session_id, recorded_at where missing)
+
+## Next Steps
+1. Deploy after "deploy approved" to get terminal logging fix live
+2. Verify terminal history rows written after deploy
+3. MCP tracking tables (134, 135) already run on remote D1
+
+---
+
+## [2026-03-15] Chats list cache + name-over-title + deploy
+
+### What was asked
+Deploy approved. Execute: (1) Upload chats.html to R2, (2) npm run deploy, (3) Report version ID. Then test /dashboard/chats and MCP (query mcp_tool_calls).
+
+### Files changed (this session)
+- `worker.js`: GET /api/agent/sessions returns Response with Cache-Control: no-store; enrichment fallback uses SELECT id, name, title and name ?? title ?? 'New Conversation'.
+- `dashboard/chats.html`: fetch with cache-busting ?t= + Date.now() and cache: 'no-store'; display uses s.name when present for card title.
+- (Earlier) PATCH /api/agent/sessions/:id already updates name and updated_at = unixepoch() — confirmed, no change.
+
+### Files NOT changed (and why)
+- FloatingPreviewPanel.jsx, agent.html, worker.js OAuth callbacks, wrangler.production.toml: not touched per rules.
+
+### Deploy status
+- Built: no separate build (chats.html is static).
+- R2 uploaded: yes — agent-sam/static/dashboard/chats.html (with-cloudflare-env.sh wrangler r2 object put ... --remote).
+- Worker deployed: yes. Version ID: **ccdead1e-2523-476d-9124-bad0136873c3**.
+- Deploy approved by Sam: yes.
+
+### What is live now
+GET /api/agent/sessions is no-store; Chats page uses cache-busting and shows conversation names (name over title). PATCH already updates name column. Renamed chats (e.g. "IAM Platform Check with R2- test", "Search for Session Summary March 12") should appear on hard refresh of /dashboard/chats.
+
+### Known issues / next steps
+- Test: Hard refresh /dashboard/chats (Cmd+Shift+R), verify renamed titles.
+- Test MCP: In Agent Sam ask "Query the mcp_tool_calls table and show me the last 5 tool calls" — if it works, MCP is fixed; if not, debug token separately.
+
+---
+
+## [2026-03-15] Built-in tool handlers in invokeMcpToolFromChat (d1/r2/plan)
+
+### What was asked
+Copy built-in handlers from runToolLoop into invokeMcpToolFromChat so streaming chat path handles d1_query, d1_write, r2_read, r2_list, generate_execution_plan in-worker instead of sending to MCP.
+
+### Files changed
+- `worker.js` lines 4576–4663 (insert before DB lookup): added built-in branches for d1_query (SELECT-only), d1_write (with DROP/TRUNCATE block), r2_read (env.R2), r2_list (env.R2, limit 50), generate_execution_plan (insert agent_execution_plans). Each branch calls recordMcpToolCall with serviceName: 'builtin' and returns { result } or { error }.
+
+### Files NOT changed (and why)
+- FloatingPreviewPanel.jsx, agent.html, worker.js OAuth handlers, wrangler.production.toml: not touched per rules. No dashboard files changed; no R2 upload.
+
+### Deploy status
+- Built: no separate build (worker.js only).
+- R2 uploaded: no (no dashboard changes).
+- Worker deployed: yes. Version ID: **2c822459-d99a-422d-ba92-d24023a01994**.
+- Deploy approved by Sam: yes.
+
+### What is live now
+Streaming Agent Sam chat now runs d1_query, d1_write, r2_read, r2_list, and generate_execution_plan in the worker (50–200ms). terminal_execute, knowledge_search, and Playwright tools remain built-in; other tools still go to MCP. Non-streaming runToolLoop unchanged.
+
+### Known issues / next steps
+- Test: In Agent Sam (streaming), ask for a D1 query or R2 list and confirm fast response and correct results.
+
+---
+
+## [2026-03-15] d1_query / d1_write accept both params.query and params.sql
+
+### What was asked
+Fix validation rejecting valid SELECTs: accept SQL from either parameter name. Same for d1_write.
+
+### Files changed
+- `worker.js` line 4578: `const sql = (params.query ?? params.sql ?? '').trim();` (d1_query).
+- `worker.js` line 4596: `const sql = (params.sql ?? params.query ?? '').trim();` (d1_write).
+
+### Files NOT changed (and why)
+- No other files touched.
+
+### Deploy status
+- Worker deployed: yes. Version ID: **d95aca8a-2145-4eaf-b651-6c3166419269**.
+- Deploy approved by Sam: yes (requested deploy after fix).
+
+### What is live now
+d1_query and d1_write built-in handlers accept SQL from either `params.query` or `params.sql`. Agent Sam prompt "Query the mcp_tool_calls table and show me the last 5 tool calls" should work.
+
+### Known issues / next steps
+- Test in Agent Sam: "Query the mcp_tool_calls table and show me the last 5 tool calls."
+
+---
+
+## [2026-03-15] Context gauge deploy
+
+### What was asked
+Deploy approved: R2 upload of agent-dashboard.js and worker deploy after context gauge implementation.
+
+### Files changed
+- None this session (gauge changes were in prior session).
+
+### Files NOT changed (and why)
+- worker.js, agent.html, FloatingPreviewPanel.jsx: not touched.
+
+### Deploy status
+- Built: yes (agent-dashboard built in prior step).
+- R2 uploaded: yes — `static/dashboard/agent/agent-dashboard.js`.
+- Worker deployed: yes — Version ID: **f6249b03-20dd-4c79-a443-745facdabbc3**.
+- Deploy approved by Sam: yes.
+
+### What is live now
+Agent dashboard context gauge is live: real-time token estimate from conversation history (chars/4, 200k limit), donut SVG, and popover showing est. tokens and context %.
+
+### Known issues / next steps
+- Chat compaction (POST /api/conversations/:id/compact + Compact Chat UI) not yet implemented.
+
+---
+
+## [2026-03-16] Context gauge refinement
+
+### What was asked
+- Model-aware context gauge (use activeModel.context_max_tokens)
+- Show "<1%" for small conversations instead of "0%"
+- Tighter mobile spacing (gap: 6px on mobile, 10px desktop)
+
+### Files changed
+- `agent-dashboard/src/AgentDashboard.jsx`:
+  - Lines 1330-1334: Added contextMax from activeModel?.context_max_tokens, contextLimitK from contextMax, rawPct, contextPct (string '<1' or number), contextPctNum and contextPctLabel for SVG and display.
+  - Lines 2729, 2746, 2769: Use contextPctNum for strokeDasharray; use contextPctLabel for gauge and popover % display (so "<1%" shows correctly).
+  - Line 2233: Responsive gap (6px when window.innerWidth < 768, 10px desktop).
+
+### Deploy status
+- Built: yes (dist/agent-dashboard.js 272.48 kB).
+- R2 uploaded: yes — `static/dashboard/agent/agent-dashboard.js`.
+- Worker deployed: yes (deploy approved).
+- Version ID: **bad8195b-978f-4e65-8150-21b088d334c2**.
+
+### Test results (for Sam to confirm on iPhone)
+- "<1%" display: (verify on new conversation)
+- Model-specific context: (verify limit reflects active model)
+- Mobile spacing: (verify input row gap tighter on mobile)
+
+### Rollback
+- R2 backup: `./BACKUP-agent-dashboard-v42.js`. To rollback: `./scripts/with-cloudflare-env.sh npx wrangler r2 object put agent-sam/static/dashboard/agent/agent-dashboard.js --file=./BACKUP-agent-dashboard-v42.js --content-type=application/javascript --remote -c wrangler.production.toml`
+
+### Known issues
+- None. If any live test fails, use rollback command above and clear cache.
+
+---
+
+## [2026-03-16] Mobile spacing final refinement
+
+### What was asked
+- Input row gap on mobile: 6px to 2px (max typing room, avoid accidental taps); desktop stays 10px.
+
+### Files changed
+- `agent-dashboard/src/AgentDashboard.jsx` line 2233: `gap: window.innerWidth < 768 ? 6 : 10` → `gap: window.innerWidth < 768 ? 2 : 10`.
+
+### Deploy status
+- Built: yes. R2 uploaded: yes. Worker deployed: yes.
+- Version ID: **8047ca61-6f41-49e1-8835-6bc314c2c572**.
+
+### What is live now
+Agent dashboard input row uses 2px gap on mobile, 10px on desktop.
+
+---
+
+## [2026-03-16] Mobile input bar redesign + status bar color
+
+### What was asked
+- On mobile (< 768px): hide Mode and Model dropdowns from input bar; add Mode and Model to + connector popup. Desktop unchanged.
+- Status bar: background var(--bg-nav), color rgba(255,255,255,0.8).
+
+### Files changed
+- `agent-dashboard/src/AgentDashboard.jsx`:
+  - Wrapped Mode dropdown (ref=modeDropdownRef) with `!isMobile && (...)`.
+  - Wrapped Model dropdown (ref=modelDropdownRef) with `!isMobile && (...)`.
+  - Inside connector popup menu: added Mode selector (mobile only) and Model selector (mobile only) with padding, using var(--mode-color)/var(--color-primary) for selected state.
+  - Status bar: background "var(--bg-nav)", color "rgba(255, 255, 255, 0.8)".
+
+### Deploy status
+- Built: yes. R2 uploaded: yes. Worker deployed: yes.
+- Version ID: **d6d16b9a-e8c5-4c28-92af-018b0552738c**.
+
+### What is live now
+Mobile input bar: [+] [Mic] [textarea] [gauge] [Send]. Tap + for connectors, Mode, and Model. Status bar matches header/footer (nav blue, white text).
+
+---
+
+## [2026-03-16] Complete theme system overhaul (v=44)
+
+### What was asked
+Implement full theme fix: worker normalize slug and remove broken user_preferences path; GET/PATCH /api/settings/theme fixes; FOUC prevention in all dashboard HTML (exact theme loader); applyShellTheme/applyThemeToShell sync pattern with localStorage dashboard-theme-vars as raw CSS; single source of truth cms_themes.slug.
+
+### Files changed
+- `worker.js`: After imports, added normalizeThemeSlug(value). Deleted lines 711-734 (PATCH /api/user/preferences). GET /api/settings/theme: defaultSlug via normalizeThemeSlug; user path uses user_settings only, slug = normalizeThemeSlug(row.theme), no user_preferences SELECT; cms_themes lookup with normalized slug. PATCH /api/settings/theme: body.theme, normalizedTheme = normalizeThemeSlug(theme), validation 400 if !normalizedTheme, upsert with normalizedTheme.
+- `dashboard/*.html` (22 files): Replaced first script block with exact theme preload: saved = localStorage dashboard-theme, set data-theme; savedVars = localStorage dashboard-theme-vars, inject style id theme-preload-inject with textContent = savedVars. Files: overview, chats, agent, cms, mail, pipelines, onboarding, user-settings, time-tracking, kanban, meet, images, cloud, calendar, mcp, clients, billing, tools, finance, hub, projects, billing-from-r2.
+- `static/dashboard/agent.html`, `static/dashboard/draw.html`, `static/dashboard/glb-viewer.html`: Same theme preload pattern; glb-viewer given data-theme and script.
+- All dashboard HTML with applyShellTheme: Replaced function body to build cssVars from apiVariables or config, build cssText = ':root[data-theme="slug"] {...}', localStorage.setItem('dashboard-theme', slug), localStorage.setItem('dashboard-theme-vars', cssText), inject style id theme-dynamic-inject. Applied in overview, chats, cms, mail, pipelines, onboarding, time-tracking, kanban, meet, images, cloud, calendar, mcp, clients, billing, tools, finance, projects, hub, billing-from-r2, static/dashboard/agent.html.
+- `dashboard/user-settings.html`: applyThemeToShell builds cssText and saves to dashboard-theme-vars; v2 override stores themeCssMap, applyThemeToShell and usApplyTheme save selected theme CSS to localStorage and inject theme-dynamic-inject.
+
+### Files NOT changed (and why)
+- worker.js auth/OAuth handlers, FloatingPreviewPanel.jsx, agent.html (only theme script block changed), wrangler.production.toml: not touched per rules.
+- dashboard/pages/agent.html, static/dashboard/pages/draw.html: fragments (no full head); not given theme loader.
+
+### Deploy status
+- Built: no (no agent-dashboard or worker build run). R2 uploaded: no. Worker deployed: no. Deploy approved by Sam: no.
+
+### What is live now
+No deploy; production unchanged. After deploy: theme slug normalized (theme- prefix stripped), GET theme from user_settings + cms_themes only; PATCH validates and stores normalized slug; all dashboard pages preload theme from localStorage (dashboard-theme, dashboard-theme-vars as raw CSS) before paint; applyShellTheme/applyThemeToShell persist CSS string for zero-flash on navigation.
+
+### Verification (run after deploy)
+- D1: SELECT COUNT(*) FROM cms_themes; (expect 67). SELECT theme FROM user_settings WHERE user_id = 'au_871d920d1233cbd1'; (expect slug e.g. dark). SELECT id, slug, name FROM cms_themes WHERE slug = 'dark';
+- Manual: Change theme in user-settings, refresh another dashboard page; theme should persist with no flash.

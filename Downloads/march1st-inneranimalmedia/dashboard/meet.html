@@ -4,65 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meet — Inner Animal Media</title>
+    <!-- CRITICAL: Theme must load BEFORE any visible content -->
     <script>
-        (function() {
-            try {
-                var t = localStorage.getItem('dashboard-theme');
-                var v = localStorage.getItem('dashboard-theme-vars');
-                if (t) document.documentElement.setAttribute('data-theme', t);
-                if (v && t) {
-                    try {
-                        var vars = JSON.parse(v);
-                        var parts = [];
-                        for (var k in vars) if (Object.prototype.hasOwnProperty.call(vars, k)) parts.push(k + ':' + vars[k]);
-                        if (parts.length) {
-                            var el = document.getElementById('shell-theme-preload');
-                            if (!el) { el = document.createElement('style'); el.id = 'shell-theme-preload'; document.head.appendChild(el); }
-                            el.textContent = '[data-theme="' + String(t).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"]{' + parts.join(';') + '}';
-                        }
-                    } catch (e) {}
-                }
-            } catch (e) {}
-        })();
+    (function() {
+        const saved = localStorage.getItem('dashboard-theme');
+        if (saved) {
+            document.documentElement.setAttribute('data-theme', saved);
+        }
+        // Preload theme CSS vars to prevent flash
+        const savedVars = localStorage.getItem('dashboard-theme-vars');
+        if (savedVars) {
+            const style = document.createElement('style');
+            style.id = 'theme-preload-inject';
+            style.textContent = savedVars;
+            document.head.appendChild(style);
+        }
+    })();
     </script>
     <script>
         (function() {
             function applyShellTheme(slug, config, apiVariables) {
                 if (!slug) return;
-                try {
-                    document.documentElement.setAttribute('data-theme', slug);
-                    localStorage.setItem('dashboard-theme', slug);
-                } catch (e) {}
-                var varsObj = {};
+                document.documentElement.setAttribute('data-theme', slug);
+                var cssVars = (config && (config.cssVars || config.css_vars)) || {};
                 if (apiVariables && typeof apiVariables === 'object' && Object.keys(apiVariables).length) {
-                    varsObj = apiVariables;
-                } else if (config && typeof config === 'object') {
+                    cssVars = apiVariables;
+                } else if (config && typeof config === 'object' && !config.cssVars && !config.css_vars) {
                     var c = config;
-                    varsObj['--bg-nav'] = c.nav || c.bg || c.surface || '#1e293b';
-                    varsObj['--text-nav'] = c.text || c.textSecondary || '#f1f5f9';
-                    varsObj['--color-text'] = c.text || c.textSecondary || '#f1f5f9';
-                    varsObj['--text-muted'] = c.textSecondary || c.text || '#94a3b8';
-                    varsObj['--text-nav-muted'] = c.textSecondary || c.text || '#94a3b8';
-                    varsObj['--text-primary'] = c.text || c.textSecondary || '#f1f5f9';
-                    varsObj['--text-secondary'] = c.textSecondary || c.text || '#94a3b8';
-                    varsObj['--color-border'] = c.border || '#334155';
-                    varsObj['--border-nav'] = c.border || '#334155';
-                    varsObj['--accent'] = c.primary || '#3b82f6';
-                    varsObj['--color-primary'] = c.primary || '#3b82f6';
-                    if (!c.bg && !c.surface) { varsObj['--bg-canvas'] = '#0f172a'; varsObj['--bg-elevated'] = '#1e293b'; } else { if (c.bg) varsObj['--bg-canvas'] = c.bg; if (c.surface) varsObj['--bg-elevated'] = c.surface; }
+                    cssVars['--bg-nav'] = c.nav || c.bg || c.surface || '#1e293b';
+                    cssVars['--text-nav'] = c.text || c.textSecondary || '#f1f5f9';
+                    cssVars['--text-primary'] = c.text || c.textSecondary || '#f1f5f9';
+                    cssVars['--text-secondary'] = c.textSecondary || c.text || '#94a3b8';
+                    cssVars['--color-border'] = c.border || '#334155';
+                    cssVars['--border-nav'] = c.border || '#334155';
+                    cssVars['--accent'] = c.primary || '#3b82f6';
+                    cssVars['--color-primary'] = c.primary || '#3b82f6';
+                    if (!c.bg && !c.surface) { cssVars['--bg-canvas'] = '#0f172a'; cssVars['--bg-elevated'] = '#1e293b'; } else { if (c.bg) cssVars['--bg-canvas'] = c.bg; if (c.surface) cssVars['--bg-elevated'] = c.surface; }
                 }
-                if (Object.keys(varsObj).length === 0) {
-                    varsObj['--bg-nav'] = '#1e293b'; varsObj['--text-nav'] = '#f1f5f9'; varsObj['--text-nav-muted'] = '#94a3b8'; varsObj['--border-nav'] = '#334155';
-                    varsObj['--bg-canvas'] = '#0f172a'; varsObj['--bg-elevated'] = '#1e293b';
+                if (Object.keys(cssVars).length === 0) {
+                    cssVars['--bg-nav'] = '#1e293b'; cssVars['--text-nav'] = '#f1f5f9'; cssVars['--bg-canvas'] = '#0f172a'; cssVars['--bg-elevated'] = '#1e293b';
                 }
-                try { localStorage.setItem('dashboard-theme-vars', JSON.stringify(varsObj)); } catch (e) {}
-                var parts = [];
-                for (var k in varsObj) if (Object.prototype.hasOwnProperty.call(varsObj, k)) parts.push(k + ':' + varsObj[k]);
-                var sel = '[data-theme="' + String(slug).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"]';
-                var css = sel + '{' + parts.join(';') + '}';
-                var el = document.getElementById('shell-theme-preload');
-                if (!el) { el = document.createElement('style'); el.id = 'shell-theme-preload'; document.head.appendChild(el); }
-                el.textContent = css;
+                var cssText = ':root[data-theme="' + String(slug).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"] {';
+                for (var k in cssVars) if (Object.prototype.hasOwnProperty.call(cssVars, k)) {
+                    var key = String(k).indexOf('--') === 0 ? k : '--' + k;
+                    cssText += key + ':' + cssVars[k] + ';';
+                }
+                cssText += '}';
+                try { localStorage.setItem('dashboard-theme', slug); localStorage.setItem('dashboard-theme-vars', cssText); } catch (e) {}
+                var styleEl = document.getElementById('theme-dynamic-inject');
+                if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = 'theme-dynamic-inject'; document.head.appendChild(styleEl); }
+                styleEl.textContent = cssText;
             }
             fetch('/api/settings/theme', { credentials: 'same-origin' })
                 .then(function(r) { return r.ok ? r.json() : null; })

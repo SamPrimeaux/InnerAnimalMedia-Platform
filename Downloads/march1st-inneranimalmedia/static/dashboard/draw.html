@@ -4,13 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Draw — Inner Animal Media</title>
+    <!-- CRITICAL: Theme must load BEFORE any visible content -->
     <script nonce="MzY2NjEzNTM0Myw3NTI5NTA5MzM=">
-        (function() {
-            try {
-                var t = localStorage.getItem('dashboard-theme');
-                if (t) document.documentElement.setAttribute('data-theme', t);
-            } catch (e) {}
-        })();
+    (function() {
+        const saved = localStorage.getItem('dashboard-theme');
+        if (saved) {
+            document.documentElement.setAttribute('data-theme', saved);
+        }
+        // Preload theme CSS vars to prevent flash
+        const savedVars = localStorage.getItem('dashboard-theme-vars');
+        if (savedVars) {
+            const style = document.createElement('style');
+            style.id = 'theme-preload-inject';
+            style.textContent = savedVars;
+            document.head.appendChild(style);
+        }
+    })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
