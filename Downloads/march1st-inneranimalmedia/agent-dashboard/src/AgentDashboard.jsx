@@ -163,6 +163,11 @@ export default function AgentDashboard() {
   const [sessionName, setSessionName] = useState("New Conversation");
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState("");
+  const [showChatMenu, setShowChatMenu] = useState(false);
+  const [isStarred, setIsStarred] = useState(false);
+  const [showProjectSelector, setShowProjectSelector] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const sessionNameInputRef = useRef(null);
   const [loadingSaying] = useState(
     () => LOADING_SAYINGS[Math.floor(Math.random() * LOADING_SAYINGS.length)]
@@ -198,6 +203,7 @@ export default function AgentDashboard() {
   const knowledgeSearchRef = useRef(null);
 
   const [mode, setMode] = useState("ask");
+  const [useStreaming, setUseStreaming] = useState(false);
   const [modePopupOpen, setModePopupOpen] = useState(false);
   const modeDropdownRef = useRef(null);
   const modelDropdownRef = useRef(null);
@@ -220,6 +226,7 @@ export default function AgentDashboard() {
 
   // ── Execution plan for approval (Step 10) ───────────────────────────────────
   const [executionPlan, setExecutionPlan] = useState(null);
+  const [pendingToolApproval, setPendingToolApproval] = useState(null);
 
   // ── Queue status (Step 11) ─────────────────────────────────────────────────
   const [queueStatus, setQueueStatus] = useState(null);
@@ -227,6 +234,7 @@ export default function AgentDashboard() {
 
   // ── Monaco diff from chat (Option B: Open in Monaco) ───────────────────────
   const [monacoDiffFromChat, setMonacoDiffFromChat] = useState(null);
+  const [currentFileContext, setCurrentFileContext] = useState(null);
 
   // ── Speech recognition (talk-to-type) ─────────────────────────────────────
   const recognitionRef = useRef(null);
@@ -265,6 +273,8 @@ export default function AgentDashboard() {
   const [browserUrl, setBrowserUrl] = useState("");
   const [connectedIntegrations, setConnectedIntegrations] = useState({});
   const [proposedFileChange, setProposedFileChange] = useState(null);
+  const [openFileKeyForPanel, setOpenFileKeyForPanel] = useState(null);
+  const [fileCreatedNotification, setFileCreatedNotification] = useState(null);
 
   // ── Integrations status ───────────────────────────────────────────────────
   const [integrationsStatus, setIntegrationsStatus] = useState({});
@@ -506,28 +516,41 @@ export default function AgentDashboard() {
     fetch(`/api/agent/sessions/${currentSessionId}`, { credentials: "same-origin" })
       .then((r) => r.json())
       .then((data) => {
-        if (data && data.name) setSessionName(data.name);
+        if (data) {
+          if (data.name) setSessionName(data.name);
+          setIsStarred(data.is_starred === 1);
+        }
       })
-      .catch(() => setSessionName("New Conversation"));
+      .catch(() => { setSessionName("New Conversation"); setIsStarred(false); });
   }, [currentSessionId]);
 
-  // ── Queue status poll (Step 11) ───────────────────────────────────────────
+  const refreshQueue = useCallback(() => {
+    if (!currentSessionId) return;
+    fetch(`/api/agent/queue/status?session_id=${encodeURIComponent(currentSessionId)}`, { credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) return;
+        setQueueStatus({ current: d.current ?? null, queue_count: d.queue_count ?? 0, queue: d.queue ?? [] });
+        if ((d.queue_count ?? 0) === 0) setQueueDismissed(false);
+      })
+      .catch(() => {});
+  }, [currentSessionId]);
+
   useEffect(() => {
     if (!currentSessionId) return;
-    const fetchQueue = () => {
-      fetch(`/api/agent/queue/status?session_id=${encodeURIComponent(currentSessionId)}`, { credentials: "same-origin" })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.error) return;
-          setQueueStatus({ current: d.current ?? null, queue_count: d.queue_count ?? 0, queue: d.queue ?? [] });
-          if ((d.queue_count ?? 0) === 0) setQueueDismissed(false);
-        })
-        .catch(() => {});
-    };
-    fetchQueue();
-    const interval = setInterval(fetchQueue, 2000);
+    refreshQueue();
+    const interval = setInterval(refreshQueue, 2000);
     return () => clearInterval(interval);
-  }, [currentSessionId]);
+  }, [currentSessionId, refreshQueue]);
+
+  const deleteQueueItem = useCallback(async (queueId) => {
+    try {
+      await fetch(`/api/agent/queue/${queueId}`, { method: "DELETE", credentials: "same-origin" });
+      refreshQueue();
+    } catch (e) {
+      console.error("Failed to delete queue item:", e);
+    }
+  }, [refreshQueue]);
 
   const saveSessionName = useCallback(() => {
     if (!currentSessionId || !editNameValue.trim()) {
@@ -543,7 +566,10 @@ export default function AgentDashboard() {
     })
       .then((r) => r.json())
       .then((data) => {
-        if (data && data.ok) setSessionName(name);
+        if (data && (data.success || data.id || !data.error)) {
+          setSessionName(name);
+          if (data.id) setCurrentSessionId(data.id);
+        }
       })
       .catch(() => {})
       .finally(() => {
@@ -551,6 +577,76 @@ export default function AgentDashboard() {
         setEditNameValue("");
       });
   }, [currentSessionId, editNameValue]);
+
+  const toggleStar = useCallback(async () => {
+    if (!currentSessionId) return;
+    try {
+      const response = await fetch(`/api/agent/sessions/${currentSessionId}`, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ starred: !isStarred }),
+      });
+      if (response.ok) {
+        setIsStarred((prev) => !prev);
+        setShowChatMenu(false);
+      }
+    } catch (e) {
+      console.error("Failed to toggle star:", e);
+    }
+  }, [currentSessionId, isStarred]);
+
+  const openProjectSelector = useCallback(async () => {
+    setShowChatMenu(false);
+    try {
+      const response = await fetch("/api/projects", { credentials: "same-origin" });
+      const data = await response.json();
+      setProjects(data.projects || []);
+      setShowProjectSelector(true);
+    } catch (e) {
+      console.error("Failed to load projects:", e);
+    }
+  }, []);
+
+  const linkToProject = useCallback(async (projectId) => {
+    if (!currentSessionId) return;
+    try {
+      const response = await fetch(`/api/agent/sessions/${currentSessionId}`, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project_id: projectId }),
+      });
+      if (response.ok) setShowProjectSelector(false);
+    } catch (e) {
+      console.error("Failed to link project:", e);
+    }
+  }, [currentSessionId]);
+
+  const deleteConversation = useCallback(async () => {
+    if (!currentSessionId) return;
+    try {
+      const response = await fetch(`/api/agent/sessions/${currentSessionId}`, { method: "DELETE", credentials: "same-origin" });
+      if (response.ok) {
+        setCurrentSessionId(null);
+        setMessages([
+          {
+            id: "m1",
+            role: "assistant",
+            content: "Hi, I'm agent_sam. Ask me anything — pick a model above to control cost.",
+            provider: "system",
+            created_at: Date.now(),
+          },
+        ]);
+        setSessionName("New Conversation");
+        setIsStarred(false);
+        setShowDeleteConfirm(false);
+        setShowChatMenu(false);
+      }
+    } catch (e) {
+      console.error("Failed to delete conversation:", e);
+    }
+  }, [currentSessionId]);
 
   // ── Scroll to bottom ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -707,22 +803,67 @@ export default function AgentDashboard() {
     }, 50);
   }, []);
 
+  useEffect(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) return;
+    const rec = new SpeechRecognitionAPI();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = "en-US";
+
+    rec.onresult = (event) => {
+      let finalTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + " ";
+        }
+      }
+      if (finalTranscript) {
+        setInput((prev) => prev + finalTranscript);
+      }
+    };
+
+    rec.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+      setIsListening(false);
+    };
+
+    rec.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = rec;
+
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (_) {}
+      }
+    };
+  }, []);
+
   const toggleMic = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    if (!recognitionRef.current) {
+      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognitionAPI) {
+        alert("Voice input is not supported in this browser. Try Chrome or Edge.");
+        return;
+      }
+    }
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
-      return;
+    } else {
+      try {
+        recognitionRef.current?.start();
+        setIsListening(true);
+      } catch (err) {
+        console.error("Speech recognition start failed:", err);
+        setIsListening(false);
+      }
     }
-    const r = new SpeechRecognition();
-    r.continuous = false;
-    r.interimResults = false;
-    r.onresult = (e) => setInput((prev) => prev + e.results[0][0].transcript);
-    r.onend = () => setIsListening(false);
-    recognitionRef.current = r;
-    r.start();
-    setIsListening(true);
   };
 
   // ── Send message ──────────────────────────────────────────────────────────
@@ -738,20 +879,42 @@ export default function AgentDashboard() {
     if (trimmedInput.startsWith("/")) {
       const commandParts = trimmedInput.slice(1).split(/\s+/);
       const commandName = commandParts[0] || "";
-      const cmd = availableCommands.find(
-        (c) => (c.command_name || c.trigger || "").toLowerCase() === commandName.toLowerCase()
-      );
-      const systemMsg = {
-        id: `cmd${Date.now()}`,
-        role: "assistant",
-        content: cmd
-          ? `Command /${commandName} — ${cmd.description || "No description."} (Execution not yet wired.)`
-          : `Command /${commandName} not found. Open Settings (gear) or type /help for available commands.`,
-        provider: "system",
-        created_at: Date.now(),
-      };
-      setMessages((prev) => [...prev, { id: `m${Date.now()}`, role: "user", content: text, provider: null, created_at: Date.now() }, systemMsg]);
+      const paramsStr = commandParts.slice(1).join(" ").trim();
+      setMessages((prev) => [...prev, { id: `m${Date.now()}`, role: "user", content: text, provider: null, created_at: Date.now() }]);
       setInput("");
+      try {
+        const response = await fetch("/api/agent/commands/execute", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            command_name: commandName,
+            parameters: paramsStr ? { raw: paramsStr } : {},
+          }),
+        });
+        const data = await response.json();
+        const systemMsg = {
+          id: `cmd${Date.now()}`,
+          role: "assistant",
+          content: data.success
+            ? `Command /${commandName} executed:\n${typeof data.result?.output === "string" ? data.result.output : JSON.stringify(data.result, null, 2)}`
+            : `Command /${commandName} failed: ${data.error || "Unknown error"}`,
+          provider: "system",
+          created_at: Date.now(),
+        };
+        setMessages((prev) => [...prev, systemMsg]);
+      } catch (e) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `cmd${Date.now()}`,
+            role: "assistant",
+            content: `Command /${commandName} error: ${e.message}`,
+            provider: "system",
+            created_at: Date.now(),
+          },
+        ]);
+      }
       return;
     }
 
@@ -780,6 +943,7 @@ export default function AgentDashboard() {
       .map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content }));
 
     setAgentState(AGENT_STATES.THINKING);
+    setPendingToolApproval(null);
 
     try {
       const response = await fetch("/api/agent/chat", {
@@ -794,7 +958,9 @@ export default function AgentDashboard() {
           messages: [...conversationMessages, { role: "user", content: text }],
           images: imagesToSend,
           attached_files: filesToSend,
-          stream: true,
+          stream: useStreaming,
+          mode,
+          fileContext: currentFileContext,
         }),
       });
 
@@ -868,11 +1034,16 @@ export default function AgentDashboard() {
                   );
                 } else if (data.type === "text" && data.text) {
                   fullContent += data.text;
+                  const openMatch = fullContent.match(/OPEN_IN_PREVIEW:\s*(https?:\/\/[^\s\n]+)/);
+                  if (openMatch) setBrowserUrl(openMatch[1]);
+                  const displayContent = fullContent.replace(/\n?OPEN_IN_PREVIEW:\s*https?:\/\/[^\s\n]+/g, "").trim();
                   setMessages((prev) =>
                     prev.map((m) =>
-                      m.id === assistantId ? { ...m, content: fullContent } : m
+                      m.id === assistantId ? { ...m, content: displayContent } : m
                     )
                   );
+                } else if (data.type === "tool_approval_request" && data.tool) {
+                  setPendingToolApproval(data.tool);
                 } else if (data.type === "done") {
                   inputTok = data.input_tokens ?? 0;
                   outputTok = data.output_tokens ?? 0;
@@ -908,7 +1079,6 @@ export default function AgentDashboard() {
         );
         if (convId && convId !== currentSessionId) {
           setCurrentSessionId(convId);
-          setSessionName("New Conversation");
           window.history.replaceState(null, "", `?session=${convId}`);
         }
         return;
@@ -926,6 +1096,26 @@ export default function AgentDashboard() {
             created_at: Date.now(),
           },
         ]);
+        return;
+      }
+      if (data.tool_approval_request === true && data.tool) {
+        setPendingToolApproval(data.tool);
+        if (data.text != null && data.text !== "") {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `m${Date.now()}`,
+              role: "assistant",
+              content: data.text,
+              provider: activeModel?.provider ?? "system",
+              created_at: Date.now(),
+            },
+          ]);
+        }
+        if (data.conversation_id) {
+          setCurrentSessionId(data.conversation_id);
+          window.history.replaceState(null, "", `?session=${data.conversation_id}`);
+        }
         return;
       }
       const content =
@@ -954,7 +1144,6 @@ export default function AgentDashboard() {
       ]);
       if (data.conversation_id) {
         setCurrentSessionId(data.conversation_id);
-        setSessionName("New Conversation");
         window.history.replaceState(null, "", `?session=${data.conversation_id}`);
       }
     } catch (err) {
@@ -1012,6 +1201,61 @@ export default function AgentDashboard() {
         setExecutionPlan(null);
         setAgentState(AGENT_STATES.IDLE);
       } catch (_) {}
+    },
+    []
+  );
+
+  const approveTool = useCallback(
+    async (tool) => {
+      if (!tool?.name) return;
+      try {
+        const r = await fetch("/api/agent/chat/execute-approved-tool", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({
+            tool_name: tool.name,
+            tool_input: tool.parameters || {},
+          }),
+        });
+        const d = await r.json().catch(() => ({}));
+        setPendingToolApproval(null);
+        const msgContent = r.ok && d.success
+          ? "Tool executed: " + tool.name + (d.result != null ? "\nResult: " + (typeof d.result === "string" ? d.result : JSON.stringify(d.result).slice(0, 500)) : "")
+          : "Tool " + tool.name + " failed: " + (d.error || (r.ok ? "Unknown" : "Request failed"));
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `sys${Date.now()}`,
+            role: "assistant",
+            content: msgContent,
+            provider: "system",
+            created_at: Date.now(),
+          },
+        ]);
+        if (r.ok && d.success && tool.name === "r2_write") {
+          const key = tool.parameters?.key ?? tool.parameters?.path;
+          const bucket = "iam-platform";
+          if (key) {
+            setOpenFileKeyForPanel({ bucket, key });
+            setFileCreatedNotification({ bucket, key });
+            setPreviewOpen(true);
+            setActiveTab("code");
+          }
+        }
+      } catch (_) {
+        setPendingToolApproval(null);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `sys${Date.now()}`,
+            role: "assistant",
+            content: "Tool " + (tool?.name || "request") + " failed: network or parse error",
+            provider: "system",
+            created_at: Date.now(),
+          },
+        ]);
+      }
     },
     []
   );
@@ -1091,28 +1335,63 @@ export default function AgentDashboard() {
       (f) => f.size < 512 * 1024
     );
     if (!files.length) return;
-    let done = 0;
-    const next = [];
-    files.forEach((f) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        next.push({ name: f.name, content: reader.result });
-        done++;
-        if (done === files.length)
-          setAttachedFiles((prev) => [...prev, ...next].slice(-5));
-      };
-      reader.readAsText(f, "UTF-8");
-    });
+    const imageFiles = files.filter((f) => f.type.startsWith("image/"));
+    const codeFiles = files.filter((f) => !f.type.startsWith("image/"));
+    if (imageFiles.length) {
+      let done = 0;
+      const next = [];
+      imageFiles.slice(0, 3).forEach((f) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          next.push({ name: f.name, dataUrl: reader.result });
+          done++;
+          if (done === imageFiles.slice(0, 3).length)
+            setAttachedImages((prev) => [...prev, ...next].slice(-3));
+        };
+        reader.readAsDataURL(f);
+      });
+    }
+    if (codeFiles.length) {
+      let done = 0;
+      const next = [];
+      codeFiles.forEach((f) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          next.push({ name: f.name, content: reader.result });
+          done++;
+          if (done === codeFiles.length)
+            setAttachedFiles((prev) => [...prev, ...next].slice(-5));
+        };
+        reader.readAsText(f, "UTF-8");
+      });
+    }
   };
   const onDragOverFiles = (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "copy";
   };
 
-  // ── Gauges ────────────────────────────────────────────────────────────────
-  const contextUsedK = Math.round((telemetry.total_tokens || 0) / 1000);
-  const contextLimitK = 128;
-  const contextPct = Math.min(100, (contextUsedK / contextLimitK) * 100);
+  const handleFileContextChange = useCallback((context) => {
+    setCurrentFileContext(context);
+    console.log("File context stored:", context?.filename);
+  }, []);
+
+  // ── Gauges (real-time from conversation history) ───────────────────────────
+  const totalChars = messages
+    .filter(m => m.provider !== "system")
+    .reduce(
+      (sum, m) => sum + (typeof m.content === "string" ? m.content.length : JSON.stringify(m.content || "").length),
+      0
+    );
+  const estimatedTokens = Math.ceil(totalChars / 4);
+  const contextMax = activeModel?.context_max_tokens || 200000;
+  const contextLimitK = Math.round(contextMax / 1000);
+  const contextUsedK = Math.round(estimatedTokens / 1000);
+  const rawPct = (estimatedTokens / contextMax) * 100;
+  const contextPct = rawPct < 1 && rawPct > 0 ? '<1' : Math.min(100, Math.round(rawPct));
+  const contextPctNum = typeof contextPct === 'string' ? 0.5 : contextPct;
+  const contextPctLabel = typeof contextPct === 'string' ? contextPct : Math.round(contextPct);
+  const chatPaneIsWide = !previewOpen || (100 - panelWidthPct) > 60;
   const placeholderText =
     messages.length === 0
       ? "How can I help?"
@@ -1170,7 +1449,9 @@ export default function AgentDashboard() {
         <QueueIndicator
           current={queueCurrent}
           queueCount={queueCount}
+          queue={queueStatus?.queue ?? []}
           onClear={() => setQueueDismissed(true)}
+          onDeleteItem={deleteQueueItem}
         />
       )}
       <div
@@ -1277,6 +1558,31 @@ export default function AgentDashboard() {
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             </button>
+            <button
+              title="Settings & Commands"
+              onClick={() => {
+                setPreviewOpen(true);
+                setActiveTab("settings");
+              }}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--text-muted)",
+                cursor: "pointer",
+                padding: "6px",
+                borderRadius: "4px",
+                display: "flex",
+                alignItems: "center",
+                transition: "opacity 200ms",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "var(--color-text)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-muted)"; }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
             <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingLeft: "8px" }}>
               {isEditingName ? (
                 <input
@@ -1332,6 +1638,280 @@ export default function AgentDashboard() {
                 >
                   {sessionName}
                 </button>
+              )}
+            </div>
+          </div>
+
+          {/* Chat title with actions */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "8px 12px",
+              background: "var(--bg-canvas)",
+              borderBottom: "1px solid var(--color-border)",
+            }}
+          >
+            <div style={{ position: "relative" }}>
+              <button
+                type="button"
+                onClick={() => setShowChatMenu(!showChatMenu)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--color-text)",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  padding: "4px 6px",
+                  borderRadius: "4px",
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+                <span>{sessionName || "What are you doing today?"}</span>
+              </button>
+
+              {showChatMenu && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: "12px",
+                    background: "var(--bg-elevated)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "6px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    zIndex: 1000,
+                    minWidth: "180px",
+                    marginTop: "4px",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={toggleStar}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      padding: "8px 12px",
+                      textAlign: "left",
+                      border: "none",
+                      background: "none",
+                      color: "var(--color-text)",
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {isStarred ? "Unstar" : "Star"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openProjectSelector}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      padding: "8px 12px",
+                      textAlign: "left",
+                      border: "none",
+                      background: "none",
+                      color: "var(--color-text)",
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Add to Project
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowChatMenu(false); setEditNameValue(sessionName); setIsEditingName(true); setTimeout(() => sessionNameInputRef.current?.focus(), 0); }}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      padding: "8px 12px",
+                      textAlign: "left",
+                      border: "none",
+                      background: "none",
+                      color: "var(--color-text)",
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Rename
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowChatMenu(false); setShowDeleteConfirm(true); }}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      padding: "8px 12px",
+                      textAlign: "left",
+                      border: "none",
+                      background: "none",
+                      color: "var(--color-danger)",
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+
+              {showProjectSelector && (
+                <div
+                  style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: "rgba(0,0,0,0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 10000,
+                  }}
+                  onClick={() => setShowProjectSelector(false)}
+                >
+                  <div
+                    style={{
+                      background: "var(--bg-elevated)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "8px",
+                      padding: "20px",
+                      maxWidth: "400px",
+                      width: "90%",
+                      maxHeight: "60vh",
+                      overflow: "auto",
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <h3 style={{ margin: "0 0 16px 0", color: "var(--color-text)" }}>Add to Project</h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {projects.map((project) => (
+                        <button
+                          key={project.id}
+                          type="button"
+                          onClick={() => linkToProject(project.id)}
+                          style={{
+                            padding: "12px",
+                            background: "var(--bg-canvas)",
+                            border: "1px solid var(--color-border)",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            color: "var(--color-text)",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          <div style={{ fontWeight: 600 }}>{project.name}</div>
+                          {project.description && (
+                            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
+                              {project.description}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowProjectSelector(false)}
+                      style={{
+                        marginTop: "16px",
+                        padding: "8px 16px",
+                        background: "var(--color-border)",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        width: "100%",
+                        color: "var(--color-text)",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {showDeleteConfirm && (
+                <div
+                  style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: "rgba(0,0,0,0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 10000,
+                  }}
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  <div
+                    style={{
+                      background: "var(--bg-elevated)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "8px",
+                      padding: "20px",
+                      maxWidth: "400px",
+                      width: "90%",
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <h3 style={{ margin: "0 0 12px 0", color: "var(--color-text)" }}>Delete Conversation?</h3>
+                    <p style={{ color: "var(--text-muted)", margin: "0 0 20px 0" }}>
+                      This will permanently delete this conversation and all messages. This cannot be undone.
+                    </p>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        type="button"
+                        onClick={deleteConversation}
+                        style={{
+                          flex: 1,
+                          padding: "10px",
+                          background: "var(--color-danger)",
+                          color: "var(--bg-elevated)",
+                          border: "none",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          fontWeight: 600,
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        Delete
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowDeleteConfirm(false)}
+                        style={{
+                          flex: 1,
+                          padding: "10px",
+                          background: "var(--color-border)",
+                          border: "none",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          color: "var(--color-text)",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -1646,6 +2226,118 @@ export default function AgentDashboard() {
             </div>
           )}
 
+          {/* ── Tool approval card (Ask mode: action tool requires permission) ── */}
+          {pendingToolApproval && (
+            <div style={{ flexShrink: 0, padding: "0 16px 12px" }}>
+              <div
+                style={{
+                  background: "var(--bg-elevated)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "8px",
+                  padding: "16px",
+                  margin: "12px 0",
+                }}
+              >
+                <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                  Agent wants to execute: {pendingToolApproval.name}
+                </div>
+                <div style={{ color: "var(--text-muted)", fontSize: "14px", marginBottom: "12px" }}>
+                  {pendingToolApproval.preview}
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={() => approveTool(pendingToolApproval)}
+                    style={{
+                      background: "var(--mode-color)",
+                      color: "var(--color-on-mode)",
+                      padding: "8px 16px",
+                      borderRadius: "6px",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Approve & Execute
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingToolApproval(null)}
+                    style={{
+                      background: "var(--color-border)",
+                      color: "var(--color-text)",
+                      padding: "8px 16px",
+                      borderRadius: "6px",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── File created notification (r2_write success) ─────────────────── */}
+          {fileCreatedNotification && (
+            <div style={{ flexShrink: 0, padding: "0 16px 8px" }}>
+              <div
+                style={{
+                  background: "var(--bg-elevated)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "8px",
+                  padding: "10px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                }}
+              >
+                <span style={{ fontSize: "14px", color: "var(--color-text)" }}>
+                  File created: {fileCreatedNotification.key}
+                </span>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenFileKeyForPanel({ bucket: fileCreatedNotification.bucket, key: fileCreatedNotification.key });
+                      setPreviewOpen(true);
+                      setActiveTab("code");
+                    }}
+                    style={{
+                      background: "var(--mode-color)",
+                      color: "var(--color-on-mode)",
+                      padding: "6px 12px",
+                      borderRadius: "6px",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Open in editor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFileCreatedNotification(null)}
+                    style={{
+                      background: "var(--color-border)",
+                      color: "var(--color-text)",
+                      padding: "6px 12px",
+                      borderRadius: "6px",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                    }}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ── Input bar (--mode-color scope) ───────────────────────────────── */}
           <div style={{ "--mode-color": `var(--mode-${mode})`, flexShrink: 0 }}>
             {/* ── Input bar (Cursor-style: one container) ─────────────────── */}
@@ -1657,7 +2349,7 @@ export default function AgentDashboard() {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 10,
+                  gap: window.innerWidth < 768 ? 2 : 10,
                   padding: "10px 14px",
                   background: "var(--bg-elevated)",
                   border: "1px solid var(--color-border)",
@@ -1668,6 +2360,7 @@ export default function AgentDashboard() {
                   margin: "0 auto",
                 }}
               >
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
                 <div style={{ position: "relative", flexShrink: 0 }} ref={connectorPopupRef}>
                   <button
                     type="button"
@@ -1776,6 +2469,61 @@ export default function AgentDashboard() {
                           {item.label}
                         </button>
                       ))}
+                    {isMobile && (
+                      <>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", marginTop: 16, marginBottom: 8, padding: "0 16px" }}>
+                          Mode
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "0 16px" }}>
+                          {["ask", "agent", "plan", "debug"].map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => { setMode(m); setConnectorPopupOpen(false); }}
+                              style={{
+                                padding: "8px 12px",
+                                background: mode === m ? "var(--mode-color)" : "var(--bg-elevated)",
+                                color: mode === m ? "var(--color-on-mode)" : "var(--color-text)",
+                                border: "1px solid var(--color-border)",
+                                borderRadius: 6,
+                                fontSize: 13,
+                                cursor: "pointer",
+                              }}
+                            >
+                              {m.charAt(0).toUpperCase() + m.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", marginTop: 16, marginBottom: 8, padding: "0 16px" }}>
+                          Model
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: "0 16px 16px 16px" }}>
+                          {(models || []).slice(0, 10).map((model) => (
+                            <button
+                              key={model.id}
+                              type="button"
+                              onClick={() => {
+                                setActiveModel(model);
+                                setSelectedModel(model);
+                                setConnectorPopupOpen(false);
+                              }}
+                              style={{
+                                padding: "10px 12px",
+                                background: activeModel?.id === model.id ? "var(--color-primary)" : "transparent",
+                                color: activeModel?.id === model.id ? "var(--color-on-mode)" : "var(--color-text)",
+                                border: "none",
+                                borderRadius: 6,
+                                fontSize: 13,
+                                textAlign: "left",
+                                cursor: "pointer",
+                              }}
+                            >
+                              {model.display_name}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                     </div>
                   )}
                   {knowledgeSearchOpen && (
@@ -1870,57 +2618,7 @@ export default function AgentDashboard() {
                   )}
                 </div>
 
-                {attachedImages.length > 0 && (
-                  <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap", flexShrink: 0 }}>
-                    {attachedImages.map((img, i) => (
-                      <span key={i} style={{ fontSize: 10, color: "var(--text-muted)", background: "var(--bg-canvas)", padding: "2px 6px", borderRadius: 4 }}>{img.name}</span>
-                    ))}
-                    <button type="button" onClick={() => setAttachedImages([])} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}>x</button>
-                  </div>
-                )}
-                {attachedFiles.length > 0 && (
-                  <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap", flexShrink: 0 }}>
-                    {attachedFiles.map((f, i) => (
-                      <span key={i} style={{ fontSize: 10, color: "var(--text-muted)", background: "var(--bg-canvas)", padding: "2px 6px", borderRadius: 4 }}>{f.name}</span>
-                    ))}
-                    <button type="button" onClick={() => setAttachedFiles([])} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}>x</button>
-                  </div>
-                )}
-
-                <textarea
-                  ref={textareaRef}
-                  placeholder={placeholderText}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                  onInput={(e) => {
-                    e.target.style.height = "auto";
-                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
-                  }}
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    width: 0,
-                    border: "none",
-                    background: "transparent",
-                    resize: "none",
-                    outline: "none",
-                    fontSize: 14,
-                    lineHeight: 1.4,
-                    minHeight: 28,
-                    maxHeight: 120,
-                    overflowY: "auto",
-                    color: "var(--color-text)",
-                    fontFamily: "inherit",
-                  }}
-                />
-
-                <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+                {!isMobile && chatPaneIsWide && (
                 <div style={{ position: "relative", flexShrink: 0 }} ref={modeDropdownRef}>
                   <button
                     type="button"
@@ -1984,10 +2682,19 @@ export default function AgentDashboard() {
                           <span style={{ textTransform: "capitalize" }}>{m}</span>
                         </div>
                       ))}
+                      <div style={{ borderTop: "1px solid var(--color-border)", marginTop: 4, paddingTop: 8 }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13, color: "var(--color-text)" }}>
+                          <input type="checkbox" checked={useStreaming} onChange={(e) => setUseStreaming(e.target.checked)} style={{ accentColor: "var(--mode-color)" }} />
+                          <span>Stream</span>
+                        </label>
+                        <div style={{ fontSize: 11, color: "var(--text-muted)", padding: "0 14px 8px" }}>Off = tools + approval for all providers</div>
+                      </div>
                     </div>
                   )}
                 </div>
+                )}
 
+                {!isMobile && chatPaneIsWide && (
                 <div style={{ position: "relative", flexShrink: 0 }} ref={modelDropdownRef}>
                   <button
                     type="button"
@@ -2071,87 +2778,203 @@ export default function AgentDashboard() {
                     </div>
                   )}
                 </div>
+                )}
 
-                <div
-                  title={`Context ${contextUsedK}k / ${contextLimitK}k — Spend $${spendDisplay}`}
+                {/* Microphone button - voice input (Web Speech API) */}
+                <button
+                  type="button"
+                  title={isListening ? "Stop recording" : "Voice input"}
+                  onClick={toggleMic}
                   style={{
                     position: "relative",
-                    width: 32,
-                    height: 32,
-                    flexShrink: 0,
+                    background: isListening ? "var(--mode-color)" : "transparent",
+                    border: "none",
+                    color: isListening ? "var(--color-on-mode)" : "var(--text-muted)",
+                    cursor: "pointer",
+                    padding: "6px",
+                    borderRadius: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    transition: "all 200ms",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isListening) e.currentTarget.style.color = "var(--color-text)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isListening) e.currentTarget.style.color = "var(--text-muted)";
                   }}
                 >
-                  <svg width="32" height="32" viewBox="0 0 32 32" style={{ transform: "rotate(-90deg)" }}>
-                    <circle
-                      cx="16"
-                      cy="16"
-                      r="14"
-                      fill="none"
-                      stroke="var(--color-border)"
-                      strokeWidth="2"
-                      opacity="0.3"
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" x2="12" y1="19" y2="22"/>
+                  </svg>
+                  {isListening && (
+                    <span
+                      className="agent-mic-pulse"
+                      style={{
+                        position: "absolute",
+                        top: "-2px",
+                        right: "-2px",
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                        background: "var(--color-danger, var(--error, #ef4444))",
+                        animation: "agent-mic-pulse 1.5s ease-in-out infinite",
+                      }}
                     />
+                  )}
+                </button>
+                </div>
+
+                {attachedImages.length > 0 && (
+                  <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap", flexShrink: 0 }}>
+                    {attachedImages.map((img, i) => (
+                      <span key={i} style={{ fontSize: 10, color: "var(--text-muted)", background: "var(--bg-canvas)", padding: "2px 6px", borderRadius: 4 }}>{img.name}</span>
+                    ))}
+                    <button type="button" onClick={() => setAttachedImages([])} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}>x</button>
+                  </div>
+                )}
+                {attachedFiles.length > 0 && (
+                  <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap", flexShrink: 0 }}>
+                    {attachedFiles.map((f, i) => (
+                      <span key={i} style={{ fontSize: 10, color: "var(--text-muted)", background: "var(--bg-canvas)", padding: "2px 6px", borderRadius: 4 }}>{f.name}</span>
+                    ))}
+                    <button type="button" onClick={() => setAttachedFiles([])} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}>x</button>
+                  </div>
+                )}
+
+                <textarea
+                  ref={textareaRef}
+                  placeholder={placeholderText}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  onInput={(e) => {
+                    e.target.style.height = "auto";
+                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+                  }}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    width: "100%",
+                    maxWidth: "100%",
+                    wordWrap: "break-word",
+                    whiteSpace: "pre-wrap",
+                    overflowX: "hidden",
+                    border: "none",
+                    background: "transparent",
+                    resize: "none",
+                    outline: "none",
+                    fontSize: 14,
+                    lineHeight: 1.4,
+                    minHeight: 28,
+                    maxHeight: 120,
+                    overflowY: "auto",
+                    color: "var(--color-text)",
+                    fontFamily: "inherit",
+                  }}
+                />
+
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+                <button
+                  type="button"
+                  ref={costPopoverRef}
+                  title={`Context (est.) ${contextUsedK}k / ${contextLimitK}k — Spend $${spendDisplay}`}
+                  onClick={() => setCostPopoverOpen((prev) => !prev)}
+                  aria-label="Context and cost usage"
+                  style={{
+                    position: "relative",
+                    width: 20,
+                    height: 20,
+                    flexShrink: 0,
+                    padding: 0,
+                    border: "none",
+                    background: "none",
+                    cursor: "pointer",
+                    display: "block",
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 36 36" style={{ display: "block" }}>
+                    <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--color-border)" strokeWidth="2" />
                     <circle
-                      cx="16"
-                      cy="16"
-                      r="14"
+                      cx="18"
+                      cy="18"
+                      r="15.915"
                       fill="none"
                       stroke="var(--mode-color)"
                       strokeWidth="2"
-                      strokeDasharray={2 * Math.PI * 14}
-                      strokeDashoffset={2 * Math.PI * 14 * (1 - contextPct / 100)}
-                      strokeLinecap="round"
-                      style={{ transition: "stroke-dashoffset 0.3s ease" }}
+                      strokeDasharray={`${contextPctNum}, 100`}
+                      transform="rotate(-90 18 18)"
+                      style={{ transition: "stroke-dasharray 0.3s ease" }}
                     />
                   </svg>
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 9,
-                      fontWeight: 600,
-                      color: "var(--text-secondary)",
-                    }}
-                  >
-                    {Math.round(contextPct)}%
-                  </div>
-                </div>
+                  {costPopoverOpen && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: "100%",
+                        right: 0,
+                        marginBottom: 8,
+                        background: "var(--bg-elevated)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: 8,
+                        padding: "12px 14px",
+                        minWidth: 180,
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                        zIndex: 1001,
+                      }}
+                    >
+                      <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "var(--color-text)" }}>Context and cost</div>
+                      <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                        Est. tokens: {estimatedTokens.toLocaleString()} / 200k (from conversation)
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
+                        Context: {contextUsedK}k / {contextLimitK}k ({contextPctLabel}%)
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
+                        Cost: ${spendDisplay}
+                      </div>
+                    </div>
+                  )}
+                </button>
 
                 <button
                   type="button"
-                  onClick={isLoading ? stopGeneration : sendMessage}
-                  disabled={!canSend && !isLoading}
-                  aria-label={isLoading ? "Stop" : "Send"}
+                  onClick={() => {
+                    if (agentState !== AGENT_STATES.IDLE && !input.trim()) {
+                      stopGeneration();
+                    } else {
+                      sendMessage();
+                    }
+                  }}
+                  disabled={!input.trim() && !attachedImages.length && !attachedFiles.length && agentState === AGENT_STATES.IDLE}
+                  aria-label={agentState !== AGENT_STATES.IDLE && !input.trim() ? "Stop" : "Send"}
                   style={{
                     width: 36,
                     height: 36,
                     borderRadius: "50%",
-                    background: isLoading ? "var(--color-border)" : "var(--mode-color)",
+                    background: (agentState !== AGENT_STATES.IDLE && !input.trim()) ? "var(--color-border)" : "var(--mode-color)",
                     border: "none",
-                    cursor: !canSend && !isLoading ? "not-allowed" : "pointer",
+                    cursor: (!input.trim() && !attachedImages.length && !attachedFiles.length && agentState === AGENT_STATES.IDLE) ? "not-allowed" : "pointer",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     color: "var(--color-on-mode)",
-                    opacity: !input.trim() && !attachedImages.length && !attachedFiles.length ? 0.5 : 1,
+                    opacity: !input.trim() && !attachedImages.length && !attachedFiles.length && agentState === AGENT_STATES.IDLE ? 0.5 : 1,
                     flexShrink: 0,
                     transition: "all 200ms ease",
                   }}
                 >
-                  {isLoading ? (
-                    <div
-                      style={{
-                        width: 16,
-                        height: 16,
-                        border: "2px solid rgba(255,255,255,0.3)",
-                        borderTop: "2px solid var(--color-on-mode)",
-                        borderRadius: "50%",
-                        animation: "spin 0.8s linear infinite",
-                      }}
-                    />
+                  {agentState !== AGENT_STATES.IDLE && !input.trim() ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <rect x="6" y="6" width="12" height="12" rx="2"/>
+                    </svg>
                   ) : (
                     <svg
                       width="18"
@@ -2174,39 +2997,6 @@ export default function AgentDashboard() {
                 <input type="file" ref={imageInputRef} accept="image/*" multiple onChange={onImageSelect} style={{ display: "none" }} />
               </div>
             </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                padding: "8px 16px",
-                gap: 12,
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => { setPreviewOpen(true); setActiveTab("settings"); }}
-                title="Settings & Commands"
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  background: "transparent",
-                  border: "1px solid var(--color-border)",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: 0.6,
-                  transition: "opacity 200ms",
-                  color: "var(--color-text)",
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
-                </svg>
-              </button>
-            </div>
           </div>
 
           {/* Status bar */}
@@ -2219,10 +3009,10 @@ export default function AgentDashboard() {
               flexWrap: "wrap",
               gap: "4px 8px",
               padding: "3px 12px",
-              background: "var(--bg-canvas)",
+              background: "var(--bg-nav)",
               borderTop: "1px solid var(--color-border)",
               fontSize: "11px",
-              color: "var(--text-muted)",
+              color: "rgba(255, 255, 255, 0.8)",
               flexShrink: 0,
             }}
           >
@@ -2284,12 +3074,15 @@ export default function AgentDashboard() {
             onBrowserUrlChange={setBrowserUrl}
             codeContent={codeContent}
             onCodeContentChange={setCodeContent}
+            onFileContextChange={handleFileContextChange}
             isDarkTheme={true}
             activeThemeSlug={activeThemeSlug}
             proposedFileChange={proposedFileChange}
             onProposedChangeResolved={() => setProposedFileChange(null)}
             monacoDiffFromChat={monacoDiffFromChat}
             onMonacoDiffResolved={() => setMonacoDiffFromChat(null)}
+            openFileKey={openFileKeyForPanel}
+            onOpenFileKeyDone={() => setOpenFileKeyForPanel(null)}
             connectedIntegrations={connectedIntegrations}
             runCommandRunnerRef={runCommandRunnerRef}
             availableCommands={availableCommands}

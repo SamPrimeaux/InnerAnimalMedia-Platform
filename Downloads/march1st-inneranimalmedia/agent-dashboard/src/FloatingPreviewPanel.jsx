@@ -105,6 +105,8 @@ export default function FloatingPreviewPanel({
   onProposedChangeResolved,
   monacoDiffFromChat = null,
   onMonacoDiffResolved,
+  openFileKey = null,
+  onOpenFileKeyDone,
   connectedIntegrations = {},
   runCommandRunnerRef,
   availableCommands = [],
@@ -152,7 +154,9 @@ export default function FloatingPreviewPanel({
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const monacoEditorRef = useRef(null);
+  const diffEditorRef = useRef(null);
   const terminalSessionIdRef = useRef(null);
   const [diffMode, setDiffMode] = useState(false);
   const [proposedContent, setProposedContent] = useState(null);
@@ -402,14 +406,36 @@ export default function FloatingPreviewPanel({
         return r.text();
       })
       .then((text) => {
-        setCodeFilename(key || "");
-        setSelectedFileForView({ key: key || "", url });
+        const name = key || "";
+        setCodeFilename(name);
+        setSelectedFileForView({ key: name, url });
         if (onCodeContentChange) onCodeContentChange(text);
+        onFileContextChange?.({ filename: name, content: text ?? "", bucket });
         setEditMode(false);
         if (onTabChange) onTabChange("code");
       })
       .catch((e) => setFilesError(e.message || "Failed to load file"));
-  }, [onCodeContentChange, onTabChange]);
+  }, [onCodeContentChange, onTabChange, onFileContextChange]);
+
+  // When parent asks to open a file by key (e.g. after r2_write), fetch and open in Code tab and refresh file list
+  useEffect(() => {
+    if (!open || !openFileKey?.bucket || !openFileKey?.key) return;
+    const { bucket, key } = openFileKey;
+    fetch(`/api/r2/buckets/${encodeURIComponent(bucket)}/object/${encodeURIComponent(key)}`, { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(r.statusText))))
+      .then((text) => {
+        setCodeFilename(key);
+        if (onCodeContentChange) onCodeContentChange(text ?? "");
+        onFileContextChange?.({ filename: key, content: text ?? "", bucket });
+        setEditMode(false);
+        if (onTabChange) onTabChange("code");
+        setRefreshListTrigger((t) => t + 1);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (onOpenFileKeyDone) onOpenFileKeyDone();
+      });
+  }, [open, openFileKey?.bucket, openFileKey?.key]);
 
   const openGdriveFileInCode = useCallback((fileId, name) => {
     fetch(`/api/integrations/gdrive/file?fileId=${encodeURIComponent(fileId)}`, { credentials: "same-origin" })
@@ -419,8 +445,11 @@ export default function FloatingPreviewPanel({
           setGdriveError(typeof data.error === 'object' ? (data.error?.message || JSON.stringify(data.error)) : String(data.error));
           return;
         }
-        setCodeFilename(name || "");
-        if (onCodeContentChange) onCodeContentChange(data.content ?? "");
+        const fname = name || "";
+        const content = data.content ?? "";
+        setCodeFilename(fname);
+        if (onCodeContentChange) onCodeContentChange(content);
+        onFileContextChange?.({ filename: fname, content, bucket: undefined });
         setEditMode(false);
         if (onTabChange) onTabChange("code");
         const ext = (name || "").split(".").pop().toLowerCase();
@@ -433,7 +462,7 @@ export default function FloatingPreviewPanel({
         }
       })
       .catch((e) => setGdriveError(e.message || "Failed to load file"));
-  }, [onCodeContentChange, onTabChange, previewableExtensions]);
+  }, [onCodeContentChange, onTabChange, onFileContextChange, previewableExtensions]);
 
   const openGithubFileInCode = useCallback((repo, path, name) => {
     fetch(`/api/integrations/github/file?repo=${encodeURIComponent(repo)}&path=${encodeURIComponent(path)}`, { credentials: "same-origin" })
@@ -443,8 +472,11 @@ export default function FloatingPreviewPanel({
           setGithubError(typeof data.error === 'object' ? (data.error?.message || JSON.stringify(data.error)) : String(data.error));
           return;
         }
-        setCodeFilename(name || path.split("/").pop() || "");
-        if (onCodeContentChange) onCodeContentChange(data.content ?? "");
+        const fname = name || path.split("/").pop() || "";
+        const content = data.content ?? "";
+        setCodeFilename(fname);
+        if (onCodeContentChange) onCodeContentChange(content);
+        onFileContextChange?.({ filename: fname, content, bucket: undefined });
         setEditMode(false);
         if (onTabChange) onTabChange("code");
         const ext = (name || path.split("/").pop() || "").split(".").pop().toLowerCase();
@@ -457,7 +489,7 @@ export default function FloatingPreviewPanel({
         }
       })
       .catch((e) => setGithubError(e.message || "Failed to load file"));
-  }, [onCodeContentChange, onTabChange, previewableExtensions]);
+  }, [onCodeContentChange, onTabChange, onFileContextChange, previewableExtensions]);
 
   const saveFileToR2 = useCallback(async () => {
     if (!codeFilename || !filesBucket) return;
@@ -518,6 +550,7 @@ export default function FloatingPreviewPanel({
     const bucket = monacoDiffFromChat.bucket || filesBucket || (filesBuckets.length ? filesBuckets[0] : "");
     if (!bucket) return;
     setSaving(true);
+    setSaveError(null);
     try {
       const res = await fetch(
         `/api/r2/buckets/${encodeURIComponent(bucket)}/object/${encodeURIComponent(monacoDiffFromChat.filename)}`,
@@ -534,6 +567,11 @@ export default function FloatingPreviewPanel({
         onMonacoDiffResolved?.();
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 2000);
+      } else {
+        const errorText = await res.text();
+        console.error("R2 save failed:", res.status, errorText);
+        setSaveError(res.status === 404 ? "Bucket not found or not allowed" : `Save failed (${res.status})`);
+        setTimeout(() => setSaveError(null), 5000);
       }
     } finally {
       setSaving(false);
@@ -543,6 +581,14 @@ export default function FloatingPreviewPanel({
   const handleUndoFromChat = useCallback(() => {
     onMonacoDiffResolved?.();
   }, [onMonacoDiffResolved]);
+
+  const hasRealDiffFromChat = monacoDiffFromChat && (monacoDiffFromChat.original !== monacoDiffFromChat.modified);
+
+  useEffect(() => {
+    if (monacoDiffFromChat && monacoDiffFromChat.original === monacoDiffFromChat.modified) {
+      onMonacoDiffResolved?.();
+    }
+  }, [monacoDiffFromChat, onMonacoDiffResolved]);
 
   const hasChanges = codeContent !== lastSavedContentRef.current;
   const handleUndoChanges = useCallback(() => {
@@ -1201,20 +1247,27 @@ export default function FloatingPreviewPanel({
 
         {/* CODE TAB -- Monaco */}
         <div style={{ flex: 1, display: activeTab === "code" ? "flex" : "none", flexDirection: "column", overflow: "hidden", background: "var(--bg-canvas)" }}>
-            {monacoDiffFromChat ? (
-              <div style={{ display: "flex", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--color-border)", background: "var(--bg-elevated)", flexShrink: 0, alignItems: "center" }}>
-                <div style={{ flex: 1, fontSize: 13, color: "var(--text-muted)" }}>
-                  <span style={{ color: "var(--mode-ask)", fontWeight: 600 }}>+</span> Added
-                  <span style={{ marginLeft: 16, color: "var(--color-danger)", fontWeight: 600 }}>-</span> Removed
+            {hasRealDiffFromChat ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "12px 16px", borderBottom: "1px solid var(--color-border)", background: "var(--bg-elevated)", flexShrink: 0 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <div style={{ flex: 1, fontSize: 13, color: "var(--text-muted)" }}>
+                    <span style={{ color: "var(--mode-ask)", fontWeight: 600 }}>+</span> Added
+                    <span style={{ marginLeft: 16, color: "var(--color-danger)", fontWeight: 600 }}>-</span> Removed
+                  </div>
+                  <button type="button" onClick={handleKeepChangesFromChat} disabled={saving} style={{ padding: "6px 16px", background: "var(--mode-ask)", color: "var(--color-on-mode)", border: "none", borderRadius: 6, cursor: saving ? "wait" : "pointer", fontWeight: 500, fontSize: 13 }}>
+                    {saving ? "Saving..." : saveSuccess ? "Saved" : "Keep Changes"}
+                  </button>
+                  <button type="button" onClick={handleUndoFromChat} style={{ padding: "6px 16px", background: "transparent", border: "1px solid var(--color-border)", borderRadius: 6, cursor: "pointer", fontSize: 13, color: "var(--color-text)" }}>
+                    Undo
+                  </button>
                 </div>
-                <button type="button" onClick={handleKeepChangesFromChat} disabled={saving} style={{ padding: "6px 16px", background: "var(--mode-ask)", color: "var(--color-on-mode)", border: "none", borderRadius: 6, cursor: saving ? "wait" : "pointer", fontWeight: 500, fontSize: 13 }}>
-                  {saving ? "Saving..." : saveSuccess ? "Saved" : "Keep Changes"}
-                </button>
-                <button type="button" onClick={handleUndoFromChat} style={{ padding: "6px 16px", background: "transparent", border: "1px solid var(--color-border)", borderRadius: 6, cursor: "pointer", fontSize: 13, color: "var(--color-text)" }}>
-                  Undo
-                </button>
+                {saveError && (
+                  <div style={{ fontSize: 12, color: "var(--color-danger)" }}>
+                    {saveError}
+                  </div>
+                )}
               </div>
-            ) : diffMode ? (
+            ) : diffMode && !monacoDiffFromChat ? (
               <div style={{ height: 32, background: "rgba(234,179,8,0.10)", fontSize: 12, color: "var(--text-secondary)", padding: "0 12px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{codeFilename.split("/").pop() || codeFilename}</span>
                 <span style={{ color: "var(--text-muted)" }}>|</span>
@@ -1293,23 +1346,23 @@ export default function FloatingPreviewPanel({
             ) : (
               <div style={{ padding: "4px 8px", borderBottom: "1px solid var(--border)", fontSize: "10px", color: "var(--text-muted)" }}>Code -- edit or paste; use Files tab to open from R2</div>
             )}
-            <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-              {(monacoDiffFromChat || diffMode) ? (
+            <div style={{ flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
+              <div style={{ display: hasRealDiffFromChat || diffMode ? "block" : "none", height: "100%", minHeight: 0 }}>
                 <DiffEditor
-                  original={monacoDiffFromChat ? monacoDiffFromChat.original : codeContent}
-                  modified={monacoDiffFromChat ? monacoDiffFromChat.modified : (proposedContent ?? "")}
-                  language={getMonacoLanguage(monacoDiffFromChat ? monacoDiffFromChat.filename : codeFilename)}
+                  original={hasRealDiffFromChat ? monacoDiffFromChat.original : (diffMode ? codeContent ?? "" : "")}
+                  modified={hasRealDiffFromChat ? monacoDiffFromChat.modified : (diffMode ? (proposedContent ?? "") : "")}
+                  language={getMonacoLanguage(hasRealDiffFromChat ? monacoDiffFromChat.filename : codeFilename)}
                   theme="iam-custom"
                   options={{
-                    readOnly: !monacoDiffFromChat,
-                    renderSideBySide: !!monacoDiffFromChat,
+                    readOnly: !hasRealDiffFromChat,
+                    renderSideBySide: !!hasRealDiffFromChat,
                     lineNumbers: "on",
                     minimap: { enabled: false },
                     fontSize: 13,
                     fontFamily: "'JetBrains Mono','Fira Code',Menlo,monospace",
                   }}
                   onMount={(editors, monaco) => {
-                    monacoEditorRef.current = editors;
+                    diffEditorRef.current = editors;
                     if (monaco) {
                       const s = getComputedStyle(document.documentElement);
                       const get = (v) => s.getPropertyValue(v).trim() || undefined;
@@ -1338,7 +1391,8 @@ export default function FloatingPreviewPanel({
                     }
                   }}
                 />
-              ) : (
+              </div>
+              <div style={{ display: !hasRealDiffFromChat && !diffMode ? "block" : "none", height: "100%", minHeight: 0 }}>
               <Editor
                 height="100%"
                 language={getMonacoLanguage(codeFilename)}
@@ -1385,7 +1439,7 @@ export default function FloatingPreviewPanel({
                   smoothScrolling: true,
                 }}
               />
-              )}
+              </div>
             </div>
           </div>
 

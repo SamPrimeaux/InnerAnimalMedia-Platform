@@ -52,9 +52,10 @@ binding = "DB"
 database_name = "inneranimalmedia-business"
 database_id = "cf87b717-d4e2-4cf8-bab0-a81268e32d49"
 
+# inneranimalmedia-supabase-hyperdrive
 [[hyperdrive]]
 binding = "HYPERDRIVE"
-id = "9108dd6499bb44c286e4eb298c6ffafb"
+id = "08183bb9d2914e87ac8395d7e4ecff60"
 
 [[vectorize]]
 binding = "VECTORIZE"

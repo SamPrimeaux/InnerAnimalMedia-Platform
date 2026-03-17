@@ -369,7 +369,8 @@ const worker = {
                 }
               });
             }
-            if (vectors.length > 0 && env.VECTORIZE.upsert) await env.VECTORIZE.upsert(vectors);
+            // DISABLED: manual Vectorize upsert corrupts AutoRAG index (same index used by AI Search)
+            // if (vectors.length > 0 && env.VECTORIZE.upsert) await env.VECTORIZE.upsert(vectors);
             totalChunks += vectors.length;
             await env.DB.prepare('UPDATE ai_knowledge_base SET is_indexed=1 WHERE id=?').bind(doc.id).run();
             for (let k = 0; k < chunks.length; k++) {
@@ -387,6 +388,11 @@ const worker = {
         } catch (e) {
           return jsonResponse({ error: String(e?.message || e) }, 500);
         }
+      }
+
+      // POST /api/admin/reindex-codebase — index R2 source/ (worker.js, agent-dashboard, mcp-server, docs) into Vectorize
+      if (pathLower === '/api/admin/reindex-codebase' && (request.method || 'GET').toUpperCase() === 'POST') {
+        return handleReindexCodebase(request, env, ctx);
       }
 
       // ----- API: Integrations (status, gdrive, github) -- before handleAgentApi -----
@@ -1758,6 +1764,23 @@ async function runTerminalCommand(env, request, command, sessionId = null) {
 }
 
 /**
+ * Parse first markdown fenced code block from fullText and emit one SSE code event via send(obj).
+ * Format: ```language optional_filename\ncode\n```
+ * send(obj) is called once with { type: 'code', code, filename, language } or not at all.
+ */
+function emitCodeBlocksFromText(fullText, send) {
+  if (typeof fullText !== 'string' || !fullText.trim()) return;
+  const re = /```(\w*)\s*([^\n]*)\n([\s\S]*?)```/;
+  const m = fullText.match(re);
+  if (!m) return;
+  const language = (m[1] || '').trim() || 'text';
+  const rawFilename = (m[2] || '').trim().replace(/^(\/\/|#|\/\*)\s*/, '');
+  const filename = (rawFilename && /^[a-zA-Z0-9._-]+\.[a-z]{1,10}$/i.test(rawFilename)) ? rawFilename : 'snippet';
+  const code = (m[3] || '').trim();
+  send({ type: 'code', code, filename, language });
+}
+
+/**
  * OpenAI streaming: same SSE contract as Anthropic.
  * POST to chat/completions with stream: true, stream_options: { include_usage: true }.
  */
@@ -1819,6 +1842,7 @@ async function streamOpenAI(env, systemWithBlurb, apiMessages, modelRow, images,
         }
         const costUsd = calculateCost(modelRow, inputTokens, outputTokens);
         await streamDoneDbWrites(env, conversationId, modelRow, fullText, inputTokens, outputTokens, costUsd, agent_id, ctx);
+        emitCodeBlocksFromText(fullText, (obj) => controller.enqueue(new TextEncoder().encode('data: ' + JSON.stringify(obj) + '\n\n')));
         controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', input_tokens: inputTokens, output_tokens: outputTokens, cost_usd: costUsd, conversation_id: conversationId })}\n\n`));
       } catch (e) {
         controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'error', error: e?.message ?? String(e) })}\n\n`));
@@ -1897,6 +1921,7 @@ async function streamGoogle(env, systemWithBlurb, apiMessages, modelRow, images,
         }
         const costUsd = calculateCost(modelRow, inputTokens, outputTokens);
         await streamDoneDbWrites(env, conversationId, modelRow, fullText, inputTokens, outputTokens, costUsd, agent_id, ctx);
+        emitCodeBlocksFromText(fullText, (obj) => controller.enqueue(new TextEncoder().encode('data: ' + JSON.stringify(obj) + '\n\n')));
         controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', input_tokens: inputTokens, output_tokens: outputTokens, cost_usd: costUsd, conversation_id: conversationId })}\n\n`));
       } catch (e) {
         controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'error', error: e?.message ?? String(e) })}\n\n`));
@@ -1962,6 +1987,7 @@ async function streamWorkersAI(env, systemWithBlurb, apiMessages, modelRow, conv
         const safeModel = (modelRow && modelRow.model_key != null) ? modelRow.model_key : 'unknown';
         const safeRow = { ...(modelRow || {}), model_key: safeModel, provider: (modelRow && modelRow.provider != null) ? modelRow.provider : 'workers_ai' };
         await streamDoneDbWrites(env, conversationId, safeRow, safeText, safeInput, safeOutput, safeCost, agent_id, ctx);
+        emitCodeBlocksFromText(fullText, (obj) => controller.enqueue(new TextEncoder().encode('data: ' + JSON.stringify(obj) + '\n\n')));
         controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', input_tokens: safeInput, output_tokens: safeOutput, cost_usd: safeCost, conversation_id: conversationId })}\n\n`));
       } catch (e) {
         controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'error', error: e?.message ?? String(e) })}\n\n`));
@@ -3156,7 +3182,7 @@ async function handleAgentApi(request, url, env, ctx) {
 
     if (pathLower === '/api/agent/chat' && method === 'POST') {
       const body = await request.json();
-      const { model_id, messages: msgList, agent_id, session_id, images: bodyImages, attached_files: bodyFiles, use_ai_gateway: bodyUseGateway, compiled_context: bodyCompiledContext, mode: bodyMode } = body;
+      const { model_id, messages: msgList, agent_id, session_id, images: bodyImages, attached_files: bodyFiles, use_ai_gateway: bodyUseGateway, compiled_context: bodyCompiledContext, mode: bodyMode, fileContext: bodyFileContext } = body;
       const chatMode = (bodyMode === 'ask' || bodyMode === 'plan' || bodyMode === 'debug' || bodyMode === 'agent') ? bodyMode : 'agent';
       console.log('[agent/chat] model_id:', model_id);
       const bodyCompiledContextTrim = typeof bodyCompiledContext === 'string' ? bodyCompiledContext.trim() : '';
@@ -3214,11 +3240,11 @@ async function handleAgentApi(request, url, env, ctx) {
         try {
           const results = await env.AI.autorag('inneranimalmedia-aisearch')
             .search({ query: lastUserContent });
-          if (results?.data?.length) {
-            ragContext = results.data
-              .flatMap(r => r.content || [])
-              .filter(c => c.type === 'text')
-              .map(c => c.text)
+          const rawResults = results?.results ?? results?.data ?? [];
+          if (rawResults.length) {
+            ragContext = rawResults
+              .map(r => typeof r === 'string' ? r : r.text ?? r.content?.[0]?.text ?? '')
+              .filter(Boolean)
               .join('\n\n');
           }
         } catch (e) {
@@ -3230,9 +3256,10 @@ async function handleAgentApi(request, url, env, ctx) {
       if (bodyCompiledContextTrim) {
         compiledContext = bodyCompiledContextTrim;
       } else {
-      // STEP 1 -- build a hash key from what would be queried
+      // STEP 1 -- build a hash key (include date so daily memory is fresh per day)
       const tenantId = body.tenant_id || 'system';
-      const contextHash = `${tenantId}:agent_sam:v1`;
+      const today = new Date().toISOString().slice(0, 10);
+      const contextHash = `${tenantId}:agent_sam:v1:${today}`;
       // Invalidation: when adding writes to agent_memory_index or ai_knowledge_base (here or any endpoint), call invalidateCompiledContextCache(env) after the write.
 
       // STEP 2 -- check cache before doing any memory/kb queries
@@ -3265,6 +3292,21 @@ async function handleAgentApi(request, url, env, ctx) {
           if (o) schemaMemory = await o.text();
         } catch (_) {}
       }
+
+      let dailyLog = '';
+      let yesterdayLog = '';
+      if (env.R2) {
+        try {
+          const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+          const o1 = await env.R2.get('memory/daily/' + today + '.md');
+          if (o1) dailyLog = await o1.text();
+          const o2 = await env.R2.get('memory/daily/' + yesterday + '.md');
+          if (o2) yesterdayLog = await o2.text();
+        } catch (_) {}
+      }
+      const dailyMemoryBlurb = (dailyLog || yesterdayLog)
+        ? '\n\n[Daily memory - authoritative for "what did we do today" and "what are next priorities"; prefer this over generic roadmap or old D1 counts]:\n' + (dailyLog || '(none for today)') + (yesterdayLog ? '\n\n[Yesterday]:\n' + yesterdayLog : '')
+        : '';
 
       let memoryIndexBlurb = '';
       try {
@@ -3310,10 +3352,11 @@ async function handleAgentApi(request, url, env, ctx) {
 - Shell commands (wrangler, git, npm, bun, cloudflared): When the user is building or deploying and you suggest a command they should run, output it in a single markdown code block so the dashboard can offer "Run in terminal". Use \`\`\`bash or \`\`\`sh and put exactly the command(s) to run inside. Example: "To deploy, run:\n\n\`\`\`bash\nwrangler deploy\n\`\`\`\n\nClick **Run in terminal** in the dashboard to run this after you approve." Suggest one command (or a short, safe sequence) at a time for destructive or multi-step actions; wait for the user to approve or run before suggesting the next. Only suggest commands appropriate for the IAM platform: wrangler (auth, dev, deploy, D1, KV, R2, queues, secrets, tail, pages, etc.), git (status, commit, push, etc.), npm/bun (install, run dev/build), cloudflared (tunnel). Do not suggest arbitrary system commands unless the user explicitly asks. The user approves in the UI; then the command runs in their connected terminal. Be strategic and concise so the agent can do the heavy work while the user accepts or stops.
 - Treat anything touching --remote, --env production, delete, rollback, reset --hard, or secret as risky regardless of context; suggest one step at a time and wait for explicit approval before suggesting the next.
 - Playwright / browser (UI validation, screenshots): The platform can run browser tools via MCP: playwright_screenshot (params: url), browser_screenshot (params: url, optional fullPage), browser_navigate (params: url), browser_content (params: url). For page checks or screenshots, suggest the side panel Browser tab (paste URL, Go for live view, Screenshot for image) or that these tools are available when invoked.
-- Runnable wrangler/bash (for Run in terminal): Suggest commands in \`\`\`bash blocks. Examples the user can run from chat: wrangler whoami; wrangler d1 list -c wrangler.production.toml; wrangler r2 bucket list; wrangler r2 object list BUCKET --remote -c wrangler.production.toml; wrangler kv namespace list; wrangler secret list; wrangler tail -c wrangler.production.toml; wrangler deploy -c wrangler.production.toml; npm run build; git status. User can also type /run <command> to run immediately. Use -c wrangler.production.toml and --remote for production.`;
+- Runnable wrangler/bash (for Run in terminal): Suggest commands in \`\`\`bash blocks. Examples the user can run from chat: wrangler whoami; wrangler d1 list -c wrangler.production.toml; wrangler r2 bucket list; wrangler r2 object list BUCKET --remote -c wrangler.production.toml; wrangler kv namespace list; wrangler secret list; wrangler tail -c wrangler.production.toml; wrangler deploy -c wrangler.production.toml; npm run build; git status. User can also type /run <command> to run immediately. Use -c wrangler.production.toml and --remote for production.
+- Code generation: Output code in markdown fenced blocks (\`\`\`language filename). Do NOT use r2_write tool for code - users will save via the Monaco editor. Only use r2_write for non-code files or when explicitly asked to write directly to R2.`;
       const systemBlurb = '';
       const schemaBlurb = schemaMemory ? `\n\n[Schema and records memory - use for backfill, cost tracking, and table consolidation; suggest then wait for user approval before executing D1/SQL]:\n${schemaMemory.slice(0, 12000)}` : '';
-      compiledContext = agentSamSystem + systemBlurb + memoryIndexBlurb + knowledgeBlurb + mcpBlurb + schemaBlurb;
+      compiledContext = agentSamSystem + systemBlurb + memoryIndexBlurb + knowledgeBlurb + mcpBlurb + schemaBlurb + dailyMemoryBlurb;
 
         // STEP 4 -- store in cache, expires 30 minutes
         try {
@@ -3341,6 +3384,23 @@ async function handleAgentApi(request, url, env, ctx) {
 
       // STEP 5 -- use cached or freshly built context
       const systemWithBlurb = `SYSTEM: You are Agent Sam. Resolved model: ${model.model_key} provider: ${model.provider}. Always report this exact model_key when asked what model you are running on.\n\n` + (ragContext ? ('Relevant platform context:\n' + ragContext + '\n\n' + compiledContext) : compiledContext);
+
+      // Auto-inject current file context when present (quick win: Agent Sam always sees open file)
+      let finalSystem = systemWithBlurb;
+      if (bodyFileContext?.filename && bodyFileContext?.content != null) {
+        const maxChars = 15000;
+        const content = String(bodyFileContext.content);
+        const truncated = content.length > maxChars;
+        const slice = content.slice(0, maxChars);
+        finalSystem += `\n\nCURRENT FILE OPEN IN MONACO:
+Filename: ${bodyFileContext.filename}
+Bucket: ${bodyFileContext.bucket || 'not specified'}
+Content (first ${maxChars} chars${truncated ? ', truncated' : ''}):
+\`\`\`
+${slice}
+\`\`\`
+`;
+      }
 
       const gatewayModel = getGatewayModel(model.provider, model.model_key);
       const useGateway = bodyUseGateway !== false && !!env.AI_GATEWAY_BASE_URL;
@@ -3426,13 +3486,13 @@ async function handleAgentApi(request, url, env, ctx) {
         await upsertMcpAgentSession(env, conversationId);
 
         if (canStreamOpenAI) {
-          return streamOpenAI(env, systemWithBlurb, apiMessages, model, images, conversationId, agent_id, ctx);
+          return streamOpenAI(env, finalSystem, apiMessages, model, images, conversationId, agent_id, ctx);
         }
         if (canStreamGoogle) {
-          return streamGoogle(env, systemWithBlurb, apiMessages, model, images, conversationId, agent_id, ctx);
+          return streamGoogle(env, finalSystem, apiMessages, model, images, conversationId, agent_id, ctx);
         }
         if (canStreamWorkersAI) {
-          return streamWorkersAI(env, systemWithBlurb, apiMessages, model, conversationId, agent_id, ctx);
+          return streamWorkersAI(env, finalSystem, apiMessages, model, conversationId, agent_id, ctx);
         }
         if (canStreamAnthropic) {
           let mcpToolsCount = 0;
@@ -3441,7 +3501,7 @@ async function handleAgentApi(request, url, env, ctx) {
             mcpToolsCount = tr ? 1 : 0;
           } catch (_) {}
           if (mcpToolsCount > 0) {
-            const toolsResp = await chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, conversationId, agent_id, ctx, { stream: wantStream, mode: chatMode });
+            const toolsResp = await chatWithToolsAnthropic(env, finalSystem, apiMessages, model, conversationId, agent_id, ctx, { stream: wantStream, mode: chatMode });
             if (toolsResp) return toolsResp;
           }
         const anthropicMessagesStream = apiMessages.map((m, i) => {
@@ -3460,7 +3520,7 @@ async function handleAgentApi(request, url, env, ctx) {
           body: JSON.stringify({
             model: modelKeyStream,
             max_tokens: 8192,
-            system: systemWithBlurb,
+            system: finalSystem,
             messages: anthropicMessagesStream,
             stream: true,
           }),
@@ -3548,6 +3608,7 @@ async function handleAgentApi(request, url, env, ctx) {
                           await envRef.DB.prepare("UPDATE agent_ai_sam SET total_runs=total_runs+1, last_run_at=unixepoch(), updated_at=unixepoch() WHERE id=?").bind(agent_id).run();
                         } catch (_) {}
                       }
+                      emitCodeBlocksFromText(fullText, (obj) => controller.enqueue(new TextEncoder().encode('data: ' + JSON.stringify(obj) + '\n\n')));
                       controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', input_tokens: inputTokens, output_tokens: outputTokens, cost_usd: amountUsd, conversation_id: conversationIdRef })}\n\n`));
                     } else if (data.type === 'error') {
                       controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'error', error: data.error })}\n\n`));
@@ -3613,7 +3674,11 @@ async function handleAgentApi(request, url, env, ctx) {
         await upsertMcpAgentSession(env, conversationId);
         const agentIdForTools = agent_id ?? 'agent_sam_v1';
         const modelKeyForTools = model.provider === 'anthropic' ? resolveAnthropicModelKey(model.model_key) : (model.model_key || 'gpt-4o');
-        const finalText = await runToolLoop(env, request, model.provider, modelKeyForTools, systemWithBlurb, apiMessages, toolDefinitions, model, agentIdForTools, conversationId);
+        if (model.provider === 'anthropic' && env.ANTHROPIC_API_KEY) {
+          const toolsResp = await chatWithToolsAnthropic(env, finalSystem, apiMessages, model, conversationId, agentIdForTools, ctx, { stream: false, mode: chatMode });
+          if (toolsResp) return toolsResp;
+        }
+        const finalText = await runToolLoop(env, request, model.provider, modelKeyForTools, finalSystem, apiMessages, toolDefinitions, model, agentIdForTools, conversationId);
         try {
           await streamDoneDbWrites(env, conversationId, model, finalText, 0, 0, 0, agentIdForTools, ctx);
         } catch (e) {
@@ -3624,7 +3689,7 @@ async function handleAgentApi(request, url, env, ctx) {
 
       let result;
       if (useGateway && gatewayModel && (model.provider === 'openai' || model.provider === 'anthropic')) {
-        const gw = await callGatewayChat(env, systemWithBlurb, apiMessages, gatewayModel, images);
+        const gw = await callGatewayChat(env, finalSystem, apiMessages, gatewayModel, images);
         if (gw && !gw.ok) return jsonResponse(gw.data || { error: 'AI Gateway request failed' }, gw.status || 502);
         if (gw && gw.ok) result = gw.data;
       }
@@ -3642,7 +3707,7 @@ async function handleAgentApi(request, url, env, ctx) {
             'x-api-key': env.ANTHROPIC_API_KEY,
             'anthropic-version': '2023-06-01',
           },
-          body: JSON.stringify({ model: modelKey, max_tokens: 8192, system: systemWithBlurb, messages: anthropicMessages }),
+          body: JSON.stringify({ model: modelKey, max_tokens: 8192, system: finalSystem, messages: anthropicMessages }),
         });
         result = await resp.json();
         if (!resp.ok) return jsonResponse(result, resp.status);
@@ -3655,7 +3720,7 @@ async function handleAgentApi(request, url, env, ctx) {
             const content = isLastUser ? buildOpenAIContent(m.content, images) : m.content;
             return { role: m.role, content };
           });
-          const withSystem = [{ role: 'system', content: systemWithBlurb }, ...openAiMessages];
+          const withSystem = [{ role: 'system', content: finalSystem }, ...openAiMessages];
           const resp = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json',
@@ -3684,7 +3749,7 @@ async function handleAgentApi(request, url, env, ctx) {
               'x-goog-api-key': env.GOOGLE_AI_API_KEY,
             },
             body: JSON.stringify({
-              systemInstruction: { parts: [{ text: systemWithBlurb }] },
+              systemInstruction: { parts: [{ text: finalSystem }] },
               contents: googleContents,
             }),
           }
@@ -3693,7 +3758,7 @@ async function handleAgentApi(request, url, env, ctx) {
         if (!resp.ok) return jsonResponse(result, resp.status);
       }
       if (result === undefined && model.provider === 'cloudflare_workers_ai' && env.AI) {
-        result = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', { messages: [{ role: 'system', content: systemWithBlurb }, ...apiMessages] });
+        result = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', { messages: [{ role: 'system', content: finalSystem }, ...apiMessages] });
       }
       if (result === undefined) {
         return jsonResponse({ error: 'Provider not configured or unsupported' }, 503);
@@ -3827,10 +3892,11 @@ async function handleAgentApi(request, url, env, ctx) {
         if (!query.trim()) return jsonResponse({ error: 'query required' }, 400);
         const results = await env.AI.autorag('inneranimalmedia-aisearch')
           .search({ query: query.trim() });
-        const chunks = (results?.data || [])
-          .flatMap(r => r.content || [])
-          .filter(c => c.type === 'text')
-          .map(c => c.text);
+        const rawResults = results?.results ?? results?.data ?? [];
+        const chunks = rawResults.map(r =>
+          typeof r === 'string' ? r :
+          r.text ?? r.content?.[0]?.text ?? ''
+        ).filter(Boolean);
         return jsonResponse({ matches: chunks, count: chunks.length });
       } catch (e) {
         return jsonResponse({ error: String(e?.message || e), matches: [] }, 500);
@@ -3981,7 +4047,7 @@ async function handleAgentApi(request, url, env, ctx) {
         if (!toolName || typeof toolName !== 'string') return jsonResponse({ success: false, error: 'tool_name required' }, 400);
         console.log('[execute-approved-tool] tool_name:', toolName);
         console.log('[execute-approved-tool] tool_input:', JSON.stringify(toolInput));
-        const out = await invokeMcpToolFromChat(env, toolName, toolInput, body.conversation_id ?? null);
+        const out = await invokeMcpToolFromChat(env, toolName, toolInput, body.conversation_id ?? null, { skipApprovalCheck: true });
         console.log('[execute-approved-tool] result:', JSON.stringify(out));
         if (out.error) return jsonResponse({ success: false, error: out.error }, 200);
         return jsonResponse({ success: true, result: out.result ?? out });
@@ -4449,8 +4515,8 @@ async function upsertMcpAgentSession(env, conversationId) {
   } catch (e) { console.warn('[upsertMcpAgentSession]', e?.message ?? e); }
 }
 
-/** Invoke MCP tool from chat (same logic as /api/mcp/invoke). Returns { result } or { error }. */
-async function invokeMcpToolFromChat(env, tool_name, params, conversationId) {
+/** Invoke MCP tool from chat (same logic as /api/mcp/invoke). Returns { result } or { error }. opts.skipApprovalCheck: when true, skip requires_approval check (caller is execute-approved-tool). */
+async function invokeMcpToolFromChat(env, tool_name, params, conversationId, opts = {}) {
   const INTERNAL_PLAYWRIGHT_TOOLS = ['playwright_screenshot', 'browser_screenshot', 'browser_navigate', 'browser_content'];
   if (INTERNAL_PLAYWRIGHT_TOOLS.includes(tool_name) && env.MYBROWSER && env.DASHBOARD) {
     try {
@@ -4540,7 +4606,12 @@ async function invokeMcpToolFromChat(env, tool_name, params, conversationId) {
       return { error: errMsg };
     }
   }
-  if (tool_name === 'terminal_execute' && env.TERMINAL_WS_URL) {
+  if (tool_name === 'terminal_execute') {
+    if (!env.TERMINAL_WS_URL) {
+      const errMsg = 'Terminal not configured (TERMINAL_WS_URL not set)';
+      await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'terminal', toolInput: params, result: null, error: errMsg, serviceName: 'builtin' });
+      return { error: errMsg };
+    }
     const command = params.command ?? '';
     try {
       const termResult = await runTerminalCommand(env, null, command, params.conversation_id ?? null);
@@ -4642,7 +4713,7 @@ async function invokeMcpToolFromChat(env, tool_name, params, conversationId) {
     await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: 'mcp', toolInput: params, result: null, error: 'Tool not found', serviceName: null });
     return { error: 'Tool not found' };
   }
-  if (toolRow.requires_approval === 1) {
+  if (!opts.skipApprovalCheck && toolRow.requires_approval === 1) {
     await recordMcpToolCall(env, { conversationId, toolName: tool_name, toolCategory: toolRow.tool_category || 'mcp', toolInput: params, result: null, error: 'Tool requires approval', serviceName: null });
     return { error: 'Tool requires approval' };
   }
@@ -4839,6 +4910,7 @@ async function chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, 
           const streamBody = new ReadableStream({
             start(controller) {
               enqueue(controller, { type: 'text', text: lastContent });
+              emitCodeBlocksFromText(lastContent, (obj) => enqueue(controller, obj));
               enqueue(controller, {
                 type: 'tool_approval_request',
                 tool: {
@@ -4858,6 +4930,7 @@ async function chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, 
           tool_approval_request: true,
           text: lastContent,
           tool: { name: actionBlock.name, description: toolDesc, parameters: actionBlock.input || {}, preview },
+          conversation_id: conversationId,
         });
       }
     }
@@ -4876,6 +4949,7 @@ async function chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, 
         const streamBody = new ReadableStream({
           start(controller) {
             enqueue(controller, { type: 'text', text: lastContent });
+            emitCodeBlocksFromText(lastContent, (obj) => enqueue(controller, obj));
             enqueue(controller, { type: 'done', usage: { input_tokens: inputTokens, output_tokens: outputTokens, cost_usd: costUsd } });
             controller.close();
           },
@@ -4890,6 +4964,19 @@ async function chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, 
         output_tokens: outputTokens,
         cost_usd: costUsd,
       });
+    }
+    if (mode === 'ask') {
+      const actionBlock = toolUseBlocks.find((b) => isActionTool(b.name));
+      if (actionBlock) {
+        const toolDesc = (tools.find((t) => t.name === actionBlock.name) || {}).description || actionBlock.name;
+        const preview = toolApprovalPreview(actionBlock.name, actionBlock.input);
+        return jsonResponse({
+          tool_approval_request: true,
+          text: lastContent ?? '',
+          tool: { name: actionBlock.name, description: toolDesc, parameters: actionBlock.input || {}, preview },
+          conversation_id: conversationId,
+        });
+      }
     }
     console.log('[chatWithToolsAnthropic] Tool use detected, invoking after response', { count: toolUseBlocks.length });
     const toolResults = [];
@@ -4942,6 +5029,7 @@ async function chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, 
     const streamBody = new ReadableStream({
       start(controller) {
         enqueue(controller, { type: 'text', text: lastContent || '(Tool loop limit reached.)' });
+        emitCodeBlocksFromText(lastContent || '', (obj) => enqueue(controller, obj));
         enqueue(controller, { type: 'done', usage: lastUsage });
         controller.close();
       },
@@ -5448,11 +5536,127 @@ async function indexMemoryMarkdownToVectorize(env) {
     });
   }
 
-  if (vectors.length > 0 && env.VECTORIZE.upsert) {
-    await env.VECTORIZE.upsert(vectors);
-  }
+  // DISABLED: manual Vectorize upsert corrupts AutoRAG index (same index used by AI Search)
+  // if (vectors.length > 0 && env.VECTORIZE.upsert) {
+  //   await env.VECTORIZE.upsert(vectors);
+  // }
 
   return { indexed: keys.length, chunks: vectors.length };
+}
+
+/** Chunk a code/markdown file by lines for embedding (overlapping windows). */
+function chunkCodeFile(content, filePath) {
+  const lines = content.split('\n');
+  const CHUNK_SIZE = 100;
+  const OVERLAP = 20;
+  if (lines.length <= CHUNK_SIZE) {
+    return [{ text: content, startLine: 1, endLine: lines.length }];
+  }
+  const chunks = [];
+  for (let i = 0; i < lines.length; i += (CHUNK_SIZE - OVERLAP)) {
+    const end = Math.min(i + CHUNK_SIZE, lines.length);
+    chunks.push({
+      text: lines.slice(i, end).join('\n'),
+      startLine: i + 1,
+      endLine: end,
+    });
+    if (end >= lines.length) break;
+  }
+  return chunks;
+}
+
+function generateVectorId(filePath, startLine, endLine) {
+  const baseId = `${filePath}:${startLine}-${endLine}`;
+  if (baseId.length <= 64) {
+    return baseId;
+  }
+  const hash = baseId.split('').reduce((acc, char) => {
+    return ((acc << 5) - acc) + char.charCodeAt(0);
+  }, 0);
+  const shortPath = filePath.split('/').pop();
+  return `${shortPath.substring(0, 30)}:${startLine}-${endLine}:${Math.abs(hash)}`.substring(0, 64);
+}
+
+/** Index R2 DASHBOARD bucket source/ (worker.js, agent-dashboard, mcp-server, docs) into Vectorize for code search. */
+async function performCodebaseIndexing(env) {
+  const stats = { filesProcessed: 0, chunksCreated: 0, vectorsUpserted: 0 };
+  if (!env.DASHBOARD || !env.VECTORIZE || !env.AI) {
+    return { success: false, error: 'DASHBOARD, VECTORIZE, or AI binding missing', stats };
+  }
+  try {
+    let cursor;
+    const seen = new Set();
+    do {
+      const list = await env.DASHBOARD.list({ prefix: 'source/', limit: 200, cursor });
+      const objects = list.objects || [];
+      const filesToIndex = objects.filter((o) => o.key && (o.key.endsWith('.js') || o.key.endsWith('.jsx') || o.key.endsWith('.md')));
+      for (const fileObj of filesToIndex) {
+        if (seen.has(fileObj.key)) continue;
+        seen.add(fileObj.key);
+        const object = await env.DASHBOARD.get(fileObj.key);
+        if (!object) continue;
+        const content = await object.text();
+        const filePath = fileObj.key.replace(/^source\//, '');
+        const chunks = chunkCodeFile(content, filePath);
+        stats.chunksCreated += chunks.length;
+        for (let i = 0; i < chunks.length; i += RAG_EMBED_BATCH_SIZE) {
+          const batch = chunks.slice(i, i + RAG_EMBED_BATCH_SIZE);
+          const texts = batch.map((c) => c.text);
+          let data;
+          try {
+            const modelResp = await env.AI.run(RAG_MEMORY_EMBED_MODEL, { text: texts });
+            data = modelResp?.data || modelResp;
+          } catch (e) {
+            return { success: false, error: `Embedding failed: ${e?.message || e}`, stats };
+          }
+          const values = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : []);
+          const vectors = [];
+          batch.forEach((c, j) => {
+            const vec = values[j];
+            if (vec && Array.isArray(vec)) {
+              vectors.push({
+                id: generateVectorId(filePath, c.startLine, c.endLine),
+                values: vec,
+                metadata: {
+                  type: 'code',
+                  source: filePath,
+                  start_line: c.startLine,
+                  end_line: c.endLine,
+                  language: filePath.endsWith('.js') ? 'javascript' : filePath.endsWith('.jsx') ? 'jsx' : 'markdown',
+                },
+              });
+            }
+          });
+          // DISABLED: manual Vectorize upsert corrupts AutoRAG index (same index used by AI Search)
+          // if (vectors.length > 0 && env.VECTORIZE.upsert) {
+          //   await env.VECTORIZE.upsert(vectors);
+          //   stats.vectorsUpserted += vectors.length;
+          // }
+        }
+        stats.filesProcessed++;
+      }
+      cursor = list.truncated ? list.cursor : undefined;
+    } while (cursor);
+    return { success: true, stats };
+  } catch (e) {
+    return { success: false, error: String(e?.message || e), stats };
+  }
+}
+
+/** Handle POST /api/admin/reindex-codebase — sync or async codebase indexing into Vectorize. */
+async function handleReindexCodebase(request, env, ctx) {
+  const body = await request.json().catch(() => ({}));
+  const isAsync = body.async === true;
+  if (isAsync && ctx.waitUntil) {
+    ctx.waitUntil(performCodebaseIndexing(env));
+    return new Response(JSON.stringify({ success: true, message: 'Indexing started' }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  const result = await performCodebaseIndexing(env);
+  return new Response(JSON.stringify(result), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 /** Daily digest: pull DB data, have Claude write summary, send email. Cron 0 0 * * * (6pm CST = midnight UTC). */

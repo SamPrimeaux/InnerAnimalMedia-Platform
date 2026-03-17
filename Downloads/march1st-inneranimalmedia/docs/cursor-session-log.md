@@ -1,36 +1,26 @@
-## 2026-03-16 - Monaco Disposal Fix + Disk Cleanup (v=50)
+## 2026-03-16 — Full day summary (consolidated from cursor-session-log)
 
-### Accomplishments
-- **Disk Space Recovery:** Freed 120GB by deleting Cursor snapshots (124GB → 7GB)
-  - System went from 100% capacity (203GB used) to 41% capacity (83GB used)
-- **Monaco Disposal Bug FIXED:** After 11 attempts, identified root cause
-  - Deleted manual `.setValue()` useEffect (lines 570-581 in FloatingPreviewPanel.jsx)
-  - @monaco-editor/react manages models through controlled props, not refs
-  - v=50 deployed: NO disposal errors, file save works
-- **Minor Issue:** Diff panel auto-close doesn't work (cosmetic, manual close works)
+**Session log discipline:** This entry is the single consolidated "what we finished today" for 2026-03-16. When adding new same-day entries below, update this summary so Agent Sam and daily memory stay accurate.
 
-### Technical Details
-- Files changed: FloatingPreviewPanel.jsx (deleted lines 570-581), agent.html (v=49→v=50)
-- Build: agent-dashboard.js (274.88 kB), agent-dashboard.css (1.53 kB)
-- Deploy: ./agent-dashboard/deploy-to-r2.sh to agent-sam bucket
-- Test: divide.js saved to R2 successfully, no console errors
+### Accomplishments (all 2026-03-16 sessions)
 
-### Root Cause Analysis
-- Manual model manipulation (`.setValue()`) was racing with React lifecycle
-- @monaco-editor/react expects controlled props (`original`, `modified`)
-- Bypassing lifecycle with ref manipulation caused disposal race condition
-- Solution: Remove manual sync, rely on component's internal model management
+- **Theme system overhaul (v=44):** Worker normalizeThemeSlug; GET/PATCH /api/settings/theme from user_settings + cms_themes only; FOUC prevention in all dashboard HTML (theme preload from localStorage dashboard-theme, dashboard-theme-vars); applyShellTheme/applyThemeToShell sync; single source of truth cms_themes.slug. Deployed with R2 dashboard HTML uploads and worker deploy.
+- **Agent page / color flash:** Theme preload in agent.html and all dashboard pages; zero-flash on navigation when theme is set in user-settings.
+- **Mobile input bar + status bar:** Mode and Model moved into + connector popup on mobile; status bar background var(--bg-nav), color rgba(255,255,255,0.8). Deployed.
+- **Monaco disposal bug FIXED (v=50):** Removed manual `.setValue()` useEffect (lines 570-581 in FloatingPreviewPanel.jsx). Root cause: @monaco-editor/react owns model lifecycle via controlled props; ref-based setValue caused disposal race. v=50 deployed; divide.js (and any file) saves from Keep Changes to R2 with no "TextModel got disposed" errors.
+- **Worker context fix:** Chat handler now injects R2 memory/daily/{today}.md and memory/daily/{yesterday}.md into compiled context so Agent Sam answers "what did we do today" from actual daily memory. Cache key includes date; deployed.
+- **Docs and R2 memory:** SESSION_2026-03-16_MONACO_FIX.md, cursor-session-log.md, AGENT_SAM_ROADMAP.md, memory/daily/2026-03-16.md committed; daily + session + TOMORROW.md uploaded to iam-platform for AutoRAG.
+- **Disk (user-side):** 120GB freed from Cursor snapshots (reported in session).
+
+### Technical details (latest deploy)
+- FloatingPreviewPanel.jsx: deleted lines 570-581. agent.html: v=49 to v=50. Build: agent-dashboard.js 274.88 kB, agent-dashboard.css 1.53 kB. Deploy: deploy-to-r2.sh then npm run deploy. Worker version with daily memory injection deployed.
 
 ### Status
-- Phase 2 (Monaco Diff Flow): 95% complete
-- Remaining: Auto-close panel after save (15-30 min cosmetic fix)
-- Next: Phase 4 (Tool Execution Feedback) OR quick auto-close polish
+- Phase 2 (Monaco Diff Flow): 95% complete. Remaining: optional auto-close panel after save (15-30 min).
+- Next: Phase 4 (Tool Execution Feedback) or Phase 2 auto-close.
 
-### Key Learnings
-- Architecture > Timing: 10 failed timing fixes, 1 successful architectural fix
-- Always audit actual source early (not at attempt #10)
-- React wrapper components have contracts - manual ref manipulation breaks them
-- Disk space at 100% causes random failures - monitor Cursor snapshots directory
+### R2 iam-platform (AutoRAG)
+- Uploaded: memory/daily/2026-03-16.md, knowledge/session-2026-03-16-monaco-fix.md, agent-sessions/TOMORROW.md. Run **Re-index memory** from Agent dashboard so AutoRAG has today's memory.
 
 ---
 
@@ -54,6 +44,81 @@ Monaco Keep Changes shows errors on R2 failure and uses 300ms disposal delay. R2
 
 ### Known issues / next steps
 - After R2 upload: test full Monaco workflow end-to-end. Phase 3 (chat input responsive) on hold.
+
+---
+
+## [2026-03-17] Deploy script — remove stale R2 uploads for missing dashboard assets
+
+### What was asked
+Remove three deploy-with-record.sh upload commands for files that don't exist in dist/ and aren't referenced in agent.html: agent-dashboard2.css, agent-dashboard-xterm.js, agent-dashboard-xterm-addon-fit.js.
+
+### Files changed
+- `scripts/deploy-with-record.sh`: Removed three R2 put lines (agent-dashboard2.css, agent-dashboard-xterm.js, agent-dashboard-xterm-addon-fit.js). Kept agent-dashboard.js, agent-dashboard.css, agent.html uploads and worker deploy.
+
+### Files NOT changed (and why)
+- agent.html, worker.js, vite.config.js, FloatingPreviewPanel.jsx: not touched.
+
+### Deploy status
+- Built: N/A. R2 uploaded: N/A (script change only). Worker deployed: no. Deploy approved by Sam: yes (change applied).
+
+### What is live now
+Script not yet run. Next run of ./scripts/deploy-with-record.sh will only upload the two dist assets and agent.html; no failing uploads for missing files.
+
+### Known issues / next steps
+- None. Run deploy-with-record.sh when ready to deploy.
+
+---
+
+## [2026-03-17] MCP tool approval fix — Approve & Execute now runs tool
+
+### What was asked
+Debug why "Approve & Execute" still returned "Tool requires approval". Find disconnect between frontend approval and backend validation.
+
+### Files changed
+- `worker.js` lines 4044, 4513, 4710: (1) execute-approved-tool handler now passes fifth arg `{ skipApprovalCheck: true }` to invokeMcpToolFromChat. (2) invokeMcpToolFromChat signature extended with `opts = {}`; when opts.skipApprovalCheck is true, skip the requires_approval check. (3) Approval block changed from `if (toolRow.requires_approval === 1)` to `if (!opts.skipApprovalCheck && toolRow.requires_approval === 1)`.
+
+### Files NOT changed (and why)
+- AgentDashboard.jsx, FloatingPreviewPanel.jsx, agent.html, OAuth handlers: not touched. Frontend already sends tool_name and tool_input correctly.
+
+### Deploy status
+- Built: no (worker only). R2 uploaded: no — no dashboard files changed. Worker deployed: yes — version ID 327cd9f8-9f07-44b6-bf1f-d984b7a9053f. Deploy approved by Sam: yes.
+
+### What is live now
+Clicking "Approve & Execute" on an MCP tool approval card now invokes the tool (skipApprovalCheck path); chat path still requires approval for tools with requires_approval=1.
+
+### Known issues / next steps
+- None. Optional: pass conversation_id from frontend approve payload for better tool-call attribution in D1.
+
+---
+
+## [2026-03-17] r2_write to Monaco + MCP rebuild + full deploy
+
+### What was asked
+1) Wire r2_write success to auto-open file in Monaco, show in file browser, show "File created" notification. 2) Rebuild MCP server (skeleton, R2 binding, deploy). 3) Fully deploy / remote store / document.
+
+### Files changed
+- `agent-dashboard/src/AgentDashboard.jsx`: Added state `openFileKeyForPanel`, `fileCreatedNotification`. In `approveTool`, when `tool.name === "r2_write"` and success: set openFileKeyForPanel and fileCreatedNotification, open preview panel on Code tab. Pass `openFileKey` and `onOpenFileKeyDone` to FloatingPreviewPanel. New "File created" notification bar with key, "Open in editor" and "Dismiss" buttons.
+- `agent-dashboard/src/FloatingPreviewPanel.jsx`: New props `openFileKey`, `onOpenFileKeyDone`. New useEffect: when open and openFileKey set, fetch object from R2, set code filename/content, switch to Code tab, increment refreshListTrigger, call onOpenFileKeyDone.
+- `mcp-server/src/index.js`: Replaced bundle with minimal skeleton from docs/MCP_SERVER_MINIMAL_SKELETON.js (r2_write, r2_read, r2_list, d1_query, d1_write, terminal_execute, list_clients, get_worker_services, get_deploy_command). Backup: src/index.js.backup-20260317.
+- `mcp-server/wrangler.jsonc`: Added R2 binding for bucket iam-platform (binding "R2").
+- `dashboard/agent.html`: Cache buster v50/v58 to v51/v59.
+
+### Files NOT changed (and why)
+- worker.js, agent.html (beyond cache bump), OAuth handlers, wrangler.production.toml: not touched.
+
+### Deploy status
+- Built: yes (agent-dashboard npm run build; 277.50 kB js, 1.53 kB css).
+- R2 uploaded: yes — agent-sam/static/dashboard/agent/agent-dashboard.js, agent-dashboard.css, agent.html (v51/v59).
+- Worker deployed: yes — version ID a5483d93-ee76-4f84-bf88-ed5866453e69.
+- MCP server: deployed earlier (version 5d844f78-c503-4e08-9a0c-e91c87664f41). Deploy approved by Sam: yes.
+
+### What is live now
+- Main worker serves agent dashboard with r2_write-to-Monaco flow: on Approve & Execute for r2_write, panel opens with file in Code tab, file list refresh triggered, "File created: {key}" notification with Open in editor / Dismiss.
+- MCP server at mcp.inneranimalmedia.com runs minimal skeleton with r2_write (and other tools) using R2 iam-platform binding.
+- Dashboard cache v51/v59.
+
+### Known issues / next steps
+- deploy-with-record.sh references agent-dashboard2.css and xterm chunks that current Vite build does not produce; used manual R2 upload of agent-dashboard.js and agent-dashboard.css only.
 
 ---
 
@@ -1617,3 +1682,106 @@ Deploy approved; then wire Monaco to chat: add handleFileContextChange in AgentD
 
 ### What is live now
 Production on worker 2508a45f. Agent page: mobile chat pane uses overflow: hidden; only messages area scrolls. Monaco file-context bridge: opening a file in Code tab triggers FloatingPreviewPanel's existing onFileContextChange; AgentDashboard now passes handleFileContextChange and logs { filename, content, bucket } to console. Next: store context in state and include in chat messages.
+
+---
+
+## [2026-03-17] Mode/Model hide when narrow + chat rename response fix (v=51)
+
+### What was asked
+Apply 4 code changes + cache bump: (1) Add chatPaneIsWide so Mode/Model hide when panel squishes chat; (2) Mode dropdown condition !isMobile && chatPaneIsWide &&; (3) Model dropdown same; (4) Rename success check use !data.error instead of data.ok for worker response. Then build, R2 upload, deploy.
+
+### Files changed
+- `agent-dashboard/src/AgentDashboard.jsx`: After line 1346 added chatPaneIsWide = !previewOpen || (100 - panelWidthPct) > 60. Line 2514 Mode condition: !isMobile && chatPaneIsWide &&. Line 2583 Model condition: same. Line 566 saveSessionName: if (data && !data.error) setSessionName(name).
+- `dashboard/agent.html`: Script cache v=50 to v=51 (line 721).
+
+### Files NOT changed (and why)
+- worker.js, FloatingPreviewPanel.jsx, wrangler.production.toml: not touched.
+
+### Deploy status
+- Built: yes (agent-dashboard npm run build).
+- R2 uploaded: yes. Files: dashboard/agent.html, agent-dashboard/dist/agent-dashboard.js to agent-sam/static/dashboard/agent.html and static/dashboard/agent/agent-dashboard.js.
+- Worker deployed: yes. Version ID: 32804d5b-1388-47fe-8a39-4279013fb4ee.
+- Deploy approved by Sam: yes (run the build and deployment).
+
+### What is live now
+Production worker 32804d5b. Agent page v=51: Mode/Model dropdowns hide when chat pane is narrow (preview open and panel > 40% width) or on mobile; chat rename PATCH success uses !data.error so name saves when worker returns { success: true } or session object.
+
+### Known issues / next steps
+- None. Test: open panel, narrow chat pane to see Mode/Model auto-hide; rename a chat and confirm it persists.
+
+---
+
+## [2026-03-17] Mini donut context gauge (v=52)
+
+### What was asked
+Make context gauge smaller (mini donut): button/SVG 32 to 20, stroke 2.5 to 2, center text 9 to 7. Bump v=52, build, R2 upload, deploy, session log.
+
+### Files changed
+- `agent-dashboard/src/AgentDashboard.jsx`: Context gauge button width/height 32 to 20; SVG 32 to 20; both circles strokeWidth 2.5 to 2; center label fontSize 9 to 7.
+- `dashboard/agent.html`: Script cache v=51 to v=52 (line 721).
+
+### Files NOT changed (and why)
+- worker.js, FloatingPreviewPanel.jsx, wrangler.production.toml: not touched.
+
+### Deploy status
+- Built: yes. agent-dashboard.js 274.90 kB, agent-dashboard.css 1.53 kB.
+- R2 uploaded: yes. agent-dashboard.js to agent-sam/static/dashboard/agent/agent-dashboard.js; agent.html to agent-sam/static/dashboard/agent.html.
+- Worker deployed: yes. Version ID: 322b7eba-449d-425e-ab6a-0db9e21a800c.
+
+### What is live now
+Production worker 322b7eba. Agent page v=52: context gauge is 20x20 mini donut with stroke 2 and 7px center label.
+
+---
+
+## [2026-03-17] v=55: Chat rename fix + system message filter
+
+### What was asked
+Final batch deploy v=55: confirm system message filter in totalChars; bump v=54 to v=55; build; R2 upload; session log.
+
+### Files changed
+- `agent-dashboard/src/AgentDashboard.jsx`: totalChars already filters `m.provider !== "system"`. saveSessionName: success check now `data.success || data.id || !data.error`, with `setCurrentSessionId(data.id)` when present; removed alert and [Rename] console logs.
+- `dashboard/agent.html`: Script cache v=54 to v=55 (line 721).
+
+### Deploy status
+- Built: yes. agent-dashboard.js 274.79 kB, agent-dashboard.css 1.53 kB.
+- R2 uploaded: yes. agent-dashboard.js and agent.html to agent-sam.
+- Worker deployed: no (dashboard-only deploy).
+
+### What is live now
+Agent page v=55: Chat rename saves correctly when worker returns { success: true } or session object; context gauge excludes system messages from token estimate.
+
+---
+
+## [2026-03-17] v=56: Fixed chat rename on new conversations
+
+### What was asked
+Deploy v=56: chat rename fix (stop resetting sessionName when conversation_id is set).
+
+### Files changed
+- `agent-dashboard/src/AgentDashboard.jsx`: Removed `setSessionName("New Conversation")` from streaming path (after convId update) and non-streaming path (after data.conversation_id). Chat name no longer wiped when first message creates session.
+- `dashboard/agent.html`: Script cache v=55 to v=56 (line 721).
+
+### Deploy status
+- Built: yes. agent-dashboard.js 274.74 kB, agent-dashboard.css 1.53 kB.
+- R2 uploaded: yes. agent-dashboard.js and agent.html to agent-sam.
+- Worker deployed: no.
+
+### What is live now
+Agent page v=56: Renamed chats keep their name after sending the first message (no reset when worker returns conversation_id).
+
+---
+
+## [2026-03-17] Summary of v=51–v=56 dashboard changes
+
+### Versions and fixes
+- **v=51**: Mode/Model hide tied to `chatPaneIsWide` (desktop only) and chat rename response check switched from `data.ok` to `!data.error`.
+- **v=52**: Mini donut context gauge (20px) and smaller typography; early version with % label inside gauge.
+- **v=53**: Visual polish for gauge (empty donut, popover-only details, right-aligned popover).
+- **v=54**: Rename debug logging and alert wiring (temporary, later removed).
+- **v=55**: Stable rename logic (`data.success || data.id || !data.error`) and system messages excluded from context gauge token estimate.
+- **v=56**: Fixed chat rename for new conversations by removing `setSessionName("New Conversation")` when `conversation_id` is set (both streaming and non-streaming paths).
+
+### Current behavior (end of day)
+- Agent dashboard script: **v=56** from R2.
+- Context gauge: mini donut, uses only non-system messages for token estimate, details in popover.
+- Chat rename: works for both existing and newly created conversations; name no longer reset on first message.

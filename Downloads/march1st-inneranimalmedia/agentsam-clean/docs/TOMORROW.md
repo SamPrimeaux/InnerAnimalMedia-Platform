@@ -1,4 +1,19 @@
-# AGENT SAM — SESSION HANDOFF 2026-03-12 Append to agentsam-clean/docs/TOMORROW.md:
+# AGENT SAM — SESSION HANDOFF (append; latest first)
+
+---
+
+## START HERE 2026-03-17 (from 2026-03-16 facts)
+
+**Source:** memory/daily/2026-03-16.md and docs/AGENT_SAM_ROADMAP.md in R2 iam-platform.
+
+**Verified live:** Agent dashboard v=50; Monaco diff flow working (Keep Changes saves to R2); disposal error fixed. Phase 2 (Monaco Diff Flow) 95% complete.
+
+**Where to begin (facts only):**
+1. **Optional quick win:** Auto-hide diff panel after successful save (15–30 min; cosmetic; file save already works).
+2. **High priority:** Phase 4 — Tool Execution Feedback (SSE tool_start/tool_result, React indicators in chat; 3–4 hours; critical UX gap).
+3. **Existing TASK 0** (chat history — only last 2 messages) remains from 2026-03-12 handoff; still valid if not yet done.
+
+**Read first:** GET /api/agent/bootstrap returns daily_log (memory/daily/2026-03-16.md). Run **Re-index memory** from Agent dashboard (+ menu) so AutoRAG has today’s memory and knowledge docs.
 
 ---
 

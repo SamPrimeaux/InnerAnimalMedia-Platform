@@ -38,6 +38,10 @@
     {
       "binding": "ASSETS",
       "bucket_name": "inneranimalmedia-assets"
+    },
+    {
+      "binding": "R2",
+      "bucket_name": "iam-platform"
     }
   ],
   "d1_databases": [

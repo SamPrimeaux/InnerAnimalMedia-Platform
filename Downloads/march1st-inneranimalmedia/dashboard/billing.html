@@ -109,70 +109,10 @@
             --safe-area-left: env(safe-area-inset-left, 0);
             --safe-area-right: env(safe-area-inset-right, 0);
             --transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            --logo-dark: url('https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/8e323ffb-4338-41dc-1f71-9c7bdc57bb00/thumbnail');
+            --logo-light: url('https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/ac515729-af6b-4ea5-8b10-e581a4d02100/thumbnail');
             --bg-canvas: #0f172a;
             --bg-elevated: #1e293b;
-        }
-
-        /* Theme: Meaux Glass Blue (DEFAULT) */
-        [data-theme="meaux-glass-blue"] {
-            --bg-canvas: #f8f9fa;
-            --bg-elevated: #ffffff;
-            --bg-nav: rgba(59, 130, 246, 0.95);
-            --bg-overlay: rgba(0, 0, 0, 0.5);
-            --text-primary: #111827;
-            --text-secondary: #6b7280;
-            --text-nav: #ffffff;
-            --text-nav-muted: rgba(255, 255, 255, 0.75);
-            --border: #e5e7eb;
-            --border-nav: rgba(255, 255, 255, 0.2);
-            --accent: #3b82f6;
-            --accent-hover: #2563eb;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --error: #ef4444;
-            /* IA logo variants */
-            --logo-dark: url('https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/8e323ffb-4338-41dc-1f71-9c7bdc57bb00/thumbnail'); /* dark on light */
-            --logo-light: url('https://imagedelivery.net/g7wf09fCONpnidkRnR_5vw/ac515729-af6b-4ea5-8b10-e581a4d02100/thumbnail'); /* white on blue/dark */
-        }
-
-        /* Theme: InnerAnimal Slate */
-        [data-theme="inneranimal-slate"] {
-            --bg-canvas: #0f172a;
-            --bg-elevated: #1e293b;
-            --bg-nav: #1e293b;
-            --bg-overlay: rgba(0, 0, 0, 0.7);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-nav: #f1f5f9;
-            --text-nav-muted: #94a3b8;
-            --border: #334155;
-            --border-nav: #334155;
-            --accent: #60a5fa;
-            --accent-hover: #93c5fd;
-            --success: #34d399;
-            --warning: #fbbf24;
-            --error: #f87171;
-            --icon-active: var(--icon-light);
-        }
-
-        /* Theme: Meaux Mono */
-        [data-theme="meaux-mono"] {
-            --bg-canvas: #ffffff;
-            --bg-elevated: #f9fafb;
-            --bg-nav: #111827;
-            --bg-overlay: rgba(0, 0, 0, 0.5);
-            --text-primary: #111827;
-            --text-secondary: #6b7280;
-            --text-nav: #ffffff;
-            --text-nav-muted: #9ca3af;
-            --border: #e5e7eb;
-            --border-nav: #374151;
-            --accent: #111827;
-            --accent-hover: #374151;
-            --success: #059669;
-            --warning: #d97706;
-            --error: #dc2626;
-            --icon-active: var(--icon-dark);
         }
 
         /* === RESET & BASE === */
@@ -1230,7 +1170,6 @@
         }
         
         // Load saved theme on page load (built-in or dynamic from API)
-        const BUILTIN_THEMES = ['meaux-glass-blue', 'inneranimal-slate', 'meaux-mono'];
         function applyDynamicTheme(themeName, themeData) {
             if (!themeData) return;
             try {
@@ -1256,11 +1195,9 @@
         if (savedTheme) {
             document.documentElement.setAttribute('data-theme', savedTheme);
             updateHeaderLogo();
-            if (BUILTIN_THEMES.indexOf(savedTheme) === -1) {
-                fetch('/api/settings/theme', { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(d) {
-                    if (d.theme === savedTheme && d.theme_data) applyDynamicTheme(savedTheme, d.theme_data);
-                }).catch(function() {});
-            }
+            fetch('/api/settings/theme', { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(d) {
+                if (d.theme === savedTheme && d.variables) applyDynamicTheme(savedTheme, { css_vars: d.variables });
+            }).catch(function() {});
         }
 
         // Simple notifications dropdown (UI shell only; data wiring can be added later)

@@ -35,10 +35,23 @@ echo "Cache bust: v${CURRENT_V} -> v${NEXT_V}"
 # Upload agent-dashboard assets to R2 (agent-sam)
 ./scripts/with-cloudflare-env.sh npx wrangler r2 object put agent-sam/static/dashboard/agent/agent-dashboard.js --file agent-dashboard/dist/agent-dashboard.js --content-type "application/javascript" --config wrangler.production.toml --remote
 ./scripts/with-cloudflare-env.sh npx wrangler r2 object put agent-sam/static/dashboard/agent/agent-dashboard.css --file agent-dashboard/dist/agent-dashboard.css --content-type "text/css" --config wrangler.production.toml --remote
-./scripts/with-cloudflare-env.sh npx wrangler r2 object put agent-sam/static/dashboard/agent/agent-dashboard2.css --file agent-dashboard/dist/agent-dashboard2.css --content-type "text/css" --config wrangler.production.toml --remote
-./scripts/with-cloudflare-env.sh npx wrangler r2 object put agent-sam/static/dashboard/agent/agent-dashboard-xterm.js --file agent-dashboard/dist/agent-dashboard-xterm.js --content-type "application/javascript" --config wrangler.production.toml --remote
-./scripts/with-cloudflare-env.sh npx wrangler r2 object put agent-sam/static/dashboard/agent/agent-dashboard-xterm-addon-fit.js --file agent-dashboard/dist/agent-dashboard-xterm-addon-fit.js --content-type "application/javascript" --config wrangler.production.toml --remote
 ./scripts/with-cloudflare-env.sh npx wrangler r2 object put agent-sam/static/dashboard/agent.html --file dashboard/agent.html --content-type "text/html" --config wrangler.production.toml --remote
+
+# Upload source files for AI indexing (Vectorize codebase search)
+echo "Uploading source files for AI indexing..."
+./scripts/with-cloudflare-env.sh npx wrangler r2 object put agent-sam/source/worker.js --file=worker.js --content-type="application/javascript" --config wrangler.production.toml --remote
+find agent-dashboard/src -type f \( -name "*.jsx" -o -name "*.js" \) | while read -r file; do
+  ./scripts/with-cloudflare-env.sh npx wrangler r2 object put "agent-sam/source/${file}" --file="${file}" --content-type="application/javascript" --config wrangler.production.toml --remote
+done
+find mcp-server/src -type f -name "*.js" | while read -r file; do
+  ./scripts/with-cloudflare-env.sh npx wrangler r2 object put "agent-sam/source/${file}" --file="${file}" --content-type="application/javascript" --config wrangler.production.toml --remote
+done
+find docs -type f -name "*.md" 2>/dev/null | while read -r file; do
+  ./scripts/with-cloudflare-env.sh npx wrangler r2 object put "agent-sam/source/${file}" --file="${file}" --content-type="text/markdown" --config wrangler.production.toml --remote
+done
+# Trigger async indexing (fire and forget)
+curl -s -X POST https://inneranimalmedia.com/api/admin/reindex-codebase -H "Content-Type: application/json" -d '{"async":true}' > /dev/null 2>&1 || true
+echo "Source files uploaded; reindex triggered"
 
 DEPLOY_START=$(date +%s)
 echo "Deploying worker..."
