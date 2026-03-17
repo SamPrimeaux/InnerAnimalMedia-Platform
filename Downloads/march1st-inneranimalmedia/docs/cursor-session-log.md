@@ -1,3 +1,177 @@
+## 2026-03-16 - Monaco Disposal Fix + Disk Cleanup (v=50)
+
+### Accomplishments
+- **Disk Space Recovery:** Freed 120GB by deleting Cursor snapshots (124GB → 7GB)
+  - System went from 100% capacity (203GB used) to 41% capacity (83GB used)
+- **Monaco Disposal Bug FIXED:** After 11 attempts, identified root cause
+  - Deleted manual `.setValue()` useEffect (lines 570-581 in FloatingPreviewPanel.jsx)
+  - @monaco-editor/react manages models through controlled props, not refs
+  - v=50 deployed: NO disposal errors, file save works
+- **Minor Issue:** Diff panel auto-close doesn't work (cosmetic, manual close works)
+
+### Technical Details
+- Files changed: FloatingPreviewPanel.jsx (deleted lines 570-581), agent.html (v=49→v=50)
+- Build: agent-dashboard.js (274.88 kB), agent-dashboard.css (1.53 kB)
+- Deploy: ./agent-dashboard/deploy-to-r2.sh to agent-sam bucket
+- Test: divide.js saved to R2 successfully, no console errors
+
+### Root Cause Analysis
+- Manual model manipulation (`.setValue()`) was racing with React lifecycle
+- @monaco-editor/react expects controlled props (`original`, `modified`)
+- Bypassing lifecycle with ref manipulation caused disposal race condition
+- Solution: Remove manual sync, rely on component's internal model management
+
+### Status
+- Phase 2 (Monaco Diff Flow): 95% complete
+- Remaining: Auto-close panel after save (15-30 min cosmetic fix)
+- Next: Phase 4 (Tool Execution Feedback) OR quick auto-close polish
+
+### Key Learnings
+- Architecture > Timing: 10 failed timing fixes, 1 successful architectural fix
+- Always audit actual source early (not at attempt #10)
+- React wrapper components have contracts - manual ref manipulation breaks them
+- Disk space at 100% causes random failures - monitor Cursor snapshots directory
+
+---
+
+## [2026-03-17] P0/P1 Monaco fixes - R2 error handling + 300ms disposal delay
+
+### What was asked
+Fix silent R2 save failures and Monaco disposal errors. Then build, bump cache buster, document; R2 upload pending approval.
+
+### Files changed
+- `agent-dashboard/src/FloatingPreviewPanel.jsx`: (1) Added `saveError` state; on Keep Changes PUT failure, log to console, set user-visible error message, clear after 5s. (2) Increased disposal delay from 100ms to 300ms in both places (Keep Changes success and handleUndoFromChat). (3) Diff bar shows error line below buttons when saveError is set.
+- `dashboard/agent.html`: Cache buster v46 to v47 (css and js refs).
+
+### Files NOT changed (and why)
+- worker.js, AgentDashboard.jsx, OAuth handlers, wrangler.production.toml: not touched.
+
+### Deploy status
+- Built: yes (agent-dashboard npm run build). R2 uploaded: yes — agent-sam/static/dashboard/agent/agent-dashboard.js, agent-dashboard.css, agent.html (v47), and other dashboard assets via deploy-to-r2.sh. Worker deployed: no (worker unchanged). Cache buster: v47. Deploy approved by Sam: yes.
+
+### What is live now
+Monaco Keep Changes shows errors on R2 failure and uses 300ms disposal delay. R2 serves agent dashboard v47.
+
+### Known issues / next steps
+- After R2 upload: test full Monaco workflow end-to-end. Phase 3 (chat input responsive) on hold.
+
+---
+
+## [2026-03-16] Phase 2 Monaco diff bugs fixed - filename validation + disposal delay
+
+### What was asked
+Fix Bug 2 (invalid filename "*") and Bug 1 (TextModel disposal). Then build, bump cache buster, document; R2 and worker deploy pending approval.
+
+### Files changed
+- `worker.js` (emitCodeBlocksFromText, ~1771): `rawFilename` from fence line; `filename` validated with `/^[a-zA-Z0-9._-]+\.[a-z]{1,10}$/i` else `'snippet'` (rejects "*", "/", no extension).
+- `agent-dashboard/src/FloatingPreviewPanel.jsx`: Line 541 (Keep Changes success) and line 551 (handleUndoFromChat) — `requestAnimationFrame` replaced with `setTimeout(..., 100)` for disposal delay.
+- `dashboard/agent.html`: Cache buster v45 to v46 (css and js script refs).
+
+### Files NOT changed (and why)
+- AgentDashboard.jsx, OAuth handlers, wrangler.production.toml: not touched. FloatingPreviewPanel: surgical edits only.
+
+### Deploy status
+- Built: yes (agent-dashboard npm run build). R2 uploaded: yes — agent-sam/static/dashboard/agent/agent-dashboard.js, agent-dashboard.css, agent.html (v46), and other dashboard assets via deploy-to-r2.sh. Worker deployed: yes. Version ID: **f10dee0a-ff32-4304-a747-83f6e4341581**. Cache buster: v46. Deploy approved by Sam: yes.
+
+### What is live now
+Monaco diff flow with filename validation and 100ms disposal delay is live: worker has emitCodeBlocksFromText validation and FloatingPreviewPanel setTimeout(100); R2 serves agent dashboard v46.
+
+### Known issues / next steps
+- After deploy: test calculator.js generation end-to-end (Open in Monaco, diff, Keep Changes saves as calculator.js, no console errors). Phase 3 (chat input responsive) on hold.
+
+---
+
+## [2026-03-16] Phase 2 bug fixes: filename strip + DiffEditor unmount delay; build / R2 / deploy / document
+
+### What was asked
+Implement two Phase 2 bug fixes, then run build, R2 upload, deploy, and document.
+
+### Files changed
+- `worker.js` line ~1771 (emitCodeBlocksFromText): Strip leading comment syntax from captured filename — `(m[2] || '').trim().replace(/^(\/\/|#|\/\*)\s*/, '')` so `// string-utils.js` becomes `string-utils.js`.
+- `agent-dashboard/src/FloatingPreviewPanel.jsx`: (1) Keep Changes (line ~541): call `onMonacoDiffResolved` inside `requestAnimationFrame(() => onMonacoDiffResolved?.())` so Monaco can clean up before unmount. (2) handleUndoFromChat (line ~552): same `requestAnimationFrame` wrapper to avoid "TextModel got disposed before DiffEditorWidget model got reset".
+
+### Files NOT changed (and why)
+- AgentDashboard.jsx, agent.html, OAuth handlers, wrangler.production.toml: not touched.
+
+### Deploy status
+- Built: yes (agent-dashboard via deploy-to-r2.sh). R2 uploaded: yes — agent-sam/static/dashboard/agent/agent-dashboard.js, agent-dashboard.css, agent.html, shell.css, other dashboard assets. Worker deployed: yes. Version ID: **9c462991-f814-4031-88c7-face57d928ce**. Deploy approved by Sam: yes (run build/R2/deploy/document).
+
+### What is live now
+Worker and R2 have Phase 2 bug fixes: code-block filenames no longer include leading `//`/`#`/`/*`; DiffEditor unmount delayed one frame on Keep Changes / Undo to prevent Monaco disposal error.
+
+### Known issues / next steps
+- Re-test Open in Monaco with agent output like `// string-utils.js` on first line; confirm filename is clean and no disposal error on Keep/Undo.
+
+---
+
+## [2026-03-16] Phase 1 cleanup, Phase 2 Monaco diff flow; build + R2; deploy awaiting approval
+
+### What was asked
+(1) Remove Phase 1 debug console.logs; keep OPEN_IN_PREVIEW logic. (2) Phase 2: Add emitCodeBlocksFromText in worker.js and call before "done" in all 5 streaming paths so agent code blocks emit type: "code" SSE. (3) Build, R2 upload, document; deploy so we can test and consider Phase 3.
+
+### Files changed
+- `agent-dashboard/src/AgentDashboard.jsx`: Removed console.log("Text event:", data.text), console.log("OPEN_IN_PREVIEW matched:", openMatch), console.log("Setting browser URL:", openMatch[1]). Kept regex, setBrowserUrl(openMatch[1]), displayContent strip.
+- `worker.js`: Added emitCodeBlocksFromText(fullText, send) (~1760): parses first ```lang optional_filename\ncode\n```, sends { type: 'code', code, filename, language }. Call sites: streamOpenAI, streamGoogle, streamWorkersAI (before done); inline Anthropic stream (before done in message_stop); chatWithToolsAnthropic (3 places: before tool_approval_request, before done when no tools, before done at loop end).
+
+### Files NOT changed (and why)
+- FloatingPreviewPanel.jsx, agent.html, OAuth handlers, wrangler.production.toml: not touched per rules.
+
+### Deploy status
+- Built: yes (agent-dashboard via deploy-to-r2.sh). R2 uploaded: yes — agent-sam/static/dashboard/agent/agent-dashboard.js, agent-dashboard.css, agent.html, shell.css, and other dashboard assets. Worker deployed: yes. Version ID: **8eef6213-2746-408d-9f1c-b07fab1a81d0**. Deploy approved by Sam: yes.
+
+### What is live now
+Worker and R2 both have Phase 1 (OPEN_IN_PREVIEW) and Phase 2 (emitCodeBlocksFromText). Test Phase 1 (agent outputs OPEN_IN_PREVIEW: url — browser preview opens) and Phase 2 (agent responds with fenced code block — "Open in Monaco" appears); if good, proceed to Phase 3 (chat input responsive) per plan.
+
+### Known issues / next steps
+- Test Phase 1 + 2 in production. If verified, proceed to Phase 3 (chat input minWidth/z-index/touch) per docs/plans/MONACO_PREVIEW_INPUT_PLAN.md.
+
+---
+
+## [2026-03-16] Phase 1 browser preview auto-open + debug logs; build / R2 upload / document
+
+### What was asked
+Phase 1: Browser preview auto-open (parse OPEN_IN_PREVIEW from SSE text, setBrowserUrl, strip directive from message). Then add three console.logs for diagnosis (Text event, OPEN_IN_PREVIEW matched, Setting browser URL). Run full build / remote store / document process (no worker deploy).
+
+### Files changed
+- `agent-dashboard/src/AgentDashboard.jsx` lines ~1029-1040: In SSE `data.type === "text"` block — regex match OPEN_IN_PREVIEW, call setBrowserUrl(openMatch[1]), strip directive via replace for displayContent, set message content to displayContent. Added console.log("Text event:", data.text); and inside if (openMatch): console.log("OPEN_IN_PREVIEW matched:", openMatch), console.log("Setting browser URL:", openMatch[1]), then setBrowserUrl(openMatch[1]).
+
+### Files NOT changed (and why)
+- worker.js, FloatingPreviewPanel.jsx, agent.html: not touched. OAuth handlers, wrangler.production.toml: not touched per rules.
+
+### Deploy status
+- Built: yes (agent-dashboard via deploy-to-r2.sh). R2 uploaded: yes — agent-sam/static/dashboard/agent/agent-dashboard.js, agent-dashboard.css, agent.html, shell.css, and other dashboard assets per deploy-to-r2.sh. Worker deployed: no (deploy not requested). Deploy approved by Sam: N/A.
+
+### What is live now
+R2 serves updated agent-dashboard bundle (OPEN_IN_PREVIEW parsing + debug logs). Worker unchanged. To ship: run npm run deploy when approved.
+
+### Known issues / next steps
+- Use console logs to confirm whether stream path runs and regex matches; remove logs after diagnosis. Phase 2 (Monaco code events) and Phase 3 (chat input responsive) on hold until instructed.
+
+---
+
+## [2026-03-16] worker.js fileContext injection (DIFF 1 + DIFF 2), deploy
+
+### What was asked
+Apply both diffs: (1) Add fileContext logic after line 3343 in worker.js; (2) Replace all 11 instances of systemWithBlurb with finalSystem in the /api/agent/chat handler. Then run npm run deploy. Show confirmation of both diffs, deploy output with version ID, and any errors. Do not sync to GitHub yet.
+
+### Files changed
+- `worker.js` lines 3344-3362: after systemWithBlurb assignment, added `let finalSystem = systemWithBlurb;` and conditional block that, when bodyFileContext has filename and content and user message references the file (e.g. "this file", "open file", "current file", "monaco", or leading verb fix/update/change/modify/edit/analyze), appends "CURRENT FILE OPEN IN MONACO" block (filename, bucket, first 15k chars) to finalSystem.
+- `worker.js` (11 call sites in /api/agent/chat): streamOpenAI, streamGoogle, streamWorkersAI, chatWithToolsAnthropic, system in Anthropic stream branch, runToolLoop, callGatewayChat, system in non-stream Anthropic fetch, withSystem for OpenAI fallback, systemInstruction for Google fallback, env.AI.run Workers AI — all now pass finalSystem instead of systemWithBlurb.
+
+### Files NOT changed (and why)
+- FloatingPreviewPanel.jsx, agent.html, handleGoogleOAuthCallback, handleGitHubOAuthCallback, wrangler.production.toml: not touched per rules.
+
+### Deploy status
+- Built: no (worker only, no dashboard/agent-dashboard change). R2 uploaded: no. Worker deployed: yes. Version ID: c008da7f-9ea0-4354-ab6e-bab06e813b8c. Deploy approved by Sam: yes.
+
+### What is live now
+Worker includes fileContext injection: when the dashboard sends fileContext in the chat request body and the user message references the open file, the agent system prompt includes the "CURRENT FILE OPEN IN MONACO" block. All model code paths in the chat handler use finalSystem.
+
+### Known issues / next steps
+- Test: open file in Monaco, send message referencing it (e.g. "what can you tell me about this file?"), confirm agent sees content. Do not sync to GitHub until tested.
+
+---
+
 ## [2026-03-11] Full day — FloatingPreviewPanel, rollback, overwrite recovery, theme + boot, deploy
 
 ### What was asked (across the day)
@@ -1401,3 +1575,45 @@ No deploy; production unchanged. After deploy: theme slug normalized (theme- pre
 ### Verification (run after deploy)
 - D1: SELECT COUNT(*) FROM cms_themes; (expect 67). SELECT theme FROM user_settings WHERE user_id = 'au_871d920d1233cbd1'; (expect slug e.g. dark). SELECT id, slug, name FROM cms_themes WHERE slug = 'dark';
 - Manual: Change theme in user-settings, refresh another dashboard page; theme should persist with no flash.
+
+---
+
+## [2026-03-16] v=44 final approval deploy — theme cleanup, R2 uploads, worker deploy
+
+### What was asked
+FINAL APPROVAL - DEPLOY v=44. (Prior work: remove all hardcoded [data-theme="..."] CSS blocks and BUILTIN_THEMES; add --logo-dark and --logo-light to :root; DB-driven theme only.)
+
+### Files changed
+- None this step. R2 uploads and deploy only.
+
+### Files NOT changed (and why)
+- worker.js, FloatingPreviewPanel.jsx, agent.html, wrangler.production.toml: not touched this step.
+
+### Deploy status
+- Built: no (worker and dashboard HTML already in repo). R2 uploaded: yes. Files: dashboard/*.html (21 files: overview, finance, chats, agent, images, cms, mail, pipelines, onboarding, user-settings, time-tracking, kanban, cloud, calendar, mcp, tools, meet, clients, billing, projects, billing-from-r2, hub); static/dashboard/agent.html, static/dashboard/draw.html. Worker deployed: yes. Version ID: 9acc019e-1c81-473a-928e-533d8c498477. Deploy approved by Sam: yes (FINAL APPROVAL - DEPLOY v=44).
+
+### What is live now
+Production (inneranimalmedia.com, www, webhooks) on worker version 9acc019e-1c81-473a-928e-533d8c498477. Dashboard pages served from R2 (agent-sam/static/dashboard/*.html) with DB-driven theme system: no hardcoded theme CSS, no BUILTIN_THEMES, normalizeThemeSlug in GET/PATCH /api/settings/theme, --logo-dark and --logo-light in :root.
+
+### Known issues / next steps
+- None.
+
+---
+
+## [2026-03-16] Deploy approved + Monaco file-context bridge (onFileContextChange)
+
+### What was asked
+Deploy approved; then wire Monaco to chat: add handleFileContextChange in AgentDashboard, pass onFileContextChange to FloatingPreviewPanel, test via console.log when a file is open in Code tab.
+
+### Files changed
+- `static/dashboard/agent.html` (earlier): mobile overflow fix for .iam-chat-pane (overflow: hidden so only inner messages scroll). R2 uploaded before deploy.
+- `agent-dashboard/src/AgentDashboard.jsx` lines ~1322-1327: added handleFileContextChange useCallback (console.log for now; TODO store in state for chat). Lines ~2971-2973: passed onFileContextChange={handleFileContextChange} to FloatingPreviewPanel.
+
+### Files NOT changed (and why)
+- worker.js, FloatingPreviewPanel.jsx, agent.html (no further edits), wrangler.production.toml: not touched this step.
+
+### Deploy status
+- R2 uploaded: yes. File: static/dashboard/agent.html (uploaded before deploy). Worker deployed: yes. Version ID: 2508a45f-b557-41b8-9300-67daae639007. Deploy approved by Sam: yes.
+
+### What is live now
+Production on worker 2508a45f. Agent page: mobile chat pane uses overflow: hidden; only messages area scrolls. Monaco file-context bridge: opening a file in Code tab triggers FloatingPreviewPanel's existing onFileContextChange; AgentDashboard now passes handleFileContextChange and logs { filename, content, bucket } to console. Next: store context in state and include in chat messages.
