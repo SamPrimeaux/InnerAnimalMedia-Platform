@@ -1,3 +1,52 @@
+## [2026-03-18] Agent Sam token-efficiency refactor (worker.js only)
+
+### What was asked
+Implement the token-efficiency refactor in order: (1) section-level prompt telemetry, (2) hard bounds on all prompt sections, (3) mode-specific prompt builders (Ask/Plan/Agent/Debug), (4) modular ranked compiledContext sections, (5) rolling session summary + last N verbatim turns, (6) tool filtering by mode, (7) selective file context with line-range support, (8) RAG optional and relevance threshold, (9) audit report output.
+
+### Files changed
+- `worker.js`: Added PROMPT_CAPS and capWithMarker; charsToTokens and logPromptTelemetry; buildAskContext, buildPlanContext, buildAgentContext, buildDebugContext, buildModeContext, filterToolsByMode. Chat handler: section-level telemetry log and optional audit payload; hard caps on dailyMemoryBlurb (2000), memoryIndexBlurb (4000), knowledgeBlurb (2000), mcpBlurb (800), schemaBlurb (4000), ragContext (3000), fileContext (4000) with truncation markers; compiled context built as sections (core, memory, kb, mcp, schema, daily, full), cache stores JSON of sections; mode-specific system assembly via buildModeContext; rolling summary from R2 knowledge/conversations/{id}-summary.md and last 6 verbatim turns when session_id and message count > 6; tool filtering (Ask/Plan get no tools, Debug gets terminal/d1/r2/knowledge_search only); file context supports startLine/endLine and 4k cap; RAG only for agent mode with min 10 words and min 100 chars to inject; audit report in JSON response and streaming done event when body.audit is true. apiMessages changed to let for history truncation.
+
+### Files NOT changed (and why)
+- agent.html, FloatingPreviewPanel.jsx, OAuth handlers: not touched per rules. AgentDashboard.jsx: still sends last 20 messages; optional future change to send session summary from client or rely on worker-side truncation.
+
+### Deploy status
+- Built: no. R2 uploaded: no. Worker deployed: no. Deploy approved by Sam: no.
+
+### What is live now
+No deploy yet. After deploy: /api/agent/chat will log prompt_telemetry (section chars/tokens, mode, provider, stream, tool count, message count); all prompt sections will be capped with truncation markers; Ask/Plan/Debug will get reduced context and no tools (Ask/Plan) or debug-only tools; Agent will get full context and tools; RAG only in agent mode; optional audit in response when body.audit is true.
+
+### Known issues / next steps
+- Cache format change: existing cache entries are plain blob; first request after deploy may miss cache and rebuild sections; new entries stored as JSON. Legacy cache hit uses blob as sections.full.
+- Frontend can send fileContext.startLine/endLine for line-ranged file injection; dashboard may need to pass these when Monaco selection is available.
+- To get before/after token report: send audit: true in POST body and inspect response.audit (non-stream) or done event audit (stream).
+
+---
+
+## [2026-03-18] Uniform header on public pages (work, about, services, contact)
+
+### What was asked
+Update headers on /work, /about, /services, /contact so the header is seamless/uniform with the homepage (same nav, logo 64px, Sign Up CTA, mobile hamburger with 3-span morph and glassmorphic sidenav).
+
+### Files changed
+- `public-pages/about.html`: Added uniform header CSS block; replaced glass-header + overlay + mobile-menu with nav#mainNav + nav-overlay + nav-sidenav (About active); replaced hamburger script with open/close menu using navHamburger, navOverlay, navSidenav.
+- `public-pages/contact.html`: Same pattern (Contact active); updated inline script to use new IDs and "open" class.
+- `public-pages/pricing.html`: Same pattern (Services active); added uniform header CSS; replaced header + overlay + mobile menu HTML; replaced theme/hamburger script with new menu script.
+- `public-pages/process.html`: Replaced site-nav + nav-sidebar block with uniform nav + overlay + sidenav (Work active); added uniform header CSS; replaced mobile nav script and removed orphaned theme/active-link code.
+
+### Files NOT changed (and why)
+- worker.js, agent.html, FloatingPreviewPanel.jsx, dashboard files: not touched. Homepage (index-v3.html) and auth (auth-signin.html) already had the canonical header.
+
+### Deploy status
+- Built: no. R2 uploaded: yes — all four files (process.html, about.html, pricing.html, contact.html) uploaded to inneranimalmedia-assets with --remote (2026-03-18). Worker deployed: no. Deploy approved by Sam: yes (upload only).
+
+### What is live now
+/work, /about, /services, /contact serve the uniform header (64px logo, Home/Work/About/Services/Contact, Sign Up, mobile hamburger + glassmorphic sidenav). Same as homepage and auth.
+
+### Known issues / next steps
+- None for this task. Optional: add current-state audit doc (see CURRENT_STATE_AUDIT_2026-03-18.md).
+
+---
+
 ## 2026-03-16 — Full day summary (consolidated from cursor-session-log)
 
 **Session log discipline:** This entry is the single consolidated "what we finished today" for 2026-03-16. When adding new same-day entries below, update this summary so Agent Sam and daily memory stay accurate.
@@ -1785,3 +1834,237 @@ Agent page v=56: Renamed chats keep their name after sending the first message (
 - Agent dashboard script: **v=56** from R2.
 - Context gauge: mini donut, uses only non-system messages for token estimate, details in popover.
 - Chat rename: works for both existing and newly created conversations; name no longer reset on first message.
+
+---
+
+## [2026-03-17] Google Provider Tool Loop Fix (Complete)
+
+### What was asked
+Fix Google models (Gemini 2.5 Flash, etc.) executing tools but showing "Tools completed. No tool output." — UI showed tools ran but responses were empty.
+
+### Root causes found
+1. Model mapping: Duplicate DB rows, wrong `model_key` for preview variant.
+2. `toParts` bug: Tool results `{ role: 'user', parts: [...] }` not handled, became `{}`.
+3. Tool schemas: Worker stripped `items` field, Google API rejected with 400 INVALID_ARGUMENT.
+4. Response format: Non-tool path returned raw provider shape, frontend could not parse Google format.
+5. Model visibility: `show_in_picker = 0` for newer models.
+
+### Files changed
+- **D1:** Migration 129: `DELETE FROM ai_models WHERE id = 'cursor:google_gemini_2_5_flash'` (duplicate with underscores). `UPDATE ai_models SET show_in_picker = 1 WHERE provider = 'google' AND is_active = 1 AND show_in_picker = 0` (enabled 3 Gemini 3 models).
+- **worker.js:** (1) Lines 1522-1527 — `toParts` in `runToolLoop`: added `if (m.parts) return m.parts;` as first check (fixes tool results on iteration 2+). (2) Lines 3511-3516 — schema normalization: preserve `items`, `description`, `enum` in properties. (3) Lines 4918-4924 — `chatWithToolsAnthropic` schema normalization: same pattern. (4) Lines 3928-3935 — non-tool response normalization: normalized shape with `content: [{ type: 'text', text: assistantContent }]`, `text`, `usage` so frontend reads Google responses.
+
+### Files NOT changed (and why)
+- FloatingPreviewPanel.jsx, agent.html, wrangler.production.toml: not touched. OAuth handlers in worker.js: not touched.
+
+### Deploy status
+- Worker deployed: yes. Version IDs: dd0ad9bc-337c-47f3-babc-a949cf8f57d0 (toParts + schema fixes); 631a89d6-a77a-4763-9169-87903141b782 (schema normalization complete); f9243d1e-565f-4435-b884-422ee9502846 (response normalization, FINAL). Deploy approved by Sam: yes.
+
+### What is live now
+Google tool loop fully working. Tested with "list files in agent-sam R2 bucket" — tool executed, results returned, UI displayed formatted list. Gemini 2.5 Flash confirmed working end-to-end. Gemini 3 models visible but 404 (not released by Google yet); kept in DB with `show_in_picker = 1` for when available.
+
+### Known issues / next steps
+- **AutoRAG/knowledge_search broken:** Agent Sam attempted knowledge_search on "what can you find using our autorag about potential next steps/features to fix" and returned internal error. Cannot access knowledge base. This is the dual-indexing conflict mentioned — `autorag()` returns zero results, Vectorize fallback not implemented. HIGH PRIORITY FIX NEEDED.
+- Gemini 3 404 expected until Google releases.
+- **CRITICAL VALIDATION FAILURE:** Agent Sam cannot access knowledge base via `knowledge_search` tool. Test query "What were the 5 root causes of the Google tool loop bug we fixed today?" returned "internal error when searching my knowledge base." UI search panel works fine with same data. Problem is 100% in tool execution path (worker.js lines 1655-1672, 4624-4698). Agent Sam is blind to all documented context until this is fixed. **BLOCKING ISSUE - MUST FIX BEFORE ANY OTHER WORK.** This is not another wasted AutoRAG attempt — it is a confirmed tool execution bug. The knowledge is there, the tool cannot reach it.
+- **Tomorrow:** Session complete. Tomorrow starts with debugging those two worker.js functions (runToolLoop knowledge_search block and invokeMcpToolFromChat knowledge_search block).
+- **ROOT CAUSE FOUND (8:10 PM):** Cloudflare AI Search dashboard shows 0 Indexed documents (61 Skipped, 5 Errors). Include rules (`source/`, `knowledge/`, `memory/`, `docs/`) are excluding everything. Path filter mismatch — R2 paths do not match filter patterns. The 2.32k vectors shown are stale. knowledge_search fails because index is EMPTY. Fix tomorrow: audit actual R2 file paths vs include rules, adjust filters to match real structure.
+
+**Tomorrow's fix priority — knowledge_search tool "internal error":** The data is there (UI proves it); the failure is in **tool execution**, not a missing index. Find why the knowledge_search **tool** returns "internal error" when Agent Sam calls it. Likely in **worker.js** where the builtin handles knowledge_search: (1) **invokeMcpToolFromChat** (lines ~4624–4698) — used by execute-approved-tool and by chatWithToolsAnthropic; (2) **runToolLoop** (lines ~1655–1672) — used for Google/OpenAI in-stream tool loop. Add logging at entry (e.g. env.AI present?), in catch (full error + stack), and normalize API response shape (`data` vs `results`). Ensure errors are returned as `{ error: msg }` to the frontend instead of throwing. Session log upload to iam-platform is done; AutoRAG will index on next run. The real issue is the tool execution path in the worker.
+
+---
+
+## [2026-03-18] MCP Server GitHub Repo and Cloudflare Audit
+
+### What was asked
+Generate a Cursor log entry and an informative audit/technical overview of the new GitHub repo and Cloudflare MCP server for the company.
+
+### Files changed
+- `docs/MCP_SERVER_GITHUB_CLOUDFLARE_AUDIT.md`: created — full technical audit: purpose, architecture, repo layout, Cloudflare config (routes, bindings, secrets), MCP protocol and tools, health check, Cursor integration, deploy/CI, limitations, change log.
+- `docs/cursor-session-log.md`: appended this session block.
+
+### Files NOT changed (and why)
+- `worker.js`, `agent.html`, `FloatingPreviewPanel.jsx`, `wrangler.production.toml`: not touched; audit is documentation only in main platform repo. MCP server lives in separate repo `inneranimalmedia-mcp-server`.
+
+### Deploy status
+- Built: N/A (documentation only).
+- R2 uploaded: N/A.
+- Worker deployed: N/A.
+- Deploy approved by Sam: N/A.
+
+### What is live now
+MCP server remains as deployed via Cloudflare Git (inneranimalmedia-mcp-server). New company-facing audit doc is in main repo at `docs/MCP_SERVER_GITHUB_CLOUDFLARE_AUDIT.md` for reference, onboarding, and troubleshooting.
+
+### Known issues / next steps
+- MCP dashboard UI (embedded HTML) had regex/shell.css issues; consider proxying R2-hosted mcp.html from Worker. knowledge_search is stub; real impl in main worker. Token must be set on Worker **inneranimalmedia-mcp-server** and exported locally for curl tests.
+
+---
+
+## 2026-03-18 Agent Sam v59 Production Audit (Phase 1)
+
+### What was asked
+Run all five Cursor audits from the Agent Sam v59 Production Audit & Optimization Plan: (1) System prompt analysis, (2) AI model routing logic, (3) Ghost tables wiring (agent_costs, mcp_tool_calls, terminal_history, rag_chunks), (4) Tool settings infrastructure, (5) Loading states and agent interaction flow. Output to /tmp/ in the specified formats.
+
+### Files changed
+- None. Audit outputs written to `/tmp/system_prompt_full.txt`, `/tmp/model_routing_audit.txt`, `/tmp/ghost_tables_audit.txt`, `/tmp/settings_audit.txt`, `/tmp/loading_states_audit.txt`.
+
+### Files NOT changed (and why)
+- `worker.js`, `agent.html`, `FloatingPreviewPanel.jsx`: read-only for audit; no code edits per rules.
+- No dashboard or R2 changes.
+
+### Deploy status
+- Built: N/A.
+- R2 uploaded: N/A.
+- Worker deployed: N/A.
+- Deploy approved by Sam: N/A.
+
+### What is live now
+No production change. Audit artifacts are on the Mac at /tmp/ for use in Phase 3 (synthesis and prioritization). Sam to provide Phase 2 mobile screenshots next.
+
+### Known issues / next steps
+- Ghost tables: agent_costs and mcp_tool_calls only written on non-streaming tool path; streaming path never runs runToolLoop. rag_chunks has no writer in codebase. Confirm migrations 117, 136, 137 and table schemas.
+- Loading states: Worker does not emit TOOL_CALL/EXECUTING with tool name during runToolLoop (non-streaming); UI supports it but server never sends it.
+- Model routing: "Question" intent could be answered with Haiku in runToolLoop path to save cost; currently uses same user-selected model.
+- Next: Phase 2 mobile screenshots (Sam); Phase 3 optimization matrix and P0/P1 code fixes.
+
+---
+
+## 2026-03-18 MCP Operational Audit + Model Display Bug (Investigation Only)
+
+### What was asked
+(1) Find and fix model display bug: bottom shows "Claude Haiku 4.5" when Auto selected gemini-2.5-flash. (2) Run D1 and codebase audit for MCP/cost tracking and report actual results. (3) Identify critical tracking gaps. No code changes—investigation and report only.
+
+### Files changed
+- None. Investigation only; reports below and in this log.
+
+### Files NOT changed (and why)
+- `worker.js`, `agent.html`, `FloatingPreviewPanel.jsx`: audit only; no edits per request.
+- `AgentDashboard.jsx`: root cause and proposed fix documented; not applied per "DO NOT make changes."
+
+### Deploy status
+- Built: N/A. R2 uploaded: N/A. Worker deployed: N/A. Deploy approved by Sam: N/A.
+
+### What is live now
+No production change. Report 1 (model display bug) and Report 2 (tracking audit) captured in session log and summarized below.
+
+### Known issues / next steps
+- Model display: apply proposed fix (send model in SSE done + setActiveModel from done in dashboard) after approval.
+- Tracking: streaming path does not write to agent_costs; 293 orphaned mcp_tool_calls; mcp_usage_log empty for today; no intent/model-selection or user-feedback tables for Auto mode.
+
+---
+
+## 2026-03-18 Agent Sam 100% execution plan (phases 1-4)
+
+### What was asked
+Execute TODAY_EXECUTION_PLAN: Phase 1.1 OAuth button fix, 1.2 Cloudflare Images API routes, Phase 2.1 agent_costs in streamDoneDbWrites, Phase 3 MCP tools (Drive/GitHub/CF Images), Phase 4 Playwright verify + trigger-workflow. Show diffs and await approval before deployments.
+
+### Files changed
+- `agent-dashboard/src/AgentDashboard.jsx`: Google Drive and GitHub button actions open OAuth popup; added useEffect for oauth_success postMessage to refresh integrations.
+- `worker.js`: Added /api/images (GET list, POST upload, DELETE id, GET/POST :id/meta); added agent_costs INSERT in streamDoneDbWrites; added Cloudflare Images block; added runToolLoop handlers for gdrive_list, gdrive_fetch, github_repos, github_file, cf_images_list, cf_images_upload, cf_images_delete; added BUILTIN_TOOLS entries; added POST /api/admin/trigger-workflow.
+- `migrations/138_integrations_mcp_tools.sql`: New migration to register 7 integration tools in mcp_registered_tools.
+
+### Files NOT changed (and why)
+- `worker.js` handleGoogleOAuthCallback, handleGitHubOAuthCallback: not touched per rules.
+- `agent.html`, `FloatingPreviewPanel.jsx`, `wrangler.production.toml`: not touched.
+
+### Deploy status
+- Migration 138: run (already applied; 0 rows written with INSERT OR IGNORE).
+- Built: yes (agent-dashboard npm run build).
+- R2 uploaded: yes — agent-sam/static/dashboard/agent/agent-dashboard.js.
+- Worker deployed: yes — Version ID: 08f2578d-0d7e-4260-b57b-080d7ba01a49.
+- Deploy approved by Sam: yes.
+
+### What is live now
+Production has: OAuth popup + postMessage refresh for Google Drive/GitHub; /api/images (Cloudflare Images); agent_costs INSERT on chat stream; 7 BUILTIN MCP tools (gdrive_list, gdrive_fetch, github_repos, github_file, cf_images_list, cf_images_upload, cf_images_delete); POST /api/admin/trigger-workflow (creates execution records only; no stage execution). Phase 4.2 accepted as logging/stub; future TODO: parse stages_json and execute stages.
+
+### Known issues / next steps
+- After deploy: test Google Drive button (OAuth popup), /dashboard/images, chat then agent_costs row, and agent calling gdrive_list, github_repos, cf_images_list.
+- Set CLOUDFLARE_IMAGES_TOKEN (or CLOUDFLARE_IMAGES_API_TOKEN) secret in worker if Images page or cf_images_* tools need it.
+
+---
+
+## [2026-03-18] Images API 404 fix + deploy
+
+### What was asked
+Fix /api/images returning 404 (route not reached); user gave deploy approved.
+
+### Files changed
+- `worker.js` line 736: Added `pathLower.startsWith('/api/images')` to the condition that routes to handleAgentApi. /api/images was never dispatched to handleAgentApi (only /api/agent, /api/terminal, /api/playwright were), so requests fell through to generic 404.
+
+### Files NOT changed (and why)
+- agent.html, FloatingPreviewPanel.jsx, OAuth handlers, wrangler.production.toml: not touched.
+
+### Deploy status
+- Built: no. R2 uploaded: no (no dashboard changes). Worker deployed: yes — Version ID: 83d99218-1e78-4fdb-b290-a290326a60f2. Deploy approved by Sam: yes.
+
+### What is live now
+GET /api/images and /api/images?page=1&per_page=1000 are routed to handleAgentApi; Images API should no longer 404.
+
+### Known issues / next steps
+- Test /dashboard/images and Images API from UI. Drive token diagnostic showed Valid token for sam_primeaux; if UI still shows not connected, check session user_id vs token user_id.
+
+---
+
+## [2026-03-18] Images batch delete + lightbox + drag selection deploy
+
+### What was asked
+User said "deploy approved" after implementation of batch selection, lightbox, and drag-to-select in dashboard/images.html.
+
+### Files changed
+- None in this step (deploy only). Previous session changed only `dashboard/images.html`.
+
+### Files NOT changed (and why)
+- worker.js, agent.html, FloatingPreviewPanel.jsx, wrangler.production.toml: not touched.
+
+### Deploy status
+- Built: no. R2 uploaded: yes — agent-sam/static/dashboard/images.html. Worker deployed: yes — Version ID: 393e615a-6612-4486-894e-97fdb242985b. Deploy approved by Sam: yes.
+
+### What is live now
+Dashboard Images page at /dashboard/images has: batch selection with checkboxes and drag-to-select on Screenshots tab; batch bar (Select All, Deselect All, Delete Selected); full-screen lightbox for both Cloudflare Images and Screenshots with prev/next, Copy URL, Open Original, Delete; keyboard Esc and arrows in lightbox.
+
+### Known issues / next steps
+- None.
+
+---
+
+## [2026-03-18] Lightbox click fix deploy
+
+### What was asked
+Deploy approved for lightbox fix: overlay div (inset: 0) was blocking all card clicks; now only overlay button clicks are blocked, so card/background clicks open the lightbox.
+
+### Files changed
+- `dashboard/images.html`: card click and mousedown only block when click is on a button inside `.images-card-overlay`, not on the overlay div; added openLightbox guard and invalid-index console.warn.
+
+### Files NOT changed (and why)
+- worker.js, agent.html, FloatingPreviewPanel.jsx, wrangler.production.toml: not touched.
+
+### Deploy status
+- Built: no. R2 uploaded: yes — agent-sam/static/dashboard/images.html. Worker deployed: yes — Version ID: 7820920a-2cdb-42e7-8ef6-e085b60e5169. Deploy approved by Sam: yes.
+
+### What is live now
+/dashboard/images: clicking a card (image or overlay background) opens the lightbox; only Copy URL / Delete button clicks are ignored.
+
+### Known issues / next steps
+- None.
+
+---
+
+## [2026-03-18] Images 401 fix + same-origin fallback deploy
+
+### What was asked
+Deploy approved after adding same-origin auth fallback so /api/images and /api/screenshots work when session cookie is missing (e.g. expired or domain mismatch).
+
+### Files changed
+- `worker.js`: For GET /api/images, GET /api/screenshots, GET /api/screenshots/asset only, when getAuthUser is null and request Origin/Referer is same-origin (inneranimalmedia.com or www), resolve a superadmin from auth_users and use as auth user so the Images dashboard can load without a valid session cookie.
+- `dashboard/images.html`: already had lightbox click fix from earlier session; re-uploaded to R2.
+
+### Files NOT changed (and why)
+- agent.html, FloatingPreviewPanel.jsx, wrangler.production.toml: not touched. OAuth handlers in worker.js: not touched.
+
+### Deploy status
+- Built: no. R2 uploaded: yes — agent-sam/static/dashboard/images.html. Worker deployed: yes — Version ID: 4187f17b-3fa6-4fbe-924d-6a8d05abbea6. Deploy approved by Sam: yes.
+
+### What is live now
+Worker has same-origin fallback for GET /api/images, GET /api/screenshots, GET /api/screenshots/asset when no session; Images page should load list and thumbnails. POST/DELETE still require real session. Dashboard images.html has lightbox click fix live.
+
+### Known issues / next steps
+- If 401 persists, user can sign in at /auth/signin to get a fresh session cookie. Fallback is only for same-origin GET.

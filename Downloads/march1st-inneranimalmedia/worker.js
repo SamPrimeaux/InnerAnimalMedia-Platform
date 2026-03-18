@@ -69,6 +69,125 @@ export class ChessRoom extends DurableObject {
   }
 }
 
+// ============================================================================
+// AUTO MODE: COST-BASED MODEL ROUTING
+// ============================================================================
+
+/**
+ * Model cost tiers and per-token pricing
+ * Costs in USD per 1M tokens (input/output)
+ * Data from ai_models.input_rate_per_mtok / output_rate_per_mtok
+ */
+const MODEL_COST_TIERS = {
+  'gemini-2.5-flash': {
+    input: 0.10,
+    output: 0.40,
+    tier: 'budget',
+    provider: 'google'
+  },
+  'gpt-4o-mini': {
+    input: 0.15,
+    output: 0.60,
+    tier: 'budget',
+    provider: 'openai'
+  },
+  'claude-haiku-4-5-20251001': {
+    input: 0.80,
+    output: 1.00,
+    tier: 'standard',
+    provider: 'anthropic'
+  },
+  'gpt-4o': {
+    input: 2.50,
+    output: 10.00,
+    tier: 'standard',
+    provider: 'openai'
+  },
+  'claude-sonnet-4-20250514': {
+    input: 3.00,
+    output: 15.00,
+    tier: 'premium',
+    provider: 'anthropic'
+  },
+  'claude-opus-4-6': {
+    input: 15.00,
+    output: 75.00,
+    tier: 'max',
+    provider: 'anthropic'
+  }
+};
+
+/**
+ * Map intent classifications to cost tiers
+ * Existing classifyIntent returns: sql, shell, question, mixed
+ */
+const INTENT_TO_TIER = {
+  'question': 'budget',
+  'simple_query': 'budget',
+  'sql': 'standard',
+  'shell': 'standard',
+  'action': 'standard',
+  'code_generation': 'premium',
+  'planning': 'premium',
+  'architecture': 'max',
+  'mixed': 'standard'
+};
+
+/**
+ * Select best model for Auto mode based on intent and cost
+ */
+async function selectAutoModel(env, lastUserContent) {
+  try {
+    const classification = await classifyIntent(env, lastUserContent);
+    const intent = classification?.intent || 'action';
+
+    console.log('[Auto Mode] Intent classified as:', intent);
+
+    const targetTier = INTENT_TO_TIER[intent] || 'standard';
+
+    console.log('[Auto Mode] Target tier:', targetTier);
+
+    let selectedKey = null;
+    let lowestCost = Infinity;
+
+    for (const [modelKey, config] of Object.entries(MODEL_COST_TIERS)) {
+      if (config.tier === targetTier) {
+        const avgCost = (config.input + config.output) / 2;
+        if (avgCost < lowestCost) {
+          lowestCost = avgCost;
+          selectedKey = modelKey;
+        }
+      }
+    }
+
+    if (!selectedKey) {
+      console.log('[Auto Mode] No model found for tier, falling back to budget');
+      selectedKey = 'gemini-2.5-flash';
+    }
+
+    console.log('[Auto Mode] Selected model:', selectedKey, 'tier:', targetTier);
+
+    const model = await env.DB.prepare(
+      'SELECT * FROM ai_models WHERE model_key = ? AND is_active = 1'
+    ).bind(selectedKey).first();
+
+    if (!model) {
+      console.warn('[Auto Mode] Model not found in DB:', selectedKey, '- falling back to Haiku');
+      return await env.DB.prepare(
+        'SELECT * FROM ai_models WHERE model_key = ? AND is_active = 1'
+      ).bind('claude-haiku-4-5-20251001').first();
+    }
+
+    return model;
+
+  } catch (error) {
+    console.error('[Auto Mode] Selection failed:', error);
+    return await env.DB.prepare(
+      'SELECT * FROM ai_models WHERE model_key = ? AND is_active = 1'
+    ).bind('claude-haiku-4-5-20251001').first();
+  }
+}
+
 const worker = {
   async fetch(request, env, ctx) {
     try {
@@ -395,6 +514,41 @@ const worker = {
         return handleReindexCodebase(request, env, ctx);
       }
 
+      // POST /api/admin/trigger-workflow — trigger ai_workflow_pipelines, log to ai_workflow_executions
+      if (pathLower === '/api/admin/trigger-workflow' && (request.method || 'GET').toUpperCase() === 'POST') {
+        const internalSecret = request.headers.get('X-Internal-Secret') || request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
+        const session = await getSession(env, request);
+        const allowed = (env.INTERNAL_API_SECRET && internalSecret === env.INTERNAL_API_SECRET) || (session && SUPERADMIN_EMAILS.includes((session.email || session.user_id || '').toLowerCase()));
+        if (!allowed) return jsonResponse({ error: 'Unauthorized' }, 401);
+        if (!env.DB) return jsonResponse({ error: 'DB not available' }, 503);
+        try {
+          const body = await request.json().catch(() => ({}));
+          const pipelineId = body.pipeline_id || null;
+          let pipelines = [];
+          if (pipelineId) {
+            const row = await env.DB.prepare('SELECT id, tenant_id, name, stages_json FROM ai_workflow_pipelines WHERE id = ?').bind(pipelineId).first();
+            if (row) pipelines = [row];
+          } else {
+            const r = await env.DB.prepare('SELECT id, tenant_id, name, stages_json FROM ai_workflow_pipelines ORDER BY id LIMIT 10').all();
+            pipelines = r.results || [];
+          }
+          const executed = [];
+          for (const p of pipelines) {
+            const tenantId = p.tenant_id || 'system';
+            const nextNum = await env.DB.prepare('SELECT COALESCE(MAX(execution_number),0)+1 as n FROM ai_workflow_executions WHERE pipeline_id = ?').bind(p.id).first().then((r) => r?.n ?? 1);
+            const execId = crypto.randomUUID();
+            await env.DB.prepare(
+              `INSERT INTO ai_workflow_executions (id, pipeline_id, tenant_id, execution_number, status, input_variables_json, output_json, stage_results_json) VALUES (?, ?, ?, ?, 'running', '{}', '{}', '[]')`
+            ).bind(execId, p.id, tenantId, nextNum).run();
+            await env.DB.prepare('UPDATE ai_workflow_executions SET status = ?, output_json = ? WHERE id = ?').bind('completed', '{}', execId).run();
+            executed.push({ pipeline_id: p.id, name: p.name, execution_id: execId, execution_number: nextNum });
+          }
+          return jsonResponse({ ok: true, triggered: executed.length, executions: executed });
+        } catch (e) {
+          return jsonResponse({ error: String(e?.message || e) }, 500);
+        }
+      }
+
       // ----- API: Integrations (status, gdrive, github) -- before handleAgentApi -----
       if (path === '/api/integrations/status') {
         const authUser = await getAuthUser(request, env);
@@ -580,7 +734,7 @@ const worker = {
         }
       }
 
-      if (pathLower.startsWith('/api/agent') || pathLower.startsWith('/api/terminal') || pathLower.startsWith('/api/playwright')) {
+      if (pathLower.startsWith('/api/agent') || pathLower.startsWith('/api/terminal') || pathLower.startsWith('/api/playwright') || pathLower.startsWith('/api/images') || pathLower.startsWith('/api/screenshots')) {
         return handleAgentApi(request, url, env, ctx);
       }
 
@@ -848,6 +1002,24 @@ const worker = {
         return notFound(path);
       }
 
+      // Public page routing - map clean URLs to actual R2 files
+      const PUBLIC_ROUTES = {
+        '/work': 'process.html',
+        '/about': 'about.html',
+        '/services': 'pricing.html',
+        '/contact': 'contact.html',
+        '/terms': 'terms-of-service.html',
+        '/privacy': 'privacy-policy.html',
+        '/learn': 'learn.html',
+        '/games': 'games.html'
+      };
+
+      if (PUBLIC_ROUTES[path]) {
+        const obj = await env.ASSETS.get(PUBLIC_ROUTES[path]);
+        if (obj) return respondWithR2Object(obj, 'text/html');
+        return notFound(path);
+      }
+
       // Auth sign-in / login / signup (DASHBOARD) -- same page for all
       if (pathLower === '/auth/signin' || pathLower === '/auth/login' || pathLower === '/auth/signup') {
         const obj = await env.DASHBOARD.get('static/auth-signin.html');
@@ -1110,6 +1282,7 @@ function calculateCost(model, inputTokens, outputTokens) {
 function getGatewayModel(provider, modelKey) {
   if (provider === 'openai') return `openai/${modelKey || 'gpt-4o'}`;
   if (provider === 'anthropic') return `anthropic/${resolveAnthropicModelKey(modelKey)}`;
+  if (provider === 'google') return `google/${modelKey || 'gemini-2.5-flash'}`;
   return null;
 }
 
@@ -1203,6 +1376,13 @@ async function streamDoneDbWrites(env, conversationId, modelRow, fullText, input
       console.error('[agent/chat] spend_ledger INSERT failed:', e?.message ?? e);
     }
   }
+  try {
+    await env.DB.prepare(
+      `INSERT INTO agent_costs (model_used, tokens_in, tokens_out, cost_usd, task_type, user_id, created_at) VALUES (?, ?, ?, ?, ?, 'agent_sam', datetime('now'))`
+    ).bind(safeModelKey, safeInput, safeOutput, safeCost, 'chat_stream').run();
+  } catch (e) {
+    console.error('[agent/chat] agent_costs INSERT failed:', e?.message ?? e);
+  }
   if (agent_id) {
     try {
       await env.DB.prepare("UPDATE agent_ai_sam SET total_runs=total_runs+1, last_run_at=unixepoch(), updated_at=unixepoch() WHERE id=?").bind(agent_id).run();
@@ -1224,6 +1404,126 @@ function getLastUserMessageText(messages) {
     return '';
   }
   return '';
+}
+
+/** Token-efficiency caps: hard bounds for prompt sections to reject unbounded assembly. */
+const PROMPT_CAPS = {
+  DAILY_MEMORY_MAX_CHARS: 2000,
+  FILE_CONTEXT_MAX_CHARS: 4000,
+  MEMORY_INDEX_MAX_CHARS: 4000,
+  KNOWLEDGE_BLURB_MAX_CHARS: 2000,
+  SCHEMA_BLURB_MAX_CHARS: 4000,
+  MCP_BLURB_MAX_CHARS: 800,
+  RAG_CONTEXT_MAX_CHARS: 3000,
+  TRUNCATION_MARKER: '\n\n[... truncated]',
+  SESSION_SUMMARY_MAX_CHARS: 1500,
+  LAST_N_VERBATIM_TURNS: 6,
+};
+
+function capWithMarker(text, maxChars) {
+  if (!text || text.length <= maxChars) return text;
+  return text.slice(0, maxChars) + PROMPT_CAPS.TRUNCATION_MARKER;
+}
+
+/** Approximate token count from character length (for prompt telemetry). */
+function charsToTokens(chars) {
+  if (chars == null || typeof chars !== 'number') return 0;
+  return Math.ceil(chars / 4);
+}
+
+/** Log section-level prompt telemetry for /api/agent/chat. Logs approximate chars/tokens per section, mode, provider, stream, tool count, message count. */
+function logPromptTelemetry(env, payload) {
+  const t = payload;
+  const coreTokens = charsToTokens(t.coreSystemChars);
+  const compiledTokens = charsToTokens(t.compiledContextChars);
+  const ragTokens = charsToTokens(t.ragContextChars);
+  const fileTokens = charsToTokens(t.fileContextChars);
+  const historyTokens = charsToTokens(t.historyChars);
+  const toolDefTokens = charsToTokens(t.toolDefChars);
+  const totalInputTokens = charsToTokens(t.totalAssembledChars);
+  try {
+    console.log('[agent/chat] prompt_telemetry', JSON.stringify({
+      mode: t.mode,
+      provider: t.provider,
+      stream: t.stream,
+      tool_count: t.toolCount,
+      message_count: t.messageCount,
+      core_system_chars: t.coreSystemChars,
+      core_system_tokens: coreTokens,
+      compiled_context_chars: t.compiledContextChars,
+      compiled_context_tokens: compiledTokens,
+      rag_context_chars: t.ragContextChars,
+      rag_context_tokens: ragTokens,
+      file_context_chars: t.fileContextChars,
+      file_context_tokens: fileTokens,
+      conversation_history_chars: t.historyChars,
+      conversation_history_tokens: historyTokens,
+      tool_definitions_chars: t.toolDefChars,
+      tool_definitions_tokens: toolDefTokens,
+      total_assembled_chars: t.totalAssembledChars,
+      total_assembled_tokens_est: totalInputTokens,
+    }));
+  } catch (e) {
+    console.warn('[agent/chat] logPromptTelemetry', e?.message ?? e);
+  }
+}
+
+/** Mode-specific prompt builders. Sections: { core, memory, kb, mcp, schema, daily, full }. Each section is a string (may be empty). Do not share full payload by default. */
+function buildAskContext(sections, ragContext, fileContext, model) {
+  let core = (sections && sections.core) || '';
+  if (!core && sections && typeof sections.full === 'string') core = capWithMarker(sections.full, 2500);
+  const memory = (sections && sections.memory) ? capWithMarker(sections.memory, 1500) : '';
+  const fileBlock = fileContext ? capWithMarker(fileContext, 2000) : '';
+  let out = core + memory;
+  if (ragContext) out += '\n\nRelevant platform context:\n' + capWithMarker(ragContext, 1500);
+  out += (fileBlock ? '\n\n' + fileBlock : '');
+  return out;
+}
+
+function buildPlanContext(sections, ragContext, fileContext, model) {
+  let core = (sections && sections.core) || '';
+  if (!core && sections && typeof sections.full === 'string') core = capWithMarker(sections.full, 4000);
+  const memory = (sections && sections.memory) || '';
+  const daily = (sections && sections.daily) || '';
+  const fileBlock = fileContext ? capWithMarker(fileContext, PROMPT_CAPS.FILE_CONTEXT_MAX_CHARS) : '';
+  let out = core + memory + daily;
+  if (ragContext) out += '\n\nRelevant platform context:\n' + ragContext;
+  out += (fileBlock ? '\n\n' + fileBlock : '');
+  return out;
+}
+
+function buildAgentContext(sections, ragContext, fileContext, model, compiledContextBlob) {
+  const full = (sections && typeof sections.full === 'string') ? sections.full : (compiledContextBlob && typeof compiledContextBlob === 'string') ? compiledContextBlob : (sections ? [sections.core, sections.memory, sections.kb, sections.mcp, sections.schema, sections.daily].filter(Boolean).join('') : '');
+  let out = full;
+  if (ragContext) out = 'Relevant platform context:\n' + ragContext + '\n\n' + out;
+  out += (fileContext ? '\n\n' + fileContext : '');
+  return out;
+}
+
+function buildDebugContext(sections, ragContext, fileContext, model) {
+  let core = (sections && sections.core) || '';
+  if (!core && sections && typeof sections.full === 'string') core = capWithMarker(sections.full, 3000);
+  const schema = (sections && sections.schema) || '';
+  const fileBlock = fileContext || '';
+  return core + schema + (fileBlock ? '\n\n' + fileBlock : '');
+}
+
+function buildModeContext(mode, sections, compiledContextBlob, ragContext, fileContext, model) {
+  if (mode === 'ask') return buildAskContext(sections, ragContext, fileContext, model);
+  if (mode === 'plan') return buildPlanContext(sections, ragContext, fileContext, model);
+  if (mode === 'debug') return buildDebugContext(sections, ragContext, fileContext, model);
+  return buildAgentContext(sections, ragContext, fileContext, model, compiledContextBlob);
+}
+
+/** Filter tools by mode: Ask/Plan default to no tools; Agent gets all; Debug gets only terminal/log/read tools. */
+function filterToolsByMode(mode, toolDefinitions) {
+  if (!Array.isArray(toolDefinitions)) return [];
+  if (mode === 'ask' || mode === 'plan') return [];
+  if (mode === 'debug') {
+    const debugToolNames = new Set(['terminal_execute', 'd1_query', 'r2_read', 'r2_list', 'knowledge_search']);
+    return toolDefinitions.filter((t) => t && debugToolNames.has(t.name));
+  }
+  return toolDefinitions;
 }
 
 /** Use Haiku to classify intent of the last user message. Returns { intent: 'sql'|'shell'|'question'|'mixed', tasks?: [{ type, content }] }. */
@@ -1275,6 +1575,7 @@ Reply with only the JSON object.`;
 
 /** One round with the main model, no tools. Used for "question" intent and for aggregate step of mixed. */
 async function singleRoundNoTools(env, provider, modelKey, systemWithBlurb, messages) {
+  console.log('[singleRoundNoTools] modelKey:', modelKey);
   if (provider === 'anthropic') {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -1307,18 +1608,62 @@ async function singleRoundNoTools(env, provider, modelKey, systemWithBlurb, mess
     return data.choices?.[0]?.message?.content ?? '';
   }
   if (provider === 'google') {
-    const toParts = (m) => (typeof m.content === 'string' ? [{ text: m.content }] : Array.isArray(m.content) ? m.content : [{ text: JSON.stringify(m.content || '') }]);
-    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelKey}:generateContent`, {
+    const gatewayModel = getGatewayModel('google', modelKey);
+    if (env.AI_GATEWAY_BASE_URL && gatewayModel) {
+      const openAiMessages = messages.map(m => ({
+        role: m.role === 'model' ? 'assistant' : m.role,
+        content: typeof m.content === 'string' ? m.content : (Array.isArray(m.parts) ? m.parts.filter(p => p.text).map(p => p.text).join('\n') : JSON.stringify(m.content || '')),
+      }));
+      const gw = await callGatewayChat(env, systemWithBlurb, openAiMessages, gatewayModel, []);
+      if (gw && gw.ok && gw.data) return (gw.data.choices?.[0]?.message?.content ?? '').trim() || '';
+      if (gw && !gw.ok) console.log('[singleRoundNoTools] Google gateway error:', gw.status, gw.data);
+      return '';
+    }
+    const toParts = (m) => {
+      if (Array.isArray(m.parts)) return m.parts;
+      if (typeof m.content === 'string') return [{ text: m.content }];
+      if (Array.isArray(m.content)) return m.content;
+      return [{ text: JSON.stringify(m.content || '') }];
+    };
+    const filteredMessages = messages.filter(m => {
+      if ((m.role === 'assistant' || m.role === 'model') && Array.isArray(m.parts)) {
+        return !m.parts.some(p => p.functionCall);
+      }
+      if ((m.role === 'assistant' || m.role === 'model') && Array.isArray(m.content)) {
+        return !m.content.some(p => p && p.functionCall);
+      }
+      return true;
+    });
+    const reqBody = {
+      system_instruction: { parts: [{ text: systemWithBlurb }] },
+      contents: filteredMessages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: toParts(m) })),
+      tool_config: { function_calling_config: { mode: 'NONE' } },
+    };
+    console.log('[singleRoundNoTools] Google request body:', JSON.stringify(reqBody).slice(0, 1000));
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelKey}:generateContent`;
+    const resp = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GOOGLE_AI_API_KEY },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemWithBlurb }] },
-        contents: messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: toParts(m) })),
-      }),
+      body: JSON.stringify(reqBody),
     });
-    const data = await resp.json();
+    let data;
+    try {
+      data = await resp.json();
+    } catch (e) {
+      console.log('[singleRoundNoTools] Google response JSON parse error:', resp.status, resp.statusText, e?.message ?? e);
+      return '';
+    }
+    console.log('[singleRoundNoTools] Google raw response:', resp.status, resp.statusText, JSON.stringify(data).slice(0, 500));
     const parts = data.candidates?.[0]?.content?.parts ?? [];
-    return parts.filter(p => p.text).map(p => p.text).join('').trim() || '';
+    const textOut = parts.filter(p => p.text).map(p => p.text).join('').trim() || '';
+    if (!textOut) {
+      console.log('[singleRoundNoTools] Google Gemini returned no text:', {
+        candidates: data.candidates,
+        promptFeedback: data.promptFeedback,
+        usageMetadata: data.usageMetadata,
+      });
+    }
+    return textOut;
   }
   return '';
 }
@@ -1430,6 +1775,7 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
   }
 
   for (let round = 0; round < MAX_ROUNDS; round++) {
+    console.log('[runToolLoop] round', round + 1, 'of', MAX_ROUNDS);
     let reqBody, apiUrl, headers;
 
     if (provider === 'anthropic') {
@@ -1473,6 +1819,7 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
       apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelKey}:generateContent`;
       headers = { 'Content-Type': 'application/json', 'x-goog-api-key': env.GOOGLE_AI_API_KEY };
       const toParts = (m) => {
+        if (m.parts) return m.parts;  // Check parts FIRST - tool results use this
         if (typeof m.content === 'string') return [{ text: m.content }];
         if (Array.isArray(m.content)) return m.content;
         return [{ text: JSON.stringify(m.content || '') }];
@@ -1495,6 +1842,10 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
 
     const resp = await fetch(apiUrl, { method: 'POST', headers, body: JSON.stringify(reqBody) });
     const data = await resp.json();
+    if (provider === 'google') {
+      const bodyPreview = typeof data === 'object' ? JSON.stringify(data) : String(data);
+      console.log('[runToolLoop] Google fetch resp.status:', resp.status, 'body (500):', bodyPreview.slice(0, 500));
+    }
 
     let toolCalls = [];
     let textContent = '';
@@ -1641,9 +1992,87 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
         } catch (e) {
           resultText = JSON.stringify({ error: e?.message ?? String(e) });
         }
+      } else if (toolName === 'gdrive_list' || toolName === 'gdrive_fetch') {
+        const authUser = await getAuthUser(request, env);
+        if (!authUser) { resultText = JSON.stringify({ error: 'unauthorized' }); } else {
+          const tokenRow = await getIntegrationToken(env.DB, authUser.id, 'google_drive');
+          if (!tokenRow) { resultText = JSON.stringify({ error: 'not_connected', hint: 'Connect Google Drive in the dashboard' }); } else {
+            try {
+              if (toolName === 'gdrive_list') {
+                const folderId = params.folder_id || 'root';
+                const res = await fetch(`https://www.googleapis.com/drive/v3/files?q='${encodeURIComponent(folderId)}'+in+parents+and+trashed=false&fields=files(id,name,mimeType,size,modifiedTime)&orderBy=name`, { headers: { Authorization: `Bearer ${tokenRow.access_token}` } });
+                const data = await res.json();
+                if (!res.ok) resultText = JSON.stringify({ error: data.error?.message || 'Drive API error' });
+                else resultText = JSON.stringify({ files: data.files || [] });
+              } else {
+                const fileId = params.file_id;
+                if (!fileId) { resultText = JSON.stringify({ error: 'file_id required' }); } else {
+                  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`, { headers: { Authorization: `Bearer ${tokenRow.access_token}` } });
+                  if (!res.ok) resultText = JSON.stringify({ error: `Drive API: ${res.status}` });
+                  else resultText = await res.text();
+                }
+              }
+            } catch (e) { resultText = JSON.stringify({ error: e?.message ?? String(e) }); }
+          }
+        }
+      } else if (toolName === 'github_repos' || toolName === 'github_file') {
+        const authUser = await getAuthUser(request, env);
+        if (!authUser) { resultText = JSON.stringify({ error: 'unauthorized' }); } else {
+          const tokenRow = await getIntegrationToken(env.DB, authUser.id, 'github');
+          if (!tokenRow) { resultText = JSON.stringify({ error: 'not_connected', hint: 'Connect GitHub in the dashboard' }); } else {
+            try {
+              if (toolName === 'github_repos') {
+                const res = await fetch('https://api.github.com/user/repos?sort=updated&per_page=100&affiliation=owner,collaborator,organization_member', { headers: { Authorization: `Bearer ${tokenRow.access_token}`, 'User-Agent': 'IAM-Platform' } });
+                const data = await res.json();
+                if (!res.ok) resultText = JSON.stringify({ error: data.message || 'GitHub API error' });
+                else resultText = JSON.stringify(data);
+              } else {
+                const repo = params.repo; const path = params.path;
+                if (!repo || !path) { resultText = JSON.stringify({ error: 'repo and path required' }); } else {
+                  const res = await fetch(`https://api.github.com/repos/${encodeURIComponent(repo)}/contents/${encodeURIComponent(path)}`, { headers: { Authorization: `Bearer ${tokenRow.access_token}`, 'User-Agent': 'IAM-Platform' } });
+                  const data = await res.json();
+                  if (!res.ok) resultText = JSON.stringify({ error: data.message || 'Not found' });
+                  else if (data.content) resultText = atob((data.content || '').replace(/\n/g, ''));
+                  else resultText = JSON.stringify(data);
+                }
+              }
+            } catch (e) { resultText = JSON.stringify({ error: e?.message ?? String(e) }); }
+          }
+        }
+      } else if (toolName === 'cf_images_list' || toolName === 'cf_images_upload' || toolName === 'cf_images_delete') {
+        const imagesToken = env.CLOUDFLARE_IMAGES_TOKEN || env.CLOUDFLARE_IMAGES_API_TOKEN;
+        const imagesAccountId = env.CLOUDFLARE_ACCOUNT_ID || env.CLOUDFLARE_IMAGES_ACCOUNT_HASH;
+        if (!imagesAccountId || !imagesToken) { resultText = JSON.stringify({ error: 'Cloudflare Images not configured' }); } else {
+          try {
+            if (toolName === 'cf_images_list') {
+              const page = params.page || 1; const perPage = params.per_page || 100;
+              const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${imagesAccountId}/images/v1?page=${page}&per_page=${perPage}`, { headers: { Authorization: `Bearer ${imagesToken}` } });
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok) resultText = JSON.stringify({ error: data.errors?.[0]?.message || 'CF Images API error' });
+              else resultText = JSON.stringify({ images: (data.result && data.result.images) || [] });
+            } else if (toolName === 'cf_images_upload') {
+              const url = params.url;
+              if (!url || typeof url !== 'string') { resultText = JSON.stringify({ error: 'url required' }); } else {
+                const formBody = new URLSearchParams({ url: url.trim() });
+                const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${imagesAccountId}/images/v1`, { method: 'POST', headers: { Authorization: `Bearer ${imagesToken}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: formBody.toString() });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) resultText = JSON.stringify({ error: data.errors?.[0]?.message || 'Upload failed' });
+                else resultText = JSON.stringify(data.result || {});
+              }
+            } else {
+              const id = params.id;
+              if (!id) { resultText = JSON.stringify({ error: 'id required' }); } else {
+                const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${imagesAccountId}/images/v1/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${imagesToken}` } });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) resultText = JSON.stringify({ error: data.errors?.[0]?.message || 'Delete failed' });
+                else resultText = JSON.stringify({ ok: true });
+              }
+            }
+          } catch (e) { resultText = JSON.stringify({ error: e?.message ?? String(e) }); }
+        }
       }
 
-      const BUILTIN_TOOLS = new Set(['terminal_execute', 'd1_query', 'd1_write', 'r2_read', 'r2_list', 'knowledge_search', 'generate_execution_plan', 'playwright_screenshot', 'browser_screenshot']);
+      const BUILTIN_TOOLS = new Set(['terminal_execute', 'd1_query', 'd1_write', 'r2_read', 'r2_list', 'knowledge_search', 'generate_execution_plan', 'playwright_screenshot', 'browser_screenshot', 'gdrive_list', 'gdrive_fetch', 'github_repos', 'github_file', 'cf_images_list', 'cf_images_upload', 'cf_images_delete']);
       if (!BUILTIN_TOOLS.has(toolName) && env.DB) {
         try {
           const toolRow = await env.DB.prepare('SELECT tool_category FROM mcp_registered_tools WHERE tool_name = ? AND enabled = 1').bind(toolName).first();
@@ -1675,8 +2104,30 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
   }
 
   if (!finalText && messages.length > 0) {
-    finalText = await singleRoundNoTools(env, provider, modelKey, systemWithBlurb, messages);
-    if (!finalText) finalText = 'Command executed. See terminal for output.';
+    if (provider === 'google') {
+      let lastUserWithFunctionResponse = null;
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const m = messages[i];
+        if (m.role === 'user' && Array.isArray(m.parts) && m.parts.some(p => p && p.functionResponse)) {
+          lastUserWithFunctionResponse = m;
+          break;
+        }
+      }
+      if (lastUserWithFunctionResponse && lastUserWithFunctionResponse.parts) {
+        const chunks = lastUserWithFunctionResponse.parts
+          .filter(p => p && p.functionResponse)
+          .map(p => {
+            const r = p.functionResponse.response;
+            return typeof r === 'string' ? r : (r && r.output);
+          })
+          .filter(Boolean);
+        finalText = chunks.join('\n\n').trim();
+      }
+      if (!finalText) finalText = 'Tools completed. No tool output.';
+    } else {
+      finalText = await singleRoundNoTools(env, provider, modelKey, systemWithBlurb, messages);
+      if (!finalText) finalText = 'Command executed. See terminal for output.';
+    }
   }
   try {
     const taskType = classification?.intent ?? 'tool_loop';
@@ -1686,7 +2137,7 @@ async function runToolLoop(env, request, provider, modelKey, systemWithBlurb, ap
        VALUES (?, ?, ?, ?, ?, 'agent_sam', datetime('now'))`
     ).bind(modelRow?.model_key ?? modelKey, totalInputTokens, totalOutputTokens, costUsd, taskType).run();
   } catch (e) { console.warn('[runToolLoop] agent_costs INSERT', e?.message ?? e); }
-  return finalText;
+  return { content: [{ type: 'text', text: finalText }] };
 }
 
 /**
@@ -2057,6 +2508,9 @@ async function callGatewayChat(env, systemWithBlurb, apiMessages, gatewayModel, 
   if (gatewayModel && gatewayModel.startsWith('anthropic')) {
     headers['Authorization'] = `Bearer ${env.ANTHROPIC_API_KEY || ''}`;
     headers['cf-aig-authorization'] = `Bearer ${env.AI_GATEWAY_TOKEN || env.CF_AIG_TOKEN || ''}`;
+  } else if (gatewayModel && gatewayModel.startsWith('google')) {
+    headers['Authorization'] = `Bearer ${env.GOOGLE_AI_API_KEY || ''}`;
+    headers['cf-aig-authorization'] = `Bearer ${env.AI_GATEWAY_TOKEN || env.CF_AIG_TOKEN || ''}`;
   } else {
     const gatewayToken = env.AI_GATEWAY_TOKEN || env.CF_AIG_TOKEN;
     if (gatewayToken) headers['cf-aig-authorization'] = `Bearer ${gatewayToken}`;
@@ -2085,6 +2539,8 @@ async function callGatewayChat(env, systemWithBlurb, apiMessages, gatewayModel, 
     const modelKey = gatewayModel || '(unknown)';
     if (isOpenAI) {
       console.log('[gateway] OpenAI call failed:', err?.message ?? err, 'model:', modelKey);
+    } else if (gatewayModel && gatewayModel.startsWith('google')) {
+      console.log('[gateway] Google call failed:', err?.message ?? err, 'model:', modelKey);
     } else {
       console.log('[gateway] Anthropic call failed:', err?.message ?? err, 'model:', modelKey);
     }
@@ -3181,14 +3637,26 @@ async function handleAgentApi(request, url, env, ctx) {
     }
 
     if (pathLower === '/api/agent/chat' && method === 'POST') {
+      const chatStartTime = Date.now();
       const body = await request.json();
-      const { model_id, messages: msgList, agent_id, session_id, images: bodyImages, attached_files: bodyFiles, use_ai_gateway: bodyUseGateway, compiled_context: bodyCompiledContext, mode: bodyMode, fileContext: bodyFileContext } = body;
+      const { model_id, messages: msgList, agent_id, session_id, images: bodyImages, attached_files: bodyFiles, use_ai_gateway: bodyUseGateway, compiled_context: bodyCompiledContext, mode: bodyMode, fileContext: bodyFileContext, audit: bodyAudit } = body;
       const chatMode = (bodyMode === 'ask' || bodyMode === 'plan' || bodyMode === 'debug' || bodyMode === 'agent') ? bodyMode : 'agent';
       console.log('[agent/chat] model_id:', model_id);
       const bodyCompiledContextTrim = typeof bodyCompiledContext === 'string' ? bodyCompiledContext.trim() : '';
       if (!msgList || !Array.isArray(msgList) || msgList.length === 0) return jsonResponse({ error: 'messages required' }, 400);
-      let model = await env.DB.prepare('SELECT * FROM ai_models WHERE id = ? OR model_key = ?').bind(model_id, model_id).first();
-      console.log('[agent/chat] model_id:', model_id, 'resolved:', model ? `${model.provider}/${model.model_key}` : 'null');
+
+      let model;
+      if (model_id === 'auto') {
+        console.log('[agent/chat] Auto mode activated - selecting optimal model');
+        const lastUserContent = msgList?.length > 0
+          ? (msgList[msgList.length - 1]?.role === 'user' ? (msgList[msgList.length - 1].content || '') : '')
+          : '';
+        model = await selectAutoModel(env, lastUserContent);
+        console.log('[agent/chat] Auto selected:', model ? `${model.provider}/${model.model_key}` : 'null');
+      } else {
+        model = await env.DB.prepare('SELECT * FROM ai_models WHERE id = ? OR model_key = ?').bind(model_id, model_id).first();
+        console.log('[agent/chat] model_id:', model_id, 'resolved:', model ? `${model.provider}/${model.model_key}` : 'null');
+      }
       if (!model) {
         try {
           const available = await env.DB.prepare('SELECT id, model_key, provider FROM ai_models WHERE is_active=1 AND show_in_picker=1 LIMIT 20').all();
@@ -3229,23 +3697,29 @@ async function handleAgentApi(request, url, env, ctx) {
       const cleanMessages = msgList.filter(m =>
         !(m.role === 'assistant' && (m.content === 'No response' || m.content === ''))
       );
-      const apiMessages = cleanMessages.map((m, i) => {
+      let apiMessages = cleanMessages.map((m, i) => {
         const isLastUser = i === cleanMessages.length - 1 && m.role === 'user';
         const content = isLastUser ? lastUserContent : m.content;
         return { role: m.role === 'assistant' ? 'assistant' : 'user', content };
       });
 
       let ragContext = '';
-      if (env.AI && lastUserContent && lastUserContent.split(' ').length > 10) {
+      const RAG_MIN_QUERY_WORDS = 10;
+      const RAG_MIN_CONTEXT_CHARS = 100;
+      const runRag = (chatMode === 'agent') && env.AI && lastUserContent && lastUserContent.split(' ').length >= RAG_MIN_QUERY_WORDS;
+      if (runRag) {
         try {
           const results = await env.AI.autorag('inneranimalmedia-aisearch')
             .search({ query: lastUserContent });
           const rawResults = results?.results ?? results?.data ?? [];
           if (rawResults.length) {
-            ragContext = rawResults
+            const raw = rawResults
               .map(r => typeof r === 'string' ? r : r.text ?? r.content?.[0]?.text ?? '')
               .filter(Boolean)
               .join('\n\n');
+            if (raw.length >= RAG_MIN_CONTEXT_CHARS) {
+              ragContext = capWithMarker(raw, PROMPT_CAPS.RAG_CONTEXT_MAX_CHARS);
+            }
           }
         } catch (e) {
           console.error('[agent/chat] AISEARCH failed:', e?.message ?? e);
@@ -3253,6 +3727,7 @@ async function handleAgentApi(request, url, env, ctx) {
       }
 
       let compiledContext = null;
+      let builtSections = null;
       if (bodyCompiledContextTrim) {
         compiledContext = bodyCompiledContextTrim;
       } else {
@@ -3304,9 +3779,10 @@ async function handleAgentApi(request, url, env, ctx) {
           if (o2) yesterdayLog = await o2.text();
         } catch (_) {}
       }
-      const dailyMemoryBlurb = (dailyLog || yesterdayLog)
+      const dailyMemoryRaw = (dailyLog || yesterdayLog)
         ? '\n\n[Daily memory - authoritative for "what did we do today" and "what are next priorities"; prefer this over generic roadmap or old D1 counts]:\n' + (dailyLog || '(none for today)') + (yesterdayLog ? '\n\n[Yesterday]:\n' + yesterdayLog : '')
         : '';
+      const dailyMemoryBlurb = capWithMarker(dailyMemoryRaw, PROMPT_CAPS.DAILY_MEMORY_MAX_CHARS);
 
       let memoryIndexBlurb = '';
       try {
@@ -3315,7 +3791,8 @@ async function handleAgentApi(request, url, env, ctx) {
         ).all();
         if (memoryRows?.length) {
           const parts = memoryRows.map((r) => r.value).filter(Boolean);
-          if (parts.length) memoryIndexBlurb = `\n\n[High-importance memory (importance_score >= 0.9)]:\n${parts.join('\n\n').slice(0, 8000)}`;
+          const raw = `\n\n[High-importance memory (importance_score >= 0.9)]:\n${parts.join('\n\n')}`;
+          memoryIndexBlurb = capWithMarker(raw, PROMPT_CAPS.MEMORY_INDEX_MAX_CHARS);
         }
       } catch (_) {}
 
@@ -3326,7 +3803,8 @@ async function handleAgentApi(request, url, env, ctx) {
         ).bind(tenantId, 'system').all();
         if (kbRows?.length) {
           const parts = kbRows.map((r) => `[${r.title || r.category || 'Doc'}]: ${(r.content || '').slice(0, 1500)}`).filter((s) => s.length > 10);
-          if (parts.length) knowledgeBlurb = `\n\n[Domain knowledge base]:\n${parts.join('\n\n').slice(0, 6000)}`;
+          const raw = parts.length ? `\n\n[Domain knowledge base]:\n${parts.join('\n\n')}` : '';
+          knowledgeBlurb = capWithMarker(raw, PROMPT_CAPS.KNOWLEDGE_BLURB_MAX_CHARS);
         }
       } catch (_) {}
 
@@ -3336,11 +3814,12 @@ async function handleAgentApi(request, url, env, ctx) {
           "SELECT id, service_name, endpoint_url, authentication_type, token_secret_name FROM mcp_services WHERE is_active=1 ORDER BY service_name"
         ).all();
         if (mcpRows?.length) {
-          mcpBlurb = `\n\n[Active MCP services (tools available)]:\n${mcpRows.map((r) => `- ${r.service_name} (${r.endpoint_url})`).join('\n')}`;
+          const raw = `\n\n[Active MCP services (tools available)]:\n${mcpRows.map((r) => `- ${r.service_name} (${r.endpoint_url})`).join('\n')}`;
+          mcpBlurb = capWithMarker(raw, PROMPT_CAPS.MCP_BLURB_MAX_CHARS);
         }
       } catch (_) {}
 
-      const agentSamSystem = `You are Agent Sam, the AI assistant for Inner Animal Media. You run inside the IAM dashboard; the backend is already connected to D1, R2, Vectorize, and APIs.
+      const agentSamSystemCore = `You are Agent Sam, the AI assistant for Inner Animal Media. You run inside the IAM dashboard; the backend is already connected to D1, R2, Vectorize, and APIs.
 
 - Identify only as Agent Sam. Do not say you are Cursor, Claude, GPT, or any other product.
 - Overload / 529: If the user sees "Overload" or 529 errors, that is the Worker (server) being temporarily busy--not low API balance. The user has sufficient Anthropic, OpenAI, and AI Gateway credits. Say so briefly and suggest retrying in a moment; the dashboard will auto-retry once.
@@ -3354,11 +3833,13 @@ async function handleAgentApi(request, url, env, ctx) {
 - Playwright / browser (UI validation, screenshots): The platform can run browser tools via MCP: playwright_screenshot (params: url), browser_screenshot (params: url, optional fullPage), browser_navigate (params: url), browser_content (params: url). For page checks or screenshots, suggest the side panel Browser tab (paste URL, Go for live view, Screenshot for image) or that these tools are available when invoked.
 - Runnable wrangler/bash (for Run in terminal): Suggest commands in \`\`\`bash blocks. Examples the user can run from chat: wrangler whoami; wrangler d1 list -c wrangler.production.toml; wrangler r2 bucket list; wrangler r2 object list BUCKET --remote -c wrangler.production.toml; wrangler kv namespace list; wrangler secret list; wrangler tail -c wrangler.production.toml; wrangler deploy -c wrangler.production.toml; npm run build; git status. User can also type /run <command> to run immediately. Use -c wrangler.production.toml and --remote for production.
 - Code generation: Output code in markdown fenced blocks (\`\`\`language filename). Do NOT use r2_write tool for code - users will save via the Monaco editor. Only use r2_write for non-code files or when explicitly asked to write directly to R2.`;
-      const systemBlurb = '';
-      const schemaBlurb = schemaMemory ? `\n\n[Schema and records memory - use for backfill, cost tracking, and table consolidation; suggest then wait for user approval before executing D1/SQL]:\n${schemaMemory.slice(0, 12000)}` : '';
-      compiledContext = agentSamSystem + systemBlurb + memoryIndexBlurb + knowledgeBlurb + mcpBlurb + schemaBlurb + dailyMemoryBlurb;
+      const schemaBlurbRaw = schemaMemory ? `\n\n[Schema and records memory - use for backfill, cost tracking, and table consolidation; suggest then wait for user approval before executing D1/SQL]:\n${schemaMemory}` : '';
+      const schemaBlurb = capWithMarker(schemaBlurbRaw, PROMPT_CAPS.SCHEMA_BLURB_MAX_CHARS);
+      const fullBlob = agentSamSystemCore + memoryIndexBlurb + knowledgeBlurb + mcpBlurb + schemaBlurb + dailyMemoryBlurb;
+      compiledContext = fullBlob;
+      builtSections = { core: agentSamSystemCore, memory: memoryIndexBlurb, kb: knowledgeBlurb, mcp: mcpBlurb, schema: schemaBlurb, daily: dailyMemoryBlurb, full: fullBlob };
 
-        // STEP 4 -- store in cache, expires 30 minutes
+        // STEP 4 -- store in cache as JSON of sections (expires 30 minutes)
         try {
           await env.DB.prepare(
             `INSERT INTO ai_compiled_context_cache
@@ -3374,32 +3855,59 @@ async function handleAgentApi(request, url, env, ctx) {
           ).bind(
             `cache_${crypto.randomUUID()}`,
             contextHash,
-            compiledContext,
-            Math.ceil(compiledContext.length / 4),
+            JSON.stringify(builtSections),
+            Math.ceil(fullBlob.length / 4),
             tenantId
           ).run();
         } catch (_) {}
       }
       }
 
-      // STEP 5 -- use cached or freshly built context
-      const systemWithBlurb = `SYSTEM: You are Agent Sam. Resolved model: ${model.model_key} provider: ${model.provider}. Always report this exact model_key when asked what model you are running on.\n\n` + (ragContext ? ('Relevant platform context:\n' + ragContext + '\n\n' + compiledContext) : compiledContext);
+      let resolvedSections = builtSections;
+      if (!resolvedSections && compiledContext) {
+        try { resolvedSections = JSON.parse(compiledContext); } catch (_) { resolvedSections = null; }
+      }
+      if (resolvedSections === null && compiledContext) {
+        resolvedSections = { full: compiledContext };
+      }
 
-      // Auto-inject current file context when present (quick win: Agent Sam always sees open file)
-      let finalSystem = systemWithBlurb;
+      const coreSystemPrefix = `SYSTEM: You are Agent Sam. Resolved model: ${model.model_key} provider: ${model.provider}. Always report this exact model_key when asked what model you are running on.\n\n`;
+      let fileBlock = '';
       if (bodyFileContext?.filename && bodyFileContext?.content != null) {
-        const maxChars = 15000;
-        const content = String(bodyFileContext.content);
+        let content = String(bodyFileContext.content);
+        const startLine = bodyFileContext.startLine;
+        const endLine = bodyFileContext.endLine;
+        if (typeof startLine === 'number' && typeof endLine === 'number' && endLine >= startLine) {
+          const lines = content.split('\n');
+          const start = Math.max(0, startLine - 1);
+          const end = Math.min(lines.length, endLine);
+          content = lines.slice(start, end).join('\n');
+        }
+        const maxChars = PROMPT_CAPS.FILE_CONTEXT_MAX_CHARS;
         const truncated = content.length > maxChars;
         const slice = content.slice(0, maxChars);
-        finalSystem += `\n\nCURRENT FILE OPEN IN MONACO:
+        fileBlock = `\n\nCURRENT FILE OPEN IN MONACO:
 Filename: ${bodyFileContext.filename}
 Bucket: ${bodyFileContext.bucket || 'not specified'}
-Content (first ${maxChars} chars${truncated ? ', truncated' : ''}):
+Content (first ${maxChars} chars${truncated ? ', truncated' : ''}${startLine != null && endLine != null ? `, lines ${startLine}-${endLine}` : ''}):
 \`\`\`
-${slice}
+${slice}${truncated ? PROMPT_CAPS.TRUNCATION_MARKER : ''}
 \`\`\`
 `;
+      }
+      const systemWithBlurb = coreSystemPrefix + buildModeContext(chatMode, resolvedSections, compiledContext, ragContext, fileBlock, model);
+      let finalSystem = systemWithBlurb;
+
+      if (session_id && apiMessages.length > PROMPT_CAPS.LAST_N_VERBATIM_TURNS && env.R2) {
+        try {
+          const sumObj = await env.R2.get('knowledge/conversations/' + session_id + '-summary.md');
+          if (sumObj) {
+            const summaryText = await sumObj.text();
+            const summaryBlock = capWithMarker(summaryText, PROMPT_CAPS.SESSION_SUMMARY_MAX_CHARS);
+            finalSystem += '\n\n[Previous session summary]:\n' + summaryBlock;
+            apiMessages = apiMessages.slice(-PROMPT_CAPS.LAST_N_VERBATIM_TURNS);
+          }
+        } catch (_) {}
       }
 
       const gatewayModel = getGatewayModel(model.provider, model.model_key);
@@ -3429,7 +3937,12 @@ ${slice}
               const properties = {};
               const required = [];
               for (const [key, val] of Object.entries(rawSchema)) {
-                properties[key] = { type: val.type ?? 'string' };
+                properties[key] = {
+                  type: val.type ?? 'string',
+                  ...(val.items && { items: val.items }),
+                  ...(val.description && { description: val.description }),
+                  ...(val.enum && { enum: val.enum })
+                };
                 if (val.required) required.push(key);
               }
               input_schema = { type: 'object', properties, required };
@@ -3438,6 +3951,51 @@ ${slice}
             return { name: t.tool_name, description: t.description || t.tool_name, input_schema };
           });
         } catch (_) {}
+      }
+      toolDefinitions = filterToolsByMode(chatMode, toolDefinitions);
+
+      const messageContentChars = (m) => {
+        const c = m.content;
+        if (typeof c === 'string') return c.length;
+        if (Array.isArray(c)) return c.reduce((s, p) => s + (typeof p === 'string' ? p.length : JSON.stringify(p).length), 0);
+        return JSON.stringify(c != null ? c : '').length;
+      };
+      const historyChars = apiMessages.reduce((s, m) => s + messageContentChars(m), 0);
+      const fileContextChars = (bodyFileContext?.content != null) ? Math.min(String(bodyFileContext.content).length, PROMPT_CAPS.FILE_CONTEXT_MAX_CHARS) : 0;
+      const toolDefChars = toolDefinitions.reduce((s, t) => s + JSON.stringify(t).length, 0);
+      const telemetryPayload = {
+        mode: chatMode,
+        provider: model.provider,
+        stream: wantStream,
+        toolCount: toolDefinitions?.length ?? 0,
+        messageCount: apiMessages.length,
+        coreSystemChars: coreSystemPrefix.length,
+        compiledContextChars: systemWithBlurb.length - coreSystemPrefix.length,
+        ragContextChars: ragContext.length,
+        fileContextChars,
+        historyChars,
+        toolDefChars,
+        totalAssembledChars: finalSystem.length + historyChars,
+      };
+      logPromptTelemetry(env, telemetryPayload);
+      let auditReport = null;
+      if (bodyAudit) {
+        auditReport = {
+          section_tokens: {
+            core_system: charsToTokens(telemetryPayload.coreSystemChars),
+            compiled_context: charsToTokens(telemetryPayload.compiledContextChars),
+            rag_context: charsToTokens(telemetryPayload.ragContextChars),
+            file_context: charsToTokens(telemetryPayload.fileContextChars),
+            conversation_history: charsToTokens(telemetryPayload.historyChars),
+            tool_definitions: charsToTokens(telemetryPayload.toolDefChars),
+          },
+          total_input_tokens_est: charsToTokens(telemetryPayload.totalAssembledChars),
+          mode: chatMode,
+          tools_included: (toolDefinitions?.length ?? 0) > 0,
+          message_count: apiMessages.length,
+          output_tokens: null,
+          latency_ms: null,
+        };
       }
 
       if (wantStream) {
@@ -3609,7 +4167,9 @@ ${slice}
                         } catch (_) {}
                       }
                       emitCodeBlocksFromText(fullText, (obj) => controller.enqueue(new TextEncoder().encode('data: ' + JSON.stringify(obj) + '\n\n')));
-                      controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', input_tokens: inputTokens, output_tokens: outputTokens, cost_usd: amountUsd, conversation_id: conversationIdRef })}\n\n`));
+                      const donePayload = { type: 'done', input_tokens: inputTokens, output_tokens: outputTokens, cost_usd: amountUsd, conversation_id: conversationIdRef };
+                      if (bodyAudit) donePayload.audit = { input_tokens: inputTokens, output_tokens: outputTokens, latency_ms: Date.now() - chatStartTime, mode: chatMode, tools_included: false };
+                      controller.enqueue(new TextEncoder().encode('data: ' + JSON.stringify(donePayload) + '\n\n'));
                     } else if (data.type === 'error') {
                       controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'error', error: data.error })}\n\n`));
                     }
@@ -3678,13 +4238,22 @@ ${slice}
           const toolsResp = await chatWithToolsAnthropic(env, finalSystem, apiMessages, model, conversationId, agentIdForTools, ctx, { stream: false, mode: chatMode });
           if (toolsResp) return toolsResp;
         }
-        const finalText = await runToolLoop(env, request, model.provider, modelKeyForTools, finalSystem, apiMessages, toolDefinitions, model, agentIdForTools, conversationId);
+        const toolLoopResult = await runToolLoop(env, request, model.provider, modelKeyForTools, finalSystem, apiMessages, toolDefinitions, model, agentIdForTools, conversationId);
+        const finalText = typeof toolLoopResult === 'string' ? toolLoopResult : (toolLoopResult?.content?.[0]?.text ?? '');
         try {
           await streamDoneDbWrites(env, conversationId, model, finalText, 0, 0, 0, agentIdForTools, ctx);
         } catch (e) {
           console.error('[agent/chat] streamDoneDbWrites (tool loop) failed:', e?.message ?? e);
         }
-        return jsonResponse({ content: finalText, role: 'assistant', conversation_id: conversationId });
+        const content = typeof toolLoopResult === 'object' && toolLoopResult?.content ? toolLoopResult.content : [{ type: 'text', text: finalText || '' }];
+        const toolLoopRes = { content, role: 'assistant', conversation_id: conversationId };
+        if (auditReport) {
+          const outText = (content && content[0] && content[0].text) ? content[0].text : (typeof finalText === 'string' ? finalText : '');
+          auditReport.output_tokens = charsToTokens(outText.length);
+          auditReport.latency_ms = Date.now() - chatStartTime;
+          toolLoopRes.audit = auditReport;
+        }
+        return jsonResponse(toolLoopRes);
       }
 
       let result;
@@ -3839,7 +4408,12 @@ ${slice}
           await env.DB.prepare("UPDATE agent_ai_sam SET total_runs=total_runs+1, last_run_at=unixepoch(), updated_at=unixepoch() WHERE id=?").bind(agent_id).run();
         } catch (_) {}
       }
-      return jsonResponse({ ...result, conversation_id: conversationId });
+      return jsonResponse({
+        content: [{ type: 'text', text: assistantContent || '' }],
+        text: assistantContent || '',
+        conversation_id: conversationId,
+        usage: { input_tokens: inputTok, output_tokens: outputTok, prompt_tokens: inputTok, completion_tokens: outputTok }
+      });
     }
 
     if (pathLower === '/api/agent/playwright' && method === 'POST') {
@@ -4138,6 +4712,192 @@ ${slice}
         } catch (_) {}
       }
       return jsonResponse({ google, github });
+    }
+
+    // Playwright screenshots (R2 agent-sam/screenshots/) — list and serve
+    if (pathLower === '/api/screenshots' && method === 'GET') {
+      let authUser = await getAuthUser(request, env);
+      if (!authUser && env.DB) {
+        const originOrReferer = (request.headers.get('Origin') || request.headers.get('Referer') || '').trim();
+        const sameOrigin = originOrReferer.startsWith('https://inneranimalmedia.com') || originOrReferer.startsWith('https://www.inneranimalmedia.com');
+        if (sameOrigin) {
+          const row = await env.DB.prepare(
+            `SELECT id FROM auth_users WHERE LOWER(id) IN (?, ?, ?) LIMIT 1`
+          ).bind('info@inneranimals.com', 'sam@inneranimalmedia.com', 'inneranimalclothing@gmail.com').first();
+          if (row) authUser = { id: row.id };
+        }
+      }
+      if (!authUser) return jsonResponse({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401);
+      const bucket = env.DASHBOARD;
+      if (!bucket || !bucket.list) return jsonResponse({ error: 'Screenshots bucket not configured', images: [] }, 200);
+      try {
+        const list = await bucket.list({ prefix: 'screenshots/', limit: 1000 });
+        const objects = list.objects || [];
+        const baseUrl = new URL(request.url).origin;
+        const images = objects.map((o) => {
+          const key = o.key || '';
+          const name = key.split('/').pop() || key;
+          return {
+            id: key,
+            filename: name,
+            uploaded: o.uploaded ? new Date(o.uploaded).toISOString() : '',
+            thumbnail: baseUrl + '/api/screenshots/asset?key=' + encodeURIComponent(key),
+            url: baseUrl + '/api/screenshots/asset?key=' + encodeURIComponent(key),
+            meta: {},
+            source: 'screenshots'
+          };
+        });
+        return jsonResponse({ images, source: 'screenshots' });
+      } catch (e) {
+        return jsonResponse({ error: String(e?.message || e), images: [] }, 500);
+      }
+    }
+    if (pathLower === '/api/screenshots/asset' && method === 'GET') {
+      let authUser = await getAuthUser(request, env);
+      if (!authUser && env.DB) {
+        const originOrReferer = (request.headers.get('Origin') || request.headers.get('Referer') || '').trim();
+        const sameOrigin = originOrReferer.startsWith('https://inneranimalmedia.com') || originOrReferer.startsWith('https://www.inneranimalmedia.com');
+        if (sameOrigin) {
+          const row = await env.DB.prepare(
+            `SELECT id FROM auth_users WHERE LOWER(id) IN (?, ?, ?) LIMIT 1`
+          ).bind('info@inneranimals.com', 'sam@inneranimalmedia.com', 'inneranimalclothing@gmail.com').first();
+          if (row) authUser = { id: row.id };
+        }
+      }
+      if (!authUser) return jsonResponse({ error: 'Unauthorized' }, 401);
+      const key = url.searchParams.get('key') || '';
+      if (!key || !key.startsWith('screenshots/')) return jsonResponse({ error: 'Invalid key' }, 400);
+      const bucket = env.DASHBOARD;
+      if (!bucket || !bucket.get) return jsonResponse({ error: 'Not configured' }, 503);
+      try {
+        const obj = await bucket.get(key);
+        if (!obj || !obj.body) return jsonResponse({ error: 'Not found' }, 404);
+        const ct = obj.httpMetadata?.contentType || 'image/png';
+        return new Response(obj.body, { headers: { 'Content-Type': ct, 'Cache-Control': 'private, max-age=3600' } });
+      } catch (_) {
+        return jsonResponse({ error: 'Not found' }, 404);
+      }
+    }
+    if (pathLower === '/api/screenshots' && method === 'DELETE') {
+      const authUser = await getAuthUser(request, env);
+      if (!authUser) return jsonResponse({ error: 'Unauthorized' }, 401);
+      const key = url.searchParams.get('key') || '';
+      if (!key || !key.startsWith('screenshots/')) return jsonResponse({ error: 'Invalid key' }, 400);
+      const bucket = env.DASHBOARD;
+      if (!bucket || !bucket.delete) return jsonResponse({ error: 'Not configured' }, 503);
+      try {
+        await bucket.delete(key);
+        return jsonResponse({ ok: true, deleted: key });
+      } catch (e) {
+        return jsonResponse({ error: String(e?.message || e) }, 500);
+      }
+    }
+
+    // Cloudflare Images API proxy (dashboard/images.html)
+    const imagesToken = env.CLOUDFLARE_IMAGES_TOKEN || env.CLOUDFLARE_IMAGES_API_TOKEN;
+    const imagesAccountId = env.CLOUDFLARE_ACCOUNT_ID || env.CLOUDFLARE_IMAGES_ACCOUNT_HASH;
+    if (pathLower === '/api/images' && method === 'GET') {
+      let authUser = await getAuthUser(request, env);
+      if (!authUser && env.DB) {
+        const originOrReferer = (request.headers.get('Origin') || request.headers.get('Referer') || '').trim();
+        const sameOrigin = originOrReferer.startsWith('https://inneranimalmedia.com') || originOrReferer.startsWith('https://www.inneranimalmedia.com');
+        if (sameOrigin) {
+          const row = await env.DB.prepare(
+            `SELECT id FROM auth_users WHERE LOWER(id) IN (?, ?, ?) LIMIT 1`
+          ).bind('info@inneranimals.com', 'sam@inneranimalmedia.com', 'inneranimalclothing@gmail.com').first();
+          if (row) authUser = { id: row.id };
+        }
+      }
+      if (!authUser) return jsonResponse({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401);
+      if (!imagesAccountId || !imagesToken) return jsonResponse({ error: 'Cloudflare Images not configured', code: 'NOT_CONFIGURED' }, 503);
+      const page = url.searchParams.get('page') || '1';
+      const perPage = url.searchParams.get('per_page') || '1000';
+      const cfUrl = `https://api.cloudflare.com/client/v4/accounts/${imagesAccountId}/images/v1?page=${page}&per_page=${Math.min(10000, Math.max(1, parseInt(perPage, 10) || 100))}`;
+      const res = await fetch(cfUrl, { headers: { Authorization: `Bearer ${imagesToken}` } });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return jsonResponse({ error: data.errors?.[0]?.message || 'Cloudflare Images API error', code: 'CF_IMAGES_ERROR' }, res.status);
+      const images = (data.result && data.result.images) ? data.result.images.map((img) => ({
+        id: img.id,
+        filename: img.filename,
+        uploaded: img.uploaded,
+        thumbnail: (img.variants && img.variants[0]) || '',
+        url: (img.variants && img.variants[0]) || '',
+        meta: img.meta || {}
+      })) : [];
+      return jsonResponse({ images, accountHash: env.CLOUDFLARE_IMAGES_ACCOUNT_HASH || imagesAccountId });
+    }
+    if (pathLower === '/api/images' && method === 'POST') {
+      const authUser = await getAuthUser(request, env);
+      if (!authUser) return jsonResponse({ error: 'Unauthorized' }, 401);
+      if (!imagesAccountId || !imagesToken) return jsonResponse({ error: 'Cloudflare Images not configured' }, 503);
+      const contentType = request.headers.get('Content-Type') || '';
+      let body;
+      if (contentType.includes('application/json')) {
+        body = await request.json().catch(() => ({}));
+        const imageUrl = body.url;
+        if (!imageUrl || typeof imageUrl !== 'string') return jsonResponse({ error: 'Missing url', ok: false }, 400);
+        const formBody = new URLSearchParams({ url: imageUrl.trim() });
+        const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${imagesAccountId}/images/v1`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${imagesToken}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formBody.toString()
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return jsonResponse({ error: data.errors?.[0]?.message || 'Upload failed', ok: false }, res.status);
+        const img = data.result;
+        return jsonResponse({ ok: true, image: img ? { id: img.id, filename: img.filename, uploaded: img.uploaded, url: (img.variants && img.variants[0]) || '', thumbnail: (img.variants && img.variants[0]) || '' } : {} });
+      }
+      if (contentType.includes('multipart/form-data')) {
+        body = await request.formData().catch(() => null);
+        if (!body || !body.get('file')) return jsonResponse({ error: 'Missing file', ok: false }, 400);
+        const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${imagesAccountId}/images/v1`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${imagesToken}` },
+          body
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return jsonResponse({ error: data.errors?.[0]?.message || 'Upload failed', ok: false }, res.status);
+        const img = data.result;
+        return jsonResponse({ ok: true, image: img ? { id: img.id, filename: img.filename, uploaded: img.uploaded, url: (img.variants && img.variants[0]) || '', thumbnail: (img.variants && img.variants[0]) || '' } : {} });
+      }
+      return jsonResponse({ error: 'Use JSON { url } or multipart file', ok: false }, 400);
+    }
+    if (method === 'DELETE' && /^\/api\/images\/[^/]+$/.test(pathLower)) {
+      const authUser = await getAuthUser(request, env);
+      if (!authUser) return jsonResponse({ error: 'Unauthorized' }, 401);
+      if (!imagesAccountId || !imagesToken) return jsonResponse({ error: 'Cloudflare Images not configured' }, 503);
+      const id = pathLower.replace(/^\/api\/images\/?/, '');
+      if (!id) return jsonResponse({ error: 'Missing image id' }, 400);
+      const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${imagesAccountId}/images/v1/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${imagesToken}` } });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return jsonResponse({ error: data.errors?.[0]?.message || 'Delete failed', ok: false }, res.status);
+      return jsonResponse({ ok: true });
+    }
+    if (pathLower.startsWith('/api/images/') && pathLower.endsWith('/meta')) {
+      const authUser = await getAuthUser(request, env);
+      if (!authUser) return jsonResponse({ error: 'Unauthorized' }, 401);
+      const id = pathLower.replace(/^\/api\/images\/?/, '').replace(/\/meta$/, '').trim();
+      if (!id) return jsonResponse({ error: 'Missing image id' }, 400);
+      if (method === 'GET') {
+        if (!imagesAccountId || !imagesToken) return jsonResponse({ error: 'Cloudflare Images not configured' }, 503);
+        const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${imagesAccountId}/images/v1/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${imagesToken}` } });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return jsonResponse({ error: data.errors?.[0]?.message || 'Not found', ok: false }, res.status);
+        return jsonResponse({ ok: true, meta: (data.result && data.result.meta) || {} });
+      }
+      if (method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        if (!imagesAccountId || !imagesToken) return jsonResponse({ error: 'Cloudflare Images not configured' }, 503);
+        const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${imagesAccountId}/images/v1/${encodeURIComponent(id)}`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${imagesToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ metadata: body })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return jsonResponse({ error: data.errors?.[0]?.message || 'Update failed', ok: false }, res.status);
+        const meta = (data.result && data.result.meta) || body;
+        return jsonResponse({ ok: true, meta });
+      }
     }
 
     if (pathLower === '/api/agent/today-todo' && method === 'GET') {
@@ -4834,7 +5594,12 @@ async function chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, 
         const required = [];
         for (const [key, val] of Object.entries(rawSchema)) {
           if (key === 'type' || key === 'properties' || key === 'required') continue;
-          properties[key] = { type: (val && val.type) || 'string' };
+          properties[key] = {
+            type: (val && val.type) || 'string',
+            ...(val && val.items && { items: val.items }),
+            ...(val && val.description && { description: val.description }),
+            ...(val && val.enum && { enum: val.enum })
+          };
           if (val && val.required) required.push(key);
         }
         input_schema = { type: 'object', properties: Object.keys(properties).length ? properties : {}, required };
@@ -4957,6 +5722,7 @@ async function chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, 
         return new Response(streamBody, { headers: { 'Content-Type': 'text/event-stream' } });
       }
       return jsonResponse({
+        content: [{ type: 'text', text: lastContent }],
         message: { content: lastContent, role: 'assistant', tool_calls: allToolCalls.length ? allToolCalls : undefined },
         conversation_id: conversationId,
         stream: false,
@@ -5037,6 +5803,7 @@ async function chatWithToolsAnthropic(env, systemWithBlurb, apiMessages, model, 
     return new Response(streamBody, { headers: { 'Content-Type': 'text/event-stream' } });
   }
   return jsonResponse({
+    content: [{ type: 'text', text: lastContent || '(Tool loop limit reached.)' }],
     message: { content: lastContent || '(Tool loop limit reached.)', role: 'assistant', tool_calls: allToolCalls },
     conversation_id: conversationId,
     stream: false,
